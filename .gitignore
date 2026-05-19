@@ -1,6 +1,7 @@
 .next
 node_modules
 .env*
+!.env*.example
 dist
 coverage
 keys-do-not-commit/
