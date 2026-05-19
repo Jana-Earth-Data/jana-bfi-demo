@@ -303,10 +303,14 @@ function generateLoansForCategory(
   const businessUnit = BUSINESS_UNIT_FOR_CATEGORY[category];
   const out: Loan[] = [];
 
-  for (let i = 0; i < count; i++) {
-    const npr = roundNpr(logUniform(lo, hi, r));
-    const usd = nprToUsd(npr);
+  // Cap loan size at 50% of borrower EV. Real banks rarely lend more than
+  // half a borrower's enterprise value, and we need this to keep the PCAF
+  // attribution factor (loan / EV) below 50% rather than producing the
+  // 200-700% nonsense an unconstrained synthesizer would generate.
+  const EV_CAP_FRACTION = 0.5;
 
+  for (let i = 0; i < count; i++) {
+    // Pick borrower first so we can cap the loan against their EV
     let borrower: Borrower;
     if (category.startsWith("retail-")) {
       borrower = catalog.retailPool;
@@ -315,6 +319,19 @@ function generateLoansForCategory(
     } else {
       borrower = pickCommercialBorrower(catalog, category, r);
     }
+
+    // Compute an EV-constrained upper bound on the NPR amount. Retail pool
+    // borrower has EV=0 (out-of-scope) so we skip the cap there.
+    let effectiveHi = hi;
+    if (
+      borrower.kind !== "retail-pool" &&
+      borrower.enterpriseValueUsd > 0
+    ) {
+      const capNpr = usdToNpr(borrower.enterpriseValueUsd * EV_CAP_FRACTION);
+      effectiveHi = Math.min(hi, Math.max(lo, capNpr));
+    }
+    const npr = roundNpr(logUniform(lo, effectiveHi, r));
+    const usd = nprToUsd(npr);
 
     const disbursedOffset = -rangeInt(30, 365 * 5, r); // up to 5y ago
     const termMonths = (() => {

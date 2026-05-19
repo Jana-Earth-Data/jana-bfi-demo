@@ -41,13 +41,18 @@ export type DashboardSsrData = {
   };
 };
 
-type TabId = "esrm" | "taxonomy" | "loans" | "nsrs";
+type TabId = "loans" | "esrm" | "taxonomy" | "nsrs";
 
 const TABS: Array<{
   id: TabId;
   label: string;
   description: string;
 }> = [
+  {
+    id: "loans",
+    label: "Loan Book",
+    description: "Simulated 80K-loan portfolio · Search, filter, inspect any record",
+  },
   {
     id: "esrm",
     label: "ESRM",
@@ -63,28 +68,23 @@ const TABS: Array<{
     label: "NSRS",
     description: "Disclosure · Financed emissions, PCAF (2026-27)",
   },
-  {
-    id: "loans",
-    label: "Loan Book",
-    description: "Loan-by-loan drill-down · Search, filter, inspect any record",
-  },
 ];
 
 const VALID_TABS: ReadonlySet<TabId> = new Set([
+  "loans",
   "esrm",
   "taxonomy",
-  "loans",
   "nsrs",
 ]);
 
 function tabFromHash(): TabId {
-  if (typeof window === "undefined") return "esrm";
+  if (typeof window === "undefined") return "loans";
   const h = window.location.hash.replace(/^#/, "");
-  return VALID_TABS.has(h as TabId) ? (h as TabId) : "esrm";
+  return VALID_TABS.has(h as TabId) ? (h as TabId) : "loans";
 }
 
 function DashboardInner({ data }: { data: DashboardSsrData }) {
-  const [tab, setTab] = useState<TabId>("esrm");
+  const [tab, setTab] = useState<TabId>("loans");
   const [liveData, setLiveData] = useState<DashboardSsrData | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -192,9 +192,9 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
       )}
 
       <main className="mx-auto max-w-[1500px] px-6 py-6">
+        {tab === "loans" && <LoansTab data={active} />}
         {tab === "esrm" && <EsrmTab data={active} />}
         {tab === "taxonomy" && <TaxonomyTab data={active} />}
-        {tab === "loans" && <LoansTab data={active} />}
         {tab === "nsrs" && <NsrsTab data={active} />}
       </main>
 

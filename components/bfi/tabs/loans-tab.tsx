@@ -39,18 +39,20 @@ export function LoansTab({ data }: { data: DashboardSsrData }) {
         />
       </div>
 
-      <Panel
-        title="Portfolio loan list"
-        subtitle="Search, filter and drill into any loan in the book"
-      >
-        <LoanTable
-          initialRows={data.initialLoans}
-          initialTotal={data.totalLoanCount}
-          pageSize={50}
-          sectors={data.distinctValues.sectors}
-          businessUnits={data.distinctValues.businessUnits}
-        />
-      </Panel>
+      <div data-tour="loan-table">
+        <Panel
+          title="Portfolio loan list"
+          subtitle="Search, filter and drill into any loan in the book"
+        >
+          <LoanTable
+            initialRows={data.initialLoans}
+            initialTotal={data.totalLoanCount}
+            pageSize={50}
+            sectors={data.distinctValues.sectors}
+            businessUnits={data.distinctValues.businessUnits}
+          />
+        </Panel>
+      </div>
     </div>
   );
 }

@@ -7,11 +7,11 @@
   "steps": [
     {
       "id": "intro",
-      "tab": "taxonomy",
-      "target": "[data-tour='header']",
-      "calloutTitle": "First Bank of Nepal — financed emissions",
-      "calloutText": "A live demonstration of how Jana Earth Data powers a Nepali bank's commercial loan book against NRB's three regulatory frameworks.",
-      "narration": "Welcome. What you're looking at is a financed-emissions dashboard for First Bank of Nepal — a hypothetical Class A commercial bank with an 80,000-loan portfolio. Everything you see is wired to real Climate TRACE and EDGAR data from Jana Earth Data. Over the next three minutes I'll walk you through how a bank uses this to meet all three of Nepal Rastra Bank's environmental regulations through a single data platform.",
+      "tab": "loans",
+      "target": "[data-tour='loan-table']",
+      "calloutTitle": "First Bank of Nepal, financed emissions",
+      "calloutText": "A simulated 80,000-loan portfolio for a hypothetical Class A commercial bank, with real facility emissions from Climate TRACE and EDGAR underneath.",
+      "narration": "Welcome. What you are looking at is a financed-emissions dashboard for First Bank of Nepal. The loan book on this tab is a simulated portfolio of 80,000 loans for a hypothetical Class A commercial bank. The numbers underneath every record are real, drawn from Climate TRACE satellite verification and EDGAR national inventories through Jana Earth Data. Over the next three minutes I will walk you through how a bank uses this to meet all three of Nepal Rastra Bank's environmental regulations through a single data platform.",
       "audioFile": "/audio/tour-01-intro.mp3"
     },
     {

@@ -7,6 +7,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Funnel,
+  FunnelChart,
+  LabelList,
   Legend,
   Line,
   LineChart,
@@ -53,7 +56,10 @@ const TOOLTIP_STYLE = {
   border: "1px solid #243244",
   borderRadius: 12,
   fontSize: 12,
+  color: "#e2e8f0",
 };
+const TOOLTIP_ITEM_STYLE = { color: "#e2e8f0" };
+const TOOLTIP_LABEL_STYLE = { color: "#cbd5e1" };
 
 function compact(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -88,6 +94,8 @@ export function SectorEmissionsChart({ data }: { data: SectorItem[] }) {
           />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
+            itemStyle={TOOLTIP_ITEM_STYLE}
+            labelStyle={TOOLTIP_LABEL_STYLE}
             formatter={(value: number) =>
               `${new Intl.NumberFormat("en-US").format(value)} tCO2e`
             }
@@ -149,6 +157,8 @@ export function TaxonomyPieChart({
           </Pie>
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
+            itemStyle={TOOLTIP_ITEM_STYLE}
+            labelStyle={TOOLTIP_LABEL_STYLE}
             formatter={(value: number) =>
               mode === "value"
                 ? `NPR ${new Intl.NumberFormat("en-US").format(value)}`
@@ -187,6 +197,8 @@ export function EmissionsTrendChart({
           />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
+            itemStyle={TOOLTIP_ITEM_STYLE}
+            labelStyle={TOOLTIP_LABEL_STYLE}
             formatter={(value: number, name: string) =>
               [
                 `${new Intl.NumberFormat("en-US").format(value)} tCO2e`,
@@ -237,6 +249,69 @@ export function EmissionsTrendChart({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Portfolio funnel chart
+// ---------------------------------------------------------------------------
+//
+// Three trapezoids sized by loan count, narrowing from the full 80K book
+// down to the slice with facility-tier emissions data. The dramatic
+// narrowing IS the story — small by count, but the slice carries most of
+// the regulatory exposure.
+
+export type FunnelStage = {
+  name: string;
+  count: number;
+  nprValue: number;
+  fill: string;
+  /** Pre-built label that appears next to each funnel segment. */
+  label: string;
+};
+
+export function PortfolioFunnelChart({
+  stages,
+  height = 260,
+}: {
+  stages: FunnelStage[];
+  height?: number;
+}) {
+  // Recharts Funnel: each trapezoid width is proportional to the dataKey.
+  // We use `count` so the narrowing is visible. Labels carry the extra detail.
+  return (
+    <div style={{ height }} className="w-full">
+      <ResponsiveContainer>
+        <FunnelChart margin={{ top: 8, right: 160, bottom: 8, left: 8 }}>
+          <Tooltip
+            contentStyle={TOOLTIP_STYLE}
+            itemStyle={TOOLTIP_ITEM_STYLE}
+            labelStyle={TOOLTIP_LABEL_STYLE}
+            formatter={(value: number, _name, item) => {
+              const row = item as unknown as { payload: FunnelStage };
+              return [
+                `${row.payload.count.toLocaleString()} loans · NPR ${(
+                  row.payload.nprValue / 1_000_000_000
+                ).toFixed(1)}B`,
+                row.payload.name,
+              ];
+            }}
+          />
+          <Funnel dataKey="count" data={stages} isAnimationActive>
+            {stages.map((s, i) => (
+              <Cell key={i} fill={s.fill} stroke="#0b1220" strokeWidth={2} />
+            ))}
+            <LabelList
+              position="right"
+              fill="#e2e8f0"
+              stroke="none"
+              fontSize={12}
+              dataKey="label"
+            />
+          </Funnel>
+        </FunnelChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export function DataQualityBars({
   distribution,
 }: {
@@ -274,6 +349,8 @@ export function DataQualityBars({
           />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
+            itemStyle={TOOLTIP_ITEM_STYLE}
+            labelStyle={TOOLTIP_LABEL_STYLE}
             formatter={(_: number, _name, item) => {
               const row = item as unknown as { payload: (typeof rows)[number] };
               return [

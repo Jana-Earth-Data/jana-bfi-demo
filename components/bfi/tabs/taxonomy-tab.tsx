@@ -10,7 +10,12 @@ import {
   SegmentToggle,
   StatRow,
 } from "@/components/bfi/shared/primitives";
-import { TaxonomyPieChart, TAXONOMY_FILL } from "@/components/bfi/charts";
+import {
+  PortfolioFunnelChart,
+  TaxonomyPieChart,
+  TAXONOMY_FILL,
+  type FunnelStage,
+} from "@/components/bfi/charts";
 import { InfoTip } from "@/components/bfi/shared/info-tip";
 import {
   formatCo2e,
@@ -177,86 +182,72 @@ export function TaxonomyTab({ data }: { data: DashboardSsrData }) {
 function Funnel({ data }: { data: DashboardSsrData }) {
   const f = data.portfolio.funnel;
   if (!f) return null;
-  const stages = [
+  const stages: FunnelStage[] = [
     {
-      label: "Total book",
-      sub: "All loans — retail + SME + commercial + corporate",
+      name: "Total book",
       count: f.totalLoans,
-      value: f.totalOutstandingNpr,
-      pctCount: 1,
-      pctValue: 1,
-      accent: "from-slate-700 to-slate-600",
+      nprValue: f.totalOutstandingNpr,
+      fill: "#475569",
+      label: `Total book · ${f.totalLoans.toLocaleString()} loans · ${formatNpr(f.totalOutstandingNpr)}`,
     },
     {
-      label: "In scope for ESRM / Taxonomy",
-      sub: "Commercial, corporate, and project-finance loans",
+      name: "In scope for ESRM / Taxonomy",
       count: f.inScopeLoans,
-      value: f.inScopeOutstandingNpr,
-      pctCount: f.totalLoans > 0 ? f.inScopeLoans / f.totalLoans : 0,
-      pctValue: f.totalOutstandingNpr > 0
-        ? f.inScopeOutstandingNpr / f.totalOutstandingNpr
-        : 0,
-      accent: "from-amber-600/70 to-amber-500/70",
+      nprValue: f.inScopeOutstandingNpr,
+      fill: "#fbbf24",
+      label: `In scope · ${f.inScopeLoans.toLocaleString()} loans · ${formatNpr(f.inScopeOutstandingNpr)}`,
     },
     {
-      label: "Facility-tier data",
-      sub: "Climate TRACE + GCCT + capacity-derived facility emissions (PCAF Score 2-3)",
+      name: "Facility-tier data",
       count: f.facilityMatchedLoans,
-      value: f.facilityMatchedOutstandingNpr,
-      pctCount:
-        f.inScopeLoans > 0 ? f.facilityMatchedLoans / f.inScopeLoans : 0,
-      pctValue:
-        f.inScopeOutstandingNpr > 0
-          ? f.facilityMatchedOutstandingNpr / f.inScopeOutstandingNpr
-          : 0,
-      accent: "from-emerald-600/70 to-emerald-500/70",
+      nprValue: f.facilityMatchedOutstandingNpr,
+      fill: "#34d399",
+      label: `Facility-tier data · ${f.facilityMatchedLoans.toLocaleString()} loans · ${formatNpr(f.facilityMatchedOutstandingNpr)}`,
     },
   ];
+  const totalPct =
+    f.totalLoans > 0 ? (f.facilityMatchedLoans / f.totalLoans) * 100 : 0;
+  const valuePct =
+    f.totalOutstandingNpr > 0
+      ? (f.facilityMatchedOutstandingNpr / f.totalOutstandingNpr) * 100
+      : 0;
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
-      {stages.map((stage, i) => {
-        const ofTotalValue =
-          f.totalOutstandingNpr > 0 ? stage.value / f.totalOutstandingNpr : 0;
-        return (
-          <div
-            key={stage.label}
-            className={`rounded-lg border border-line bg-gradient-to-b ${stage.accent} p-4`}
-          >
-            <div className="text-xs uppercase tracking-wide text-white/70">
-              Stage {i + 1}
-            </div>
-            <div className="mt-1 text-base font-semibold text-white">
-              {stage.label}
-            </div>
-            <div className="text-xs text-white/70">{stage.sub}</div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div>
-                <div className="text-xs uppercase tracking-wide text-white/60">
-                  By count
-                </div>
-                <div className="mt-0.5 text-lg font-semibold text-white">
-                  {stage.count.toLocaleString()}
-                </div>
-                <div className="text-xs text-white/70">
-                  {formatPercent(stage.pctCount)}{" "}
-                  {i === 0 ? "of book" : "of prior stage"}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wide text-white/60">
-                  By NPR
-                </div>
-                <div className="mt-0.5 text-lg font-semibold text-white">
-                  {formatNpr(stage.value)}
-                </div>
-                <div className="text-xs text-white/70">
-                  {formatPercent(ofTotalValue)} of book
-                </div>
-              </div>
-            </div>
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <PortfolioFunnelChart stages={stages} height={300} />
+      </div>
+      <div className="space-y-3 lg:col-span-2">
+        <div className="rounded-lg border border-line/60 bg-panel/40 p-4">
+          <div className="text-xs uppercase tracking-wide text-slate-400">
+            The headline
           </div>
-        );
-      })}
+          <p className="mt-2 text-sm text-slate-200">
+            <span className="font-semibold text-white">
+              {formatPercent(totalPct / 100)}
+            </span>{" "}
+            of the book by loan count carries facility-tier emissions data,{" "}
+            <span className="font-semibold text-white">
+              {formatPercent(valuePct / 100)}
+            </span>{" "}
+            by outstanding value. Small by count, large by value, all of the
+            regulatory exposure.
+          </p>
+        </div>
+        <div className="space-y-1 rounded-lg border border-line/60 bg-panel/40 p-4 text-xs text-slate-300">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-sm" style={{ background: "#475569" }} />
+            Total book: all loans, retail through corporate.
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-sm" style={{ background: "#fbbf24" }} />
+            In scope: commercial, corporate, and project finance (the slice NRB regulates).
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-sm" style={{ background: "#34d399" }} />
+            Facility-tier data: PCAF Score 2-3 from Climate TRACE, GCCT, or capacity-derived.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
