@@ -1,0 +1,12 @@
+{
+  "source": "EDGAR v8.1 gridded CO2 emissions, 2024, polygon-clipped to Nepal",
+  "license": "European Commission JRC, free for non-commercial use with attribution",
+  "year": 2024,
+  "country": "Nepal",
+  "gridResolutionDegrees": 0.1,
+  "rawRowCount": 3337,
+  "rawCellCount": 3258,
+  "nepalCellCount": 1343,
+  "nepalTotalTco2": 18813007,
+  "method": "Per-cell max across duplicate rows, then point-in-polygon mask with Nepal admin boundary"
+}

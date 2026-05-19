@@ -1,0 +1,16 @@
+.next
+node_modules
+.env*
+dist
+coverage
+keys-do-not-commit/
+
+# Secrets — never commit these
+*.key
+tts.key*
+*.pem
+.aws/
+
+# macOS / build artifacts
+.DS_Store
+tsconfig.tsbuildinfo

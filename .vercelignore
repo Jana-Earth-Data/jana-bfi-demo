@@ -1,0 +1,24 @@
+# Vercel ignores .gitignored files by default; this file is just for things
+# that ARE in git but shouldn't ship to Vercel's build/runtime image.
+
+# Raw data inputs — only the *.json snapshots are imported at build time;
+# the CSVs and GeoJSON live in the repo for reproducibility (so anyone can
+# rerun scripts/build-data-snapshots.py) but they don't need to ship.
+data/_raw_*.csv
+data/_raw_*.geojson
+
+# Docker artifacts — Vercel uses its own runtime, not our Dockerfile
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Dev-only scripts — not invoked at build or runtime on Vercel
+scripts/
+
+# Internal docs, sales briefs, regulatory PDFs — not part of the runtime app
+docs/
+
+# Secret-key sentinel folder (defense in depth even though .gitignore
+# already excludes *.key)
+keys-do-not-commit/
+tts.key

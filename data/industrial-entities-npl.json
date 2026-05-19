@@ -1,0 +1,203 @@
+{
+  "source": "Curated from public filings, NEPSE listings, and Nepal Department of Industry registrations",
+  "country": "Nepal",
+  "count": 14,
+  "entities": [
+    {
+      "name": "Bottlers Nepal (Terai) Limited",
+      "sector": "manufacturing-fmcg",
+      "subsector": "beverages",
+      "ownership": "publicly-listed",
+      "parent": "Coca-Cola Sabco / Coca-Cola Beverages Africa",
+      "facilities": [
+        {
+          "name": "Bharatpur Bottling Plant",
+          "lat": 27.683,
+          "lng": 84.434
+        }
+      ]
+    },
+    {
+      "name": "Bottlers Nepal Limited",
+      "sector": "manufacturing-fmcg",
+      "subsector": "beverages",
+      "ownership": "publicly-listed",
+      "parent": "Coca-Cola Sabco / Coca-Cola Beverages Africa",
+      "facilities": [
+        {
+          "name": "Balaju Bottling Plant",
+          "lat": 27.732,
+          "lng": 85.299
+        }
+      ]
+    },
+    {
+      "name": "Unilever Nepal Limited",
+      "sector": "manufacturing-fmcg",
+      "subsector": "personal-care",
+      "ownership": "publicly-listed",
+      "parent": "Unilever plc",
+      "facilities": [
+        {
+          "name": "Hetauda Factory",
+          "lat": 27.428,
+          "lng": 85.033
+        }
+      ]
+    },
+    {
+      "name": "Nepal Lube Oil Limited",
+      "sector": "manufacturing-chemicals",
+      "subsector": "lubricants",
+      "ownership": "publicly-listed",
+      "parent": null,
+      "facilities": [
+        {
+          "name": "Hetauda Blending Plant",
+          "lat": 27.43,
+          "lng": 85.038
+        }
+      ]
+    },
+    {
+      "name": "Shree Ram Sugar Mills",
+      "sector": "agriculture-processing",
+      "subsector": "sugar",
+      "ownership": "private",
+      "parent": null,
+      "facilities": [
+        {
+          "name": "Garuda Sugar Mill",
+          "lat": 26.997,
+          "lng": 85.011
+        }
+      ]
+    },
+    {
+      "name": "Sri Ram Sugar Mills Pvt Ltd",
+      "sector": "agriculture-processing",
+      "subsector": "sugar",
+      "ownership": "private",
+      "parent": null,
+      "facilities": [
+        {
+          "name": "Birgunj Mill",
+          "lat": 27.012,
+          "lng": 84.872
+        }
+      ]
+    },
+    {
+      "name": "Indu Shankar Sugar Mills",
+      "sector": "agriculture-processing",
+      "subsector": "sugar",
+      "ownership": "private",
+      "parent": null,
+      "facilities": [
+        {
+          "name": "Hariwan Mill",
+          "lat": 27.005,
+          "lng": 85.531
+        }
+      ]
+    },
+    {
+      "name": "Himal Iron and Steel Pvt Ltd",
+      "sector": "manufacturing-steel",
+      "subsector": "re-rolling",
+      "ownership": "private",
+      "parent": null,
+      "facilities": [
+        {
+          "name": "Birgunj Mill",
+          "lat": 27.024,
+          "lng": 84.891
+        }
+      ]
+    },
+    {
+      "name": "Hulas Steel Industries Ltd",
+      "sector": "manufacturing-steel",
+      "subsector": "re-rolling",
+      "ownership": "private",
+      "parent": "Golchha Organisation",
+      "facilities": [
+        {
+          "name": "Simara Plant",
+          "lat": 27.166,
+          "lng": 84.991
+        }
+      ]
+    },
+    {
+      "name": "Panchakanya Steels Pvt Ltd",
+      "sector": "manufacturing-steel",
+      "subsector": "tmt-bars",
+      "ownership": "private",
+      "parent": "Panchakanya Group",
+      "facilities": [
+        {
+          "name": "Birgunj Plant",
+          "lat": 27.027,
+          "lng": 84.88
+        }
+      ]
+    },
+    {
+      "name": "Reliance Spinning Mills Ltd",
+      "sector": "manufacturing-textiles",
+      "subsector": "spinning",
+      "ownership": "private",
+      "parent": "Reliance Group (Nepal)",
+      "facilities": [
+        {
+          "name": "Birgunj Plant",
+          "lat": 27.02,
+          "lng": 84.875
+        }
+      ]
+    },
+    {
+      "name": "Surya Nepal Pvt Ltd",
+      "sector": "manufacturing-fmcg",
+      "subsector": "tobacco-apparel",
+      "ownership": "private",
+      "parent": "ITC Limited",
+      "facilities": [
+        {
+          "name": "Simara Factory",
+          "lat": 27.17,
+          "lng": 84.985
+        }
+      ]
+    },
+    {
+      "name": "Asian Paints Nepal Pvt Ltd",
+      "sector": "manufacturing-chemicals",
+      "subsector": "paints",
+      "ownership": "private",
+      "parent": "Asian Paints Ltd (India)",
+      "facilities": [
+        {
+          "name": "Hetauda Factory",
+          "lat": 27.425,
+          "lng": 85.027
+        }
+      ]
+    },
+    {
+      "name": "Khanal Foods Pvt Ltd",
+      "sector": "agriculture-processing",
+      "subsector": "noodles",
+      "ownership": "private",
+      "parent": null,
+      "facilities": [
+        {
+          "name": "Kathmandu Plant",
+          "lat": 27.711,
+          "lng": 85.342
+        }
+      ]
+    }
+  ]
+}

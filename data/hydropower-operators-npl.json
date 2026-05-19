@@ -1,0 +1,139 @@
+{
+  "source": "Curated from NEA annual reports, IHA, and public filings",
+  "country": "Nepal",
+  "count": 6,
+  "operators": [
+    {
+      "name": "Nepal Electricity Authority",
+      "shortName": "NEA",
+      "ownership": "state-owned",
+      "ownerCountry": "NPL",
+      "operatingStations": [
+        {
+          "name": "Kulekhani I",
+          "capacityMw": 60,
+          "lat": 27.583,
+          "lng": 85.157
+        },
+        {
+          "name": "Kulekhani II",
+          "capacityMw": 32,
+          "lat": 27.604,
+          "lng": 85.179
+        },
+        {
+          "name": "Kulekhani III",
+          "capacityMw": 14,
+          "lat": 27.619,
+          "lng": 85.195
+        },
+        {
+          "name": "Marsyangdi",
+          "capacityMw": 69,
+          "lat": 27.973,
+          "lng": 84.412
+        },
+        {
+          "name": "Trishuli",
+          "capacityMw": 24,
+          "lat": 27.917,
+          "lng": 85.15
+        },
+        {
+          "name": "Devighat",
+          "capacityMw": 14,
+          "lat": 27.851,
+          "lng": 85.169
+        }
+      ],
+      "note": "Largest single utility operator; vertically integrated."
+    },
+    {
+      "name": "Chilime Hydropower Company Limited",
+      "shortName": "Chilime",
+      "ownership": "publicly-listed",
+      "ownerCountry": "NPL",
+      "operatingStations": [
+        {
+          "name": "Chilime",
+          "capacityMw": 22.1,
+          "lat": 28.22,
+          "lng": 85.323
+        }
+      ],
+      "note": "NEPSE-listed; subsidiary of NEA group."
+    },
+    {
+      "name": "Butwal Power Company Limited",
+      "shortName": "BPC",
+      "ownership": "publicly-listed",
+      "ownerCountry": "NPL",
+      "operatingStations": [
+        {
+          "name": "Jhimruk",
+          "capacityMw": 12.3,
+          "lat": 28.03,
+          "lng": 82.76
+        },
+        {
+          "name": "Andhi Khola",
+          "capacityMw": 9.4,
+          "lat": 27.951,
+          "lng": 83.793
+        }
+      ],
+      "note": "Oldest private IPP in Nepal."
+    },
+    {
+      "name": "Sanima Mai Hydropower Limited",
+      "shortName": "Sanima Mai",
+      "ownership": "publicly-listed",
+      "ownerCountry": "NPL",
+      "operatingStations": [
+        {
+          "name": "Mai Hydropower",
+          "capacityMw": 22,
+          "lat": 26.985,
+          "lng": 87.954
+        },
+        {
+          "name": "Mai Cascade",
+          "capacityMw": 7,
+          "lat": 26.999,
+          "lng": 87.96
+        }
+      ],
+      "note": "Sanima group; eastern Nepal."
+    },
+    {
+      "name": "Himal Power Limited",
+      "shortName": "HPL",
+      "ownership": "private",
+      "ownerCountry": "NPL",
+      "operatingStations": [
+        {
+          "name": "Khimti I",
+          "capacityMw": 60,
+          "lat": 27.594,
+          "lng": 86.193
+        }
+      ],
+      "note": "BOOT operator (Norway-Nepal JV historically)."
+    },
+    {
+      "name": "Upper Tamakoshi Hydropower Limited",
+      "shortName": "Upper Tamakoshi",
+      "ownership": "publicly-listed",
+      "ownerCountry": "NPL",
+      "operatingStations": [
+        {
+          "name": "Upper Tamakoshi",
+          "capacityMw": 456,
+          "lat": 27.802,
+          "lng": 86.18
+        }
+      ],
+      "note": "Largest domestic IPP project; NEA-affiliated."
+    }
+  ]
+}

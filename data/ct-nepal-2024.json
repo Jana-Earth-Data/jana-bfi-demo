@@ -1,0 +1,1978 @@
+{
+  "source": "Climate TRACE v5.6 facility emissions for Nepal, 2024",
+  "license": "CC BY 4.0 (Climate TRACE)",
+  "year": 2024,
+  "country": "Nepal",
+  "totalFacilities": 213,
+  "totalCo2eTonnes": 28035881,
+  "tierCounts": {
+    "H": 65,
+    "M": 70,
+    "L": 78
+  },
+  "tierCutoffs": {
+    "L_max": 10000,
+    "M_max": 100000,
+    "unit": "tCO2e / yr"
+  },
+  "sectorCounts": {
+    "buildings": 28,
+    "manufacturing": 25,
+    "transportation": 46,
+    "agriculture": 98,
+    "waste": 16
+  },
+  "sectorTotalsTco2e": {
+    "buildings": 7395559,
+    "manufacturing": 6382738,
+    "transportation": 4378762,
+    "agriculture": 9124521,
+    "waste": 754301
+  },
+  "sectorTierCounts": {
+    "buildings": {
+      "H": 12,
+      "M": 5,
+      "L": 11
+    },
+    "manufacturing": {
+      "H": 15,
+      "M": 9,
+      "L": 1
+    },
+    "transportation": {
+      "H": 13,
+      "M": 7,
+      "L": 26
+    },
+    "agriculture": {
+      "H": 24,
+      "M": 42,
+      "L": 32
+    },
+    "waste": {
+      "H": 1,
+      "M": 7,
+      "L": 8
+    }
+  },
+  "facilities": [
+    {
+      "assetId": "685163",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 1172036,
+      "tier": "H"
+    },
+    {
+      "assetId": "25263",
+      "lat": 27.670378,
+      "lng": 83.838253,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 922187,
+      "tier": "H"
+    },
+    {
+      "assetId": "685179",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 861263,
+      "tier": "H"
+    },
+    {
+      "assetId": "685175",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 777295,
+      "tier": "H"
+    },
+    {
+      "assetId": "685176",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 721941,
+      "tier": "H"
+    },
+    {
+      "assetId": "839131",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 703142,
+      "tier": "H"
+    },
+    {
+      "assetId": "685172",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 696217,
+      "tier": "H"
+    },
+    {
+      "assetId": "25258",
+      "lat": 27.912026,
+      "lng": 83.404246,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 594189,
+      "tier": "H"
+    },
+    {
+      "assetId": "685185",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 566361,
+      "tier": "H"
+    },
+    {
+      "assetId": "802671",
+      "lat": 27.6966,
+      "lng": 85.3591,
+      "sector": "transportation",
+      "assetType": "international",
+      "co2e2024Tonnes": 539462,
+      "tier": "H"
+    },
+    {
+      "assetId": "25271",
+      "lat": 27.854487,
+      "lng": 82.491672,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 520510,
+      "tier": "H"
+    },
+    {
+      "assetId": "25273",
+      "lat": 26.842398,
+      "lng": 86.236822,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 506051,
+      "tier": "H"
+    },
+    {
+      "assetId": "117086",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 479083,
+      "tier": "H"
+    },
+    {
+      "assetId": "839144",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 478707,
+      "tier": "H"
+    },
+    {
+      "assetId": "25255",
+      "lat": 27.533795,
+      "lng": 83.410272,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 464238,
+      "tier": "H"
+    },
+    {
+      "assetId": "685177",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 453414,
+      "tier": "H"
+    },
+    {
+      "assetId": "117089",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 452685,
+      "tier": "H"
+    },
+    {
+      "assetId": "685184",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 451766,
+      "tier": "H"
+    },
+    {
+      "assetId": "422935",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 448719,
+      "tier": "H"
+    },
+    {
+      "assetId": "1333716",
+      "lat": 27.776204,
+      "lng": 85.229678,
+      "sector": "waste",
+      "assetType": "Dumpsite",
+      "co2e2024Tonnes": 447470,
+      "tier": "H"
+    },
+    {
+      "assetId": "25272",
+      "lat": 27.615493,
+      "lng": 83.687594,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 443757,
+      "tier": "H"
+    },
+    {
+      "assetId": "117090",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 440283,
+      "tier": "H"
+    },
+    {
+      "assetId": "117093",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 437282,
+      "tier": "H"
+    },
+    {
+      "assetId": "25274",
+      "lat": 28.090068,
+      "lng": 82.378958,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 424205,
+      "tier": "H"
+    },
+    {
+      "assetId": "25270",
+      "lat": 27.374066,
+      "lng": 85.035352,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 399057,
+      "tier": "H"
+    },
+    {
+      "assetId": "685165",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 396713,
+      "tier": "H"
+    },
+    {
+      "assetId": "839147",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 396533,
+      "tier": "H"
+    },
+    {
+      "assetId": "25264",
+      "lat": 27.727653,
+      "lng": 84.813403,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 396126,
+      "tier": "H"
+    },
+    {
+      "assetId": "685183",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 387410,
+      "tier": "H"
+    },
+    {
+      "assetId": "422938",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 384123,
+      "tier": "H"
+    },
+    {
+      "assetId": "422931",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 383070,
+      "tier": "H"
+    },
+    {
+      "assetId": "25261",
+      "lat": 27.996117,
+      "lng": 82.508831,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 382164,
+      "tier": "H"
+    },
+    {
+      "assetId": "685178",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 376245,
+      "tier": "H"
+    },
+    {
+      "assetId": "117098",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 365492,
+      "tier": "H"
+    },
+    {
+      "assetId": "422943",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 364298,
+      "tier": "H"
+    },
+    {
+      "assetId": "839143",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 352630,
+      "tier": "H"
+    },
+    {
+      "assetId": "422934",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 342463,
+      "tier": "H"
+    },
+    {
+      "assetId": "25268",
+      "lat": 27.624275,
+      "lng": 83.590269,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 318089,
+      "tier": "H"
+    },
+    {
+      "assetId": "117092",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 310450,
+      "tier": "H"
+    },
+    {
+      "assetId": "839140",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 305997,
+      "tier": "H"
+    },
+    {
+      "assetId": "685169",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 305257,
+      "tier": "H"
+    },
+    {
+      "assetId": "117077",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 282349,
+      "tier": "H"
+    },
+    {
+      "assetId": "117097",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 269653,
+      "tier": "H"
+    },
+    {
+      "assetId": "422924",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 267199,
+      "tier": "H"
+    },
+    {
+      "assetId": "839137",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 245934,
+      "tier": "H"
+    },
+    {
+      "assetId": "839152",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 243048,
+      "tier": "H"
+    },
+    {
+      "assetId": "839133",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 239575,
+      "tier": "H"
+    },
+    {
+      "assetId": "422937",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 230490,
+      "tier": "H"
+    },
+    {
+      "assetId": "117083",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 228419,
+      "tier": "H"
+    },
+    {
+      "assetId": "25267",
+      "lat": 26.810863,
+      "lng": 86.279817,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 224260,
+      "tier": "H"
+    },
+    {
+      "assetId": "839146",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 222494,
+      "tier": "H"
+    },
+    {
+      "assetId": "422944",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 202572,
+      "tier": "H"
+    },
+    {
+      "assetId": "117091",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 177986,
+      "tier": "H"
+    },
+    {
+      "assetId": "117079",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 175565,
+      "tier": "H"
+    },
+    {
+      "assetId": "25276",
+      "lat": 27.727314,
+      "lng": 85.17464,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 173503,
+      "tier": "H"
+    },
+    {
+      "assetId": "839153",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 157829,
+      "tier": "H"
+    },
+    {
+      "assetId": "117099",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 153901,
+      "tier": "H"
+    },
+    {
+      "assetId": "839151",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 148690,
+      "tier": "H"
+    },
+    {
+      "assetId": "839145",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 134151,
+      "tier": "H"
+    },
+    {
+      "assetId": "422942",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 124373,
+      "tier": "H"
+    },
+    {
+      "assetId": "422936",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 119899,
+      "tier": "H"
+    },
+    {
+      "assetId": "25275",
+      "lat": 26.79004,
+      "lng": 86.631303,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 108299,
+      "tier": "H"
+    },
+    {
+      "assetId": "365940",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 104756,
+      "tier": "H"
+    },
+    {
+      "assetId": "62012",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 101314,
+      "tier": "H"
+    },
+    {
+      "assetId": "25256",
+      "lat": 27.616942,
+      "lng": 82.858158,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 101210,
+      "tier": "H"
+    },
+    {
+      "assetId": "365943",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 92723,
+      "tier": "M"
+    },
+    {
+      "assetId": "365936",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 91469,
+      "tier": "M"
+    },
+    {
+      "assetId": "62013",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 88247,
+      "tier": "M"
+    },
+    {
+      "assetId": "62009",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 88153,
+      "tier": "M"
+    },
+    {
+      "assetId": "365939",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 87756,
+      "tier": "M"
+    },
+    {
+      "assetId": "62016",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 86417,
+      "tier": "M"
+    },
+    {
+      "assetId": "117082",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 81310,
+      "tier": "M"
+    },
+    {
+      "assetId": "62021",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 78469,
+      "tier": "M"
+    },
+    {
+      "assetId": "685168",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 78070,
+      "tier": "M"
+    },
+    {
+      "assetId": "712162",
+      "lat": 27.776903,
+      "lng": 85.244876,
+      "sector": "waste",
+      "assetType": "Unknown",
+      "co2e2024Tonnes": 77116,
+      "tier": "M"
+    },
+    {
+      "assetId": "25269",
+      "lat": 27.506884,
+      "lng": 83.345785,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 72293,
+      "tier": "M"
+    },
+    {
+      "assetId": "365948",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 70590,
+      "tier": "M"
+    },
+    {
+      "assetId": "790248",
+      "lat": 27.6966,
+      "lng": 85.3591,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 69440,
+      "tier": "M"
+    },
+    {
+      "assetId": "62020",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 68384,
+      "tier": "M"
+    },
+    {
+      "assetId": "479809",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 68241,
+      "tier": "M"
+    },
+    {
+      "assetId": "62015",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 67202,
+      "tier": "M"
+    },
+    {
+      "assetId": "422928",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 66417,
+      "tier": "M"
+    },
+    {
+      "assetId": "25262",
+      "lat": 27.409663,
+      "lng": 85.013602,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 66314,
+      "tier": "M"
+    },
+    {
+      "assetId": "479810",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 65930,
+      "tier": "M"
+    },
+    {
+      "assetId": "422922",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 65451,
+      "tier": "M"
+    },
+    {
+      "assetId": "25254",
+      "lat": 26.566461,
+      "lng": 87.289795,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 64835,
+      "tier": "M"
+    },
+    {
+      "assetId": "479806",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 64251,
+      "tier": "M"
+    },
+    {
+      "assetId": "479813",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 63382,
+      "tier": "M"
+    },
+    {
+      "assetId": "62022",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 63301,
+      "tier": "M"
+    },
+    {
+      "assetId": "712164",
+      "lat": 28.164095,
+      "lng": 84.010304,
+      "sector": "waste",
+      "assetType": "Unknown",
+      "co2e2024Tonnes": 61770,
+      "tier": "M"
+    },
+    {
+      "assetId": "685173",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 61005,
+      "tier": "M"
+    },
+    {
+      "assetId": "62002",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 60656,
+      "tier": "M"
+    },
+    {
+      "assetId": "25260",
+      "lat": 26.869176,
+      "lng": 85.946913,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 57834,
+      "tier": "M"
+    },
+    {
+      "assetId": "25257",
+      "lat": 27.6801,
+      "lng": 84.291817,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 54903,
+      "tier": "M"
+    },
+    {
+      "assetId": "839136",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 53709,
+      "tier": "M"
+    },
+    {
+      "assetId": "365949",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 52887,
+      "tier": "M"
+    },
+    {
+      "assetId": "62000",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 52812,
+      "tier": "M"
+    },
+    {
+      "assetId": "365929",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 48859,
+      "tier": "M"
+    },
+    {
+      "assetId": "365947",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 48792,
+      "tier": "M"
+    },
+    {
+      "assetId": "479818",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 48474,
+      "tier": "M"
+    },
+    {
+      "assetId": "757399",
+      "lat": 27.711,
+      "lng": 85.355,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 48272,
+      "tier": "M"
+    },
+    {
+      "assetId": "479812",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 46532,
+      "tier": "M"
+    },
+    {
+      "assetId": "479817",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 46481,
+      "tier": "M"
+    },
+    {
+      "assetId": "365942",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 45384,
+      "tier": "M"
+    },
+    {
+      "assetId": "25277",
+      "lat": 27.576106,
+      "lng": 82.862661,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 43376,
+      "tier": "M"
+    },
+    {
+      "assetId": "479799",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 41941,
+      "tier": "M"
+    },
+    {
+      "assetId": "365927",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 41075,
+      "tier": "M"
+    },
+    {
+      "assetId": "479819",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 40941,
+      "tier": "M"
+    },
+    {
+      "assetId": "62014",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 40008,
+      "tier": "M"
+    },
+    {
+      "assetId": "62006",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 39645,
+      "tier": "M"
+    },
+    {
+      "assetId": "365933",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 38693,
+      "tier": "M"
+    },
+    {
+      "assetId": "757397",
+      "lat": 27.674,
+      "lng": 85.337,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 34268,
+      "tier": "M"
+    },
+    {
+      "assetId": "479797",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 33559,
+      "tier": "M"
+    },
+    {
+      "assetId": "479811",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 32836,
+      "tier": "M"
+    },
+    {
+      "assetId": "479803",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 28319,
+      "tier": "M"
+    },
+    {
+      "assetId": "628157",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 24150,
+      "tier": "M"
+    },
+    {
+      "assetId": "628145",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 23120,
+      "tier": "M"
+    },
+    {
+      "assetId": "365941",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 22199,
+      "tier": "M"
+    },
+    {
+      "assetId": "25265",
+      "lat": 27.724192,
+      "lng": 85.144244,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 21391,
+      "tier": "M"
+    },
+    {
+      "assetId": "628161",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 21381,
+      "tier": "M"
+    },
+    {
+      "assetId": "117087",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 21336,
+      "tier": "M"
+    },
+    {
+      "assetId": "1333719",
+      "lat": 27.776903,
+      "lng": 85.244876,
+      "sector": "waste",
+      "assetType": "Dumpsite",
+      "co2e2024Tonnes": 21153,
+      "tier": "M"
+    },
+    {
+      "assetId": "1333718",
+      "lat": 28.164095,
+      "lng": 84.010304,
+      "sector": "waste",
+      "assetType": "Dumpsite",
+      "co2e2024Tonnes": 17125,
+      "tier": "M"
+    },
+    {
+      "assetId": "422927",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 15695,
+      "tier": "M"
+    },
+    {
+      "assetId": "365932",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 14724,
+      "tier": "M"
+    },
+    {
+      "assetId": "62005",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 14528,
+      "tier": "M"
+    },
+    {
+      "assetId": "62010",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 14122,
+      "tier": "M"
+    },
+    {
+      "assetId": "839141",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "transportation",
+      "assetType": "nan",
+      "co2e2024Tonnes": 13642,
+      "tier": "M"
+    },
+    {
+      "assetId": "790239",
+      "lat": 28.200621,
+      "lng": 83.981203,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 13430,
+      "tier": "M"
+    },
+    {
+      "assetId": "25266",
+      "lat": 27.028636,
+      "lng": 84.931862,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 13135,
+      "tier": "M"
+    },
+    {
+      "assetId": "790236",
+      "lat": 28.1036,
+      "lng": 81.667,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 12159,
+      "tier": "M"
+    },
+    {
+      "assetId": "790228",
+      "lat": 26.481501,
+      "lng": 87.264,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 11545,
+      "tier": "M"
+    },
+    {
+      "assetId": "25259",
+      "lat": 27.568177,
+      "lng": 83.717341,
+      "sector": "manufacturing",
+      "assetType": "integrated dry",
+      "co2e2024Tonnes": 10806,
+      "tier": "M"
+    },
+    {
+      "assetId": "712161",
+      "lat": 27.776204,
+      "lng": 85.229678,
+      "sector": "waste",
+      "assetType": "Unknown",
+      "co2e2024Tonnes": 10138,
+      "tier": "M"
+    },
+    {
+      "assetId": "790231",
+      "lat": 27.505328,
+      "lng": 83.412594,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 10108,
+      "tier": "M"
+    },
+    {
+      "assetId": "712163",
+      "lat": 27.203145,
+      "lng": 85.902723,
+      "sector": "waste",
+      "assetType": "Unknown",
+      "co2e2024Tonnes": 9261,
+      "tier": "L"
+    },
+    {
+      "assetId": "757394",
+      "lat": 26.45,
+      "lng": 87.369,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 8935,
+      "tier": "L"
+    },
+    {
+      "assetId": "479802",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 8856,
+      "tier": "L"
+    },
+    {
+      "assetId": "365937",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 7992,
+      "tier": "L"
+    },
+    {
+      "assetId": "790229",
+      "lat": 28.755283,
+      "lng": 80.583398,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 7072,
+      "tier": "L"
+    },
+    {
+      "assetId": "628158",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 6665,
+      "tier": "L"
+    },
+    {
+      "assetId": "479807",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 6576,
+      "tier": "L"
+    },
+    {
+      "assetId": "422932",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 6482,
+      "tier": "L"
+    },
+    {
+      "assetId": "757400",
+      "lat": 28.207,
+      "lng": 83.991,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 6076,
+      "tier": "L"
+    },
+    {
+      "assetId": "790225",
+      "lat": 26.570801,
+      "lng": 88.079598,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 5391,
+      "tier": "L"
+    },
+    {
+      "assetId": "628154",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 4622,
+      "tier": "L"
+    },
+    {
+      "assetId": "628160",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 3844,
+      "tier": "L"
+    },
+    {
+      "assetId": "757396",
+      "lat": 27.614,
+      "lng": 85.532,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 3395,
+      "tier": "L"
+    },
+    {
+      "assetId": "757398",
+      "lat": 27.678,
+      "lng": 84.21,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 3180,
+      "tier": "L"
+    },
+    {
+      "assetId": "1333717",
+      "lat": 27.203145,
+      "lng": 85.902723,
+      "sector": "waste",
+      "assetType": "Dumpsite",
+      "co2e2024Tonnes": 3042,
+      "tier": "L"
+    },
+    {
+      "assetId": "790232",
+      "lat": 26.708799,
+      "lng": 85.922401,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 2851,
+      "tier": "L"
+    },
+    {
+      "assetId": "790226",
+      "lat": 27.678101,
+      "lng": 84.429398,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 2815,
+      "tier": "L"
+    },
+    {
+      "assetId": "790244",
+      "lat": 27.159803,
+      "lng": 84.980021,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 2678,
+      "tier": "L"
+    },
+    {
+      "assetId": "802667",
+      "lat": 27.505328,
+      "lng": 83.412594,
+      "sector": "transportation",
+      "assetType": "international",
+      "co2e2024Tonnes": 2601,
+      "tier": "L"
+    },
+    {
+      "assetId": "757401",
+      "lat": 28.239,
+      "lng": 83.983,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 2527,
+      "tier": "L"
+    },
+    {
+      "assetId": "628159",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 1698,
+      "tier": "L"
+    },
+    {
+      "assetId": "790246",
+      "lat": 28.586,
+      "lng": 81.636002,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 1565,
+      "tier": "L"
+    },
+    {
+      "assetId": "628166",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 1475,
+      "tier": "L"
+    },
+    {
+      "assetId": "628147",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 962,
+      "tier": "L"
+    },
+    {
+      "assetId": "628151",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 835,
+      "tier": "L"
+    },
+    {
+      "assetId": "628165",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 789,
+      "tier": "L"
+    },
+    {
+      "assetId": "628167",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 708,
+      "tier": "L"
+    },
+    {
+      "assetId": "757395",
+      "lat": 27.215,
+      "lng": 85.91,
+      "sector": "waste",
+      "assetType": "centralized WWTP with primary treatment",
+      "co2e2024Tonnes": 573,
+      "tier": "L"
+    },
+    {
+      "assetId": "790240",
+      "lat": 26.510066,
+      "lng": 86.733902,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 520,
+      "tier": "L"
+    },
+    {
+      "assetId": "790250",
+      "lat": 27.315001,
+      "lng": 87.193298,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 515,
+      "tier": "L"
+    },
+    {
+      "assetId": "628155",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 278,
+      "tier": "L"
+    },
+    {
+      "assetId": "790235",
+      "lat": 27.686768,
+      "lng": 86.729479,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 127,
+      "tier": "L"
+    },
+    {
+      "assetId": "790241",
+      "lat": 27.393999,
+      "lng": 86.061401,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 91,
+      "tier": "L"
+    },
+    {
+      "assetId": "790233",
+      "lat": 28.780426,
+      "lng": 83.723,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 54,
+      "tier": "L"
+    },
+    {
+      "assetId": "790249",
+      "lat": 28.111099,
+      "lng": 82.294197,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 46,
+      "tier": "L"
+    },
+    {
+      "assetId": "628150",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "buildings",
+      "assetType": "nan",
+      "co2e2024Tonnes": 39,
+      "tier": "L"
+    },
+    {
+      "assetId": "790247",
+      "lat": 27.3509,
+      "lng": 87.69525,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 37,
+      "tier": "L"
+    },
+    {
+      "assetId": "790245",
+      "lat": 29.9711,
+      "lng": 81.818901,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 36,
+      "tier": "L"
+    },
+    {
+      "assetId": "790227",
+      "lat": 27.1474,
+      "lng": 87.050797,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 35,
+      "tier": "L"
+    },
+    {
+      "assetId": "790237",
+      "lat": 27.517752,
+      "lng": 86.585019,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 29,
+      "tier": "L"
+    },
+    {
+      "assetId": "790234",
+      "lat": 29.2742,
+      "lng": 82.193298,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 23,
+      "tier": "L"
+    },
+    {
+      "assetId": "802668",
+      "lat": 28.188333,
+      "lng": 84.014167,
+      "sector": "transportation",
+      "assetType": "international",
+      "co2e2024Tonnes": 21,
+      "tier": "L"
+    },
+    {
+      "assetId": "790230",
+      "lat": 28.985659,
+      "lng": 82.818703,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 15,
+      "tier": "L"
+    },
+    {
+      "assetId": "790224",
+      "lat": 29.502001,
+      "lng": 81.668999,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 15,
+      "tier": "L"
+    },
+    {
+      "assetId": "879536",
+      "lat": 27.717245,
+      "lng": 85.323961,
+      "sector": "manufacturing",
+      "assetType": "Finished Goods",
+      "co2e2024Tonnes": 6,
+      "tier": "L"
+    },
+    {
+      "assetId": "168821",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168822",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168823",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168824",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168825",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168826",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168827",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168828",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168829",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168830",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168831",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168832",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168833",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "168834",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310946",
+      "lat": 27.88273,
+      "lng": 85.412806,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310947",
+      "lat": 28.571601,
+      "lng": 81.737803,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310948",
+      "lat": 28.670866,
+      "lng": 83.602613,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310949",
+      "lat": 28.316357,
+      "lng": 84.351249,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310950",
+      "lat": 27.27527,
+      "lng": 85.989927,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310951",
+      "lat": 29.495452,
+      "lng": 82.420284,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310952",
+      "lat": 27.134548,
+      "lng": 87.294104,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310953",
+      "lat": 27.749867,
+      "lng": 83.436974,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310954",
+      "lat": 29.42672,
+      "lng": 80.572116,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310955",
+      "lat": 27.171363,
+      "lng": 87.851629,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310956",
+      "lat": 27.34963,
+      "lng": 84.88563,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310957",
+      "lat": 28.316895,
+      "lng": 82.522798,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310958",
+      "lat": 27.185469,
+      "lng": 86.657218,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "310959",
+      "lat": 29.26945,
+      "lng": 81.143435,
+      "sector": "agriculture",
+      "assetType": "nan",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "790243",
+      "lat": 27.303499,
+      "lng": 86.5504,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "790238",
+      "lat": 28.188333,
+      "lng": 84.014167,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "790242",
+      "lat": 28.627001,
+      "lng": 82.194021,
+      "sector": "transportation",
+      "assetType": "domestic",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "802669",
+      "lat": 28.200621,
+      "lng": 83.981203,
+      "sector": "transportation",
+      "assetType": "international",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    },
+    {
+      "assetId": "802670",
+      "lat": 27.159803,
+      "lng": 84.980021,
+      "sector": "transportation",
+      "assetType": "international",
+      "co2e2024Tonnes": 0,
+      "tier": "L"
+    }
+  ]
+}

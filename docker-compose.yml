@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api-test.jana.earth}
+        NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-https://auth-dev.jana.earth}
+        NEXT_PUBLIC_DEMO_USE_MOCKS: ${NEXT_PUBLIC_DEMO_USE_MOCKS:-true}
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
