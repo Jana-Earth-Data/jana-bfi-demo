@@ -99,14 +99,38 @@ export function TourProvider({ children }: { children: ReactNode }) {
     [cleanupAudio]
   );
 
-  // When index or status change to playing, fire the audio
+  // Drive the audio element from state. Two distinct cases:
+  //   (a) status is "playing" AND we either have no audio loaded OR the
+  //       loaded audio is for a different step → load fresh
+  //   (b) status is "playing" AND the loaded audio matches the current step
+  //       → resume it
+  //   (c) status is "paused" → pause whatever is loaded, but DO NOT cleanup
+  //       (otherwise the next play / prev / next has nothing to resume)
   useEffect(() => {
     if (status === "playing") {
-      playStep(currentIndex);
+      const expectedSrc = script.steps[currentIndex]?.audioFile;
+      if (!expectedSrc) return;
+      const currentSrc = audioRef.current?.src ?? "";
+      if (audioRef.current && currentSrc.endsWith(expectedSrc)) {
+        // Same step audio already loaded — just resume.
+        void audioRef.current.play().catch((err) => {
+          console.warn(`Audio resume failed: ${(err as Error).message}`);
+        });
+      } else {
+        // Different step (or nothing loaded) — fresh load.
+        playStep(currentIndex);
+      }
+    } else if (status === "paused") {
+      audioRef.current?.pause();
     }
-    return cleanupAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, status]);
+
+  // Cleanup the audio element only on unmount, not on every state change.
+  useEffect(() => {
+    return cleanupAudio;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const start = useCallback(() => {
     setCurrentIndex(0);
@@ -120,17 +144,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [cleanupAudio]);
 
   const play = useCallback(() => {
-    if (status === "paused" && audioRef.current) {
-      void audioRef.current.play();
-      setStatus("playing");
-    } else if (status === "idle" || status === "ended") {
+    if (status === "ended" || status === "idle") {
       setCurrentIndex(0);
-      setStatus("playing");
-    } else if (status === "playing" && !audioRef.current) {
-      // Recovery path
-      playStep(currentIndex);
     }
-  }, [status, currentIndex, playStep]);
+    // The effect on [currentIndex, status] handles resume vs reload.
+    setStatus("playing");
+  }, [status]);
 
   const pause = useCallback(() => {
     if (status === "playing") {
@@ -147,18 +166,18 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const next = useCallback(() => {
     if (currentIndex < totalSteps - 1) {
       setCurrentIndex(currentIndex + 1);
-      if (status === "idle" || status === "ended") setStatus("playing");
+      setStatus("playing"); // navigation implies resume on the new step
     } else {
       setStatus("ended");
     }
-  }, [currentIndex, totalSteps, status]);
+  }, [currentIndex, totalSteps]);
 
   const prev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      if (status === "idle" || status === "ended") setStatus("playing");
+      setStatus("playing"); // navigation implies resume on the new step
     }
-  }, [currentIndex, status]);
+  }, [currentIndex]);
 
   const goTo = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(totalSteps - 1, index));

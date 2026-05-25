@@ -93,6 +93,80 @@ export const TOOLTIPS: Record<string, TooltipContent> = {
       "Nepal Rastra Bank's October 2024 framework classifies commercial loans by environmental impact:\n\nGreen — beneficial activities (renewables, sustainable agriculture).\nAmber — transitional (food, textiles, construction).\nRed — high-emission (cement, steel, brick, thermal power).\nUnclassified — out of scope (retail, services with no environmental criteria).",
     source: "NRB Green Finance Taxonomy, October 2024",
   },
+  "taxonomy-green": {
+    title: "Green classification",
+    body:
+      "Activities that substantially contribute to one of four NRB environmental objectives (climate mitigation, adaptation, natural resource conservation, pollution prevention) without significantly harming the others.\n\nIn this portfolio: hydropower operators and renewable-energy borrowers. Receives favourable loan terms, lower risk weights, and is the only category eligible for the bank's green-bond use of proceeds.",
+    source: "NRB Green Finance Taxonomy 2024, sectoral classification criteria",
+  },
+  "taxonomy-amber": {
+    title: "Amber (transitional) classification",
+    body:
+      "Borrowers with low-to-medium environmental impact whose activities are moving toward green alignment. Standard loan terms with improvement conditions; the bank expects a transition plan and emissions trajectory from the borrower.\n\nIn this portfolio: non-cement manufacturing, textiles, food processing, sugar, hospitality, real estate, logistics, and waste utilities.",
+    source: "NRB Green Finance Taxonomy 2024, transition-pathway criteria",
+  },
+  "taxonomy-red": {
+    title: "Red (high-emission) classification",
+    body:
+      "Hard-to-abate sectors with significant negative environmental impact and no demonstrated transition pathway. Carries higher interest rates and risk weights under NRB supervision, and may trigger a divestment timeline at the regulator's discretion.\n\nIn this portfolio: cement, steel, brick kilns, and thermal power.",
+    source: "NRB Green Finance Taxonomy 2024, high-emission sector list",
+  },
+  "taxonomy-unclassified": {
+    title: "Unclassified (out of scope)",
+    body:
+      "Loans not subject to the Green Finance Taxonomy. Most retail products (home mortgages, personal loans, education, auto, credit cards) fall outside the framework because they target individual consumers, not commercial activities with measurable environmental impact.",
+    source: "NRB Green Finance Taxonomy 2024, scope definition",
+  },
+
+  // ---------------------------------------------------------------------------
+  // Community air quality (PM2.5)
+  // ---------------------------------------------------------------------------
+  "aq-acceptable": {
+    title: "Acceptable air quality",
+    body:
+      "PM₂.₅ at or below 50 µg/m³ near the facility. Within Nepal's National Ambient Air Quality Standard for 24-hour exposure (40 µg/m³) and consistent with WHO Interim Target 1 (35 µg/m³).\n\nUnder ESRM, no additional community health and safety covenants are typically required on this basis.",
+    source: "Nepal NAAQS 2003 (PM₂.₅ 24-hour); WHO Global Air Quality Guidelines 2021",
+  },
+  "aq-elevated": {
+    title: "Elevated air quality",
+    body:
+      "PM₂.₅ between 50 and 100 µg/m³. Above Nepal's NAAQS 24-hour limit and the WHO Interim Target 1. Common across urban and Terai industrial zones in Nepal, particularly in winter.\n\nUnder ESRM, the loan officer should consider whether the facility's operations contribute materially to the local exposure and document any community engagement / mitigation steps.",
+    source: "Nepal NAAQS 2003 (PM₂.₅ 24-hour); WHO Global Air Quality Guidelines 2021",
+  },
+  "aq-hazardous": {
+    title: "Hazardous air quality",
+    body:
+      "PM₂.₅ above 100 µg/m³. Well above Nepal's NAAQS 24-hour limit (40 µg/m³) and several multiples of WHO recommended exposure (5 µg/m³ annual mean). At these levels short-term exposure causes measurable cardiovascular and respiratory effects.\n\nUnder ESRM, a borrower operating in this airshed requires explicit community impact assessment, pollution-control covenants, and grievance mechanism documentation in the loan file.",
+    source: "Nepal NAAQS 2003 (PM₂.₅ 24-hour); WHO Global Air Quality Guidelines 2021",
+  },
+
+  // ---------------------------------------------------------------------------
+  // ESRM risk classification
+  // ---------------------------------------------------------------------------
+  "risk-low": {
+    title: "Low ESRM risk",
+    body:
+      "Renewable-energy or low-emissions borrower with minimal community impact. Typically aligns with NRB Green Finance Taxonomy 'Green' classification. Eligible for sustainable-finance pricing. Standard ESDD documentation; no extra covenants.",
+    source: "NRB ESRM Guidelines 2018, §3.4(a)",
+  },
+  "risk-medium": {
+    title: "Medium ESRM risk",
+    body:
+      "Commercial profile with a notable environmental footprint but no extreme emissions exposure. Standard ESDD checklist plus sector-specific covenants. Monitored as part of routine credit review.",
+    source: "NRB ESRM Guidelines 2018, §3.4(b)",
+  },
+  "risk-high": {
+    title: "High ESRM risk",
+    body:
+      "Sector and emissions profile place this borrower in NRB ESRM's elevated-risk bucket (typically cement, steel, brick, or large facility-level emitters at 50-1,000 kt CO₂e/yr). Approval should include efficiency-improvement covenants, pollution-control verification, and quarterly E&S reporting.",
+    source: "NRB ESRM Guidelines 2018, §3.4(c)",
+  },
+  "risk-extreme": {
+    title: "Extreme ESRM risk",
+    body:
+      "Facility-level emissions exceed 1 Mt CO₂e per year. Approval requires transition-plan covenants, quarterly emissions reporting, and the highest level of ESDD scrutiny. Subject to enhanced ongoing monitoring through the life of the loan.",
+    source: "NRB ESRM Guidelines 2018, §3.4(c)",
+  },
 
   // ---------------------------------------------------------------------------
   // Data sources

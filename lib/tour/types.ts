@@ -13,6 +13,13 @@ export type TourStep = {
   narration: string;
   /** Public-relative URL to the pre-generated MP3 (e.g. /audio/tour-01-intro.mp3). */
   audioFile: string;
+  /**
+   * Optional. When set, the ESRM tab will select the first application
+   * whose borrower name contains this substring (case-insensitive) as the
+   * tour enters this step. Used to keep the narration aligned with the
+   * on-screen borrower regardless of any clicking the user did beforehand.
+   */
+  selectBorrowerNameContains?: string;
 };
 
 export type TourScript = {

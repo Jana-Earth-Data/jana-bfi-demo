@@ -58,12 +58,14 @@ export const PORTFOLIO_SCALE = {
   smeWorkingCapital: 5_000,
   smeTradeFinance: 2_500,
   smeTermLoan: 1_500,
-  // Commercial and large corporate
-  commercialTerm: 1_200,
-  commercialWorkingCapital: 600,
-  commercialProjectFinance: 200,
-  corporateSyndicated: 30,
-  corporateProjectFinance: 20,
+  // Commercial and large corporate — sized so each of the ~121 facility-tier
+  // borrowers receives a realistic 6-10 loans on average (term + working
+  // capital + LC line + project finance, etc.), rather than the prior 17/avg.
+  commercialTerm: 600,
+  commercialWorkingCapital: 300,
+  commercialProjectFinance: 100,
+  corporateSyndicated: 20,
+  corporateProjectFinance: 15,
 } as const;
 
 export const PORTFOLIO_TOTAL_COUNT = Object.values(PORTFOLIO_SCALE).reduce(
@@ -156,7 +158,18 @@ function taxonomyForLoan(
     sector.includes("construction") ||
     sector.includes("chemical") ||
     sector.includes("plastic") ||
-    sector.includes("processing")
+    sector.includes("processing") ||
+    // Sectors added with the CT-matched non-mfg borrower expansion.
+    // Per NRB Green Finance Taxonomy these are transition activities:
+    // waste management contributes to pollution prevention, hospitality and
+    // real estate touch energy and resource use, transport touches mitigation.
+    sector.includes("transport") ||
+    sector.includes("storage") ||
+    sector.includes("hospitality") ||
+    sector.includes("tourism") ||
+    sector.includes("real estate") ||
+    sector.includes("waste") ||
+    sector.includes("utilities")
   ) {
     return "amber";
   }
@@ -478,10 +491,17 @@ function buildSummary(
     (s, l) => s + l.outstandingNpr,
     0
   );
+  // Count unique facility-tier borrowers that actually appear in the loan book
+  const facilityMatchedBorrowerIds = new Set<string>();
+  for (const l of facilityMatchedLoans) {
+    facilityMatchedBorrowerIds.add(l.borrowerId);
+  }
+
   const funnel: PortfolioFunnel = {
     totalLoans,
     inScopeLoans: inScopeLoans.length,
     facilityMatchedLoans: facilityMatchedLoans.length,
+    facilityMatchedBorrowers: facilityMatchedBorrowerIds.size,
     totalOutstandingNpr,
     inScopeOutstandingNpr,
     facilityMatchedOutstandingNpr,
@@ -490,16 +510,27 @@ function buildSummary(
   // Data quality distribution
   const dqBuckets = new Map<
     1 | 2 | 3 | 4 | 5,
-    { count: number; outstandingUsd: number; co2: number }
+    {
+      count: number;
+      outstandingUsd: number;
+      outstandingNpr: number;
+      co2: number;
+    }
   >();
   for (const a of attributions) {
     const s = a.dataQualityScore;
     const prev =
-      dqBuckets.get(s) ?? { count: 0, outstandingUsd: 0, co2: 0 };
+      dqBuckets.get(s) ?? {
+        count: 0,
+        outstandingUsd: 0,
+        outstandingNpr: 0,
+        co2: 0,
+      };
     const loan = loans.find((l) => l.id === a.loanId);
     dqBuckets.set(s, {
       count: prev.count + 1,
       outstandingUsd: prev.outstandingUsd + (loan?.outstandingUsd ?? 0),
+      outstandingNpr: prev.outstandingNpr + (loan?.outstandingNpr ?? 0),
       co2: prev.co2 + a.attributedCo2eTonnes,
     });
   }
@@ -509,12 +540,14 @@ function buildSummary(
         dqBuckets.get(s as 1 | 2 | 3 | 4 | 5) ?? {
           count: 0,
           outstandingUsd: 0,
+          outstandingNpr: 0,
           co2: 0,
         };
       return {
         score: s as 1 | 2 | 3 | 4 | 5,
         loanCount: v.count,
         outstandingUsd: Math.round(v.outstandingUsd),
+        outstandingNpr: Math.round(v.outstandingNpr),
         attributedCo2eTonnes: Math.round(v.co2),
       };
     }
@@ -644,6 +677,22 @@ function buildPortfolio(): BfiDemoData {
   }
 
   const borrowers = [catalog.retailPool, ...catalog.all];
+
+  // Demo tour hook: ensure at least one Hongshi Shivam Cement loan is in the
+  // "under-review" queue so the step 5 narration lands on a borrower with the
+  // headline emissions story. Pick the largest by NPR for visibility.
+  const hongshi = catalog.cement.find((b) =>
+    b.name.toLowerCase().includes("hongshi")
+  );
+  if (hongshi) {
+    const hongshiLoans = loans.filter((l) => l.borrowerId === hongshi.id);
+    if (hongshiLoans.length > 0) {
+      const biggest = hongshiLoans.reduce((acc, l) =>
+        l.outstandingNpr > acc.outstandingNpr ? l : acc
+      );
+      biggest.status = "under-review";
+    }
+  }
 
   // Compute PCAF attributions
   const attributions: PcafAttribution[] = loans.map((l) => {

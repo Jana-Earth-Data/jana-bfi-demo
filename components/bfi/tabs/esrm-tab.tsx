@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardSsrData } from "@/components/bfi/dashboard";
 import {
   Badge,
@@ -24,6 +24,7 @@ import { buildScreening } from "@/lib/data/screening";
 import { LoanRow } from "@/lib/data/portfolio-query";
 import { NPR_PER_USD } from "@/lib/data/util";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
+import { useTour } from "@/lib/tour/tour-context";
 
 const NRB_REGULATORY_LINK =
   "https://www.nrb.org.np/contents/uploads/2018/05/Environment-Social-Risk-Management-Guidelines-2018.pdf";
@@ -38,6 +39,21 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
     () => apps.find((r) => r.loan.id === selectedLoanId) ?? null,
     [apps, selectedLoanId]
   );
+
+  // Tour: if the active step asks for a specific borrower (by name substring),
+  // select the first matching application so the narration stays aligned.
+  const tour = useTour();
+  const tourBorrowerHint = tour.step?.selectBorrowerNameContains ?? null;
+  useEffect(() => {
+    if (!tourBorrowerHint) return;
+    const needle = tourBorrowerHint.toLowerCase();
+    const match = apps.find((r) =>
+      r.borrower.name.toLowerCase().includes(needle)
+    );
+    if (match && match.loan.id !== selectedLoanId) {
+      setSelectedLoanId(match.loan.id);
+    }
+  }, [tourBorrowerHint, apps, selectedLoanId]);
 
   // Summary KPIs
   const totalApps = apps.length;
@@ -200,11 +216,13 @@ function ScreeningWorkbench({
   );
   const edgarLive = !!liveEnrichment?.edgar;
   const openaqLive = !!liveEnrichment?.openaq;
+  const [esddOpen, setEsddOpen] = useState(false);
   const ctLive = !isMock && borrower.facilities.length > 0;
-  // CT 2024 snapshot is real data baked into data/ct-nepal-2024.json — used in
-  // mock mode when a cement borrower's coords match a CT facility.
+  // CT 2024 snapshot is real data baked into data/ct-nepal-2024.json — used
+  // in mock mode for any borrower whose facility data comes from the snapshot.
+  // Cement matches at 0.99, CT non-mfg matches at 0.95. Both qualify.
   const ctSnapshotMatch =
-    borrower.facilities.some((f) => f.matchConfidence >= 0.99);
+    borrower.facilities.some((f) => f.matchConfidence >= 0.95);
 
   const markerColor: "red" | "amber" | "green" | "slate" =
     loan.nrbTaxonomy === "red"
@@ -298,10 +316,16 @@ function ScreeningWorkbench({
                 <div className="text-xs text-slate-500">{borrower.nrbSector}</div>
               </div>
               <div className="flex flex-wrap items-center gap-1">
-                <Badge className={taxonomyColors[loan.nrbTaxonomy]}>
-                  {loan.nrbTaxonomy}
-                </Badge>
-                <Badge className={riskColor}>{riskClass} risk</Badge>
+                <span className="inline-flex items-center gap-1">
+                  <Badge className={taxonomyColors[loan.nrbTaxonomy]}>
+                    {loan.nrbTaxonomy}
+                  </Badge>
+                  <InfoTip id={`taxonomy-${loan.nrbTaxonomy}`} side="left" />
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Badge className={riskColor}>{riskClass} risk</Badge>
+                  <InfoTip id={`risk-${riskClass}`} side="left" />
+                </span>
               </div>
             </div>
             <div className="mt-3">
@@ -352,6 +376,15 @@ function ScreeningWorkbench({
                 {screening.reasoning}
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setEsddOpen(true)}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
+            >
+              View ESDD checklist (NRB ESRM Annex 5)
+              <span aria-hidden>→</span>
+            </button>
           </div>
 
           {/* Compliance metrics column */}
@@ -392,61 +425,38 @@ function ScreeningWorkbench({
             {intensityRatio != null && (
               <div>
                 <div className="flex items-center gap-1 text-xs uppercase tracking-wide text-slate-400">
-                  {edgarLive
-                    ? "Share of national sector emissions"
-                    : "Intensity vs sector benchmark"}
-                  {edgarLive && (
-                    <InfoTip id="national-co2-share" side="below" />
-                  )}
+                  Share of Nepal's national CO₂
+                  <InfoTip id="national-co2-share" side="below" />
                 </div>
-                <div className="mt-1 flex items-baseline justify-between">
-                  <div>
-                    <div className="text-sm text-slate-200">
-                      {edgarLive
-                        ? formatCo2e(screening.borrowerIntensityValue ?? 0)
-                        : screening.borrowerIntensityValue?.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-slate-500">this borrower</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-slate-200">
-                      {edgarLive
-                        ? formatCo2e(screening.sectorBenchmarkValue ?? 0)
-                        : screening.sectorBenchmarkValue?.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {screening.sectorBenchmarkLabel ?? "Benchmark"}
-                    </div>
-                  </div>
+                <div
+                  className={`mt-1 text-3xl font-semibold ${
+                    intensityRatio > 0.05
+                      ? "text-rose-300"
+                      : intensityRatio > 0.01
+                        ? "text-amber-300"
+                        : "text-emerald-300"
+                  }`}
+                >
+                  {formatPercent(intensityRatio)}
+                </div>
+                <div className="text-xs text-slate-500">
+                  of Nepal's national CO₂ (EDGAR 2024)
                 </div>
                 <ProgressBar
-                  value={
-                    edgarLive
-                      ? Math.min(0.5, intensityRatio) * 2
-                      : Math.min(2, intensityRatio) / 2
-                  }
+                  value={Math.min(0.5, intensityRatio) * 2}
                   fillClass={
-                    edgarLive
-                      ? intensityRatio > 0.25
-                        ? "bg-rose-400"
-                        : intensityRatio > 0.1
-                          ? "bg-amber-400"
-                          : "bg-emerald-400"
-                      : intensityRatio > 1.1
-                        ? "bg-rose-400"
-                        : intensityRatio > 0.9
-                          ? "bg-amber-400"
-                          : "bg-emerald-400"
+                    intensityRatio > 0.05
+                      ? "bg-rose-400"
+                      : intensityRatio > 0.01
+                        ? "bg-amber-400"
+                        : "bg-emerald-400"
                   }
                   trackClass="bg-line/40"
                   className="mt-2"
                 />
-                <div className="mt-1 text-xs text-slate-500">
-                  {edgarLive
-                    ? `${formatPercent(intensityRatio)} of Nepal ${borrower.nrbSector.toLowerCase().replace(/manufacturing - /, "")} sector CO₂`
-                    : intensityRatio > 1
-                      ? `${formatPercent(intensityRatio - 1)} above industry average`
-                      : `${formatPercent(1 - intensityRatio)} below industry average`}
+                <div className="mt-2 flex items-baseline justify-between text-xs text-slate-500">
+                  <span>{formatCo2e(screening.borrowerIntensityValue ?? 0)} borrower</span>
+                  <span>{formatCo2e(screening.sectorBenchmarkValue ?? 0)} national</span>
                 </div>
               </div>
             )}
@@ -460,26 +470,43 @@ function ScreeningWorkbench({
                   <div className="text-lg font-semibold text-white">
                     {screening.airQualityNearby.pm25} µg/m³
                   </div>
-                  <Badge
-                    className={
-                      screening.airQualityNearby.pm25 > 100
-                        ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                  <span className="inline-flex items-center gap-1">
+                    <Badge
+                      className={
+                        screening.airQualityNearby.pm25 > 100
+                          ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
+                          : screening.airQualityNearby.pm25 > 50
+                            ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                            : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                      }
+                    >
+                      {screening.airQualityNearby.pm25 > 100
+                        ? "Hazardous"
                         : screening.airQualityNearby.pm25 > 50
-                          ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
-                          : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                    }
-                  >
-                    {screening.airQualityNearby.pm25 > 100
-                      ? "Hazardous"
-                      : screening.airQualityNearby.pm25 > 50
-                        ? "Elevated"
-                        : "Acceptable"}
-                  </Badge>
+                          ? "Elevated"
+                          : "Acceptable"}
+                    </Badge>
+                    <InfoTip
+                      id={
+                        screening.airQualityNearby.pm25 > 100
+                          ? "aq-hazardous"
+                          : screening.airQualityNearby.pm25 > 50
+                            ? "aq-elevated"
+                            : "aq-acceptable"
+                      }
+                      side="left"
+                    />
+                  </span>
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
                   {screening.airQualityNearby.stationName} ·{" "}
                   {screening.airQualityNearby.readingDate}
                 </div>
+                {!openaqLive && (
+                  <div className="mt-1 text-xs text-slate-500 italic">
+                    Synthetic value · OpenAQ station coverage in Nepal is sparse outside Kathmandu.
+                  </div>
+                )}
               </div>
             )}
 
@@ -504,33 +531,6 @@ function ScreeningWorkbench({
           </div>
         </div>
       </Panel>
-
-      {borrower.facilities.length > 0 && (
-        <div data-tour="facility-map">
-        <Panel
-          title="Facility locations"
-          subtitle="Climate TRACE / GCCT geolocated assets attributed to this borrower"
-        >
-          <FacilityMap points={mapPoints} height={360} />
-          <div className="mt-3 space-y-1 text-xs">
-            {borrower.facilities.map((f) => (
-              <div
-                key={f.assetId}
-                className="flex flex-wrap justify-between gap-2 text-slate-400"
-              >
-                <span className="text-slate-200">{f.facilityName}</span>
-                <span>
-                  {formatCo2e(f.annualCo2eTonnes)} / yr
-                  {f.cementCapacityMtpa != null
-                    ? ` · ${f.cementCapacityMtpa.toFixed(2)} Mt/yr cement`
-                    : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-        </div>
-      )}
 
       <Panel
         title="PCAF data quality for this loan"
@@ -583,6 +583,249 @@ function ScreeningWorkbench({
           </div>
         </div>
       </Panel>
+
+      {borrower.facilities.length > 0 && (
+        <div data-tour="facility-map">
+          <Panel
+            title="Facility locations"
+            subtitle="Climate TRACE / GCCT geolocated assets attributed to this borrower"
+          >
+            <FacilityMap points={mapPoints} height={360} />
+            <div className="mt-3 space-y-1 text-xs">
+              {borrower.facilities.map((f) => (
+                <div
+                  key={f.assetId}
+                  className="flex flex-wrap justify-between gap-2 text-slate-400"
+                >
+                  <span className="text-slate-200">{f.facilityName}</span>
+                  <span>
+                    {formatCo2e(f.annualCo2eTonnes)} / yr
+                    {f.cementCapacityMtpa != null
+                      ? ` · ${f.cementCapacityMtpa.toFixed(2)} Mt/yr cement`
+                      : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {esddOpen && (
+        <EsddChecklistDrawer
+          borrower={borrower}
+          onClose={() => setEsddOpen(false)}
+        />
+      )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ESDD checklist panel (NRB ESRM Annex 5)
+// ---------------------------------------------------------------------------
+//
+// Honest mapping of which ESDD categories Jana actually informs versus those
+// the bank must own. Only two categories carry Jana data today: borrower
+// identification (where we have a Climate TRACE or GCCT match) and pollution
+// /emissions (where Climate TRACE has facility-level coverage). Everything
+// else, including OpenAQ-based community health (sparse in Nepal),
+// biodiversity, EIA, labor, indigenous, and hydropower-specific reviews,
+// stays in the bank's ESDD workflow.
+
+type EsddStatus = "jana" | "limited" | "bank";
+
+type EsddRow = {
+  category: string;
+  status: EsddStatus;
+  detail: string;
+};
+
+function buildEsddRows(borrower: Borrower): EsddRow[] {
+  const firstFacility = borrower.facilities[0];
+  const hasFacility = !!firstFacility;
+  const hasCtFacility =
+    !!firstFacility &&
+    typeof firstFacility.assetId === "string" &&
+    firstFacility.assetId.startsWith("CT-");
+  const hasGcctFacility =
+    !!firstFacility &&
+    (typeof firstFacility.gemPlantId === "string" || hasCtFacility);
+  const isFacilityTier =
+    borrower.dataTier === "facility" && hasFacility;
+  const isHydropower = borrower.nrbSector.toLowerCase().includes("hydropower");
+
+  const rows: EsddRow[] = [
+    {
+      category: "Exclusion List screening (Annex 4)",
+      status: "bank",
+      detail: "Bank screens borrower against NRB exclusion list",
+    },
+    {
+      category: "Loan categorization (sector, criticality)",
+      status: "bank",
+      detail: `Bank classification · sector recorded: ${borrower.nrbSector}`,
+    },
+    {
+      category: "Borrower identification",
+      status: hasCtFacility || hasGcctFacility ? "jana" : isFacilityTier ? "limited" : "bank",
+      detail: hasCtFacility
+        ? "Climate TRACE facility match · verified lat/lng"
+        : hasGcctFacility
+          ? "Global Cement and Concrete Tracker plant record"
+          : isFacilityTier
+            ? "Curated facility location, not satellite-verified"
+            : "Internal KYC only",
+    },
+    {
+      category: "Environmental permits / EIA",
+      status: "bank",
+      detail: "Bank verifies EIA / IEE status, renewal dates, conditions",
+    },
+    {
+      category: "Pollution and emissions",
+      status: hasCtFacility ? "jana" : isFacilityTier ? "limited" : "bank",
+      detail: hasCtFacility
+        ? "Climate TRACE satellite-verified facility CO₂e"
+        : isFacilityTier
+          ? "Capacity-derived or sector benchmark emissions"
+          : "Sector-average emissions only",
+    },
+    {
+      category: "Land use and resettlement",
+      status: "bank",
+      detail: "Bank field assessment of land ownership and resettlement",
+    },
+    {
+      category: "Biodiversity and natural habitats",
+      status: "bank",
+      detail: "Bank verifies proximity to protected areas and habitats",
+    },
+    {
+      category: "Labor and working conditions",
+      status: "bank",
+      detail: "Bank questionnaire, OHS audit, child/forced labor screening",
+    },
+    {
+      category: "Community health and safety",
+      status: "bank",
+      detail:
+        "Bank consultation and grievance records · OpenAQ station coverage in Nepal is sparse",
+    },
+    {
+      category: "Indigenous peoples (FPIC if applicable)",
+      status: "bank",
+      detail: "Bank verifies Free Prior and Informed Consent documentation",
+    },
+    {
+      category: "Cultural heritage",
+      status: "bank",
+      detail: "Bank verifies proximity to heritage sites",
+    },
+  ];
+
+  if (isHydropower) {
+    rows.push({
+      category: "Hydropower-specific (dam safety, downstream flow, fish passage)",
+      status: "bank",
+      detail: "Bank engineering and hydrology review",
+    });
+  }
+
+  return rows;
+}
+
+function EsddChecklistDrawer({
+  borrower,
+  onClose,
+}: {
+  borrower: Borrower;
+  onClose: () => void;
+}) {
+  const items = buildEsddRows(borrower);
+  const janaCount = items.filter((r) => r.status === "jana").length;
+  const limitedCount = items.filter((r) => r.status === "limited").length;
+  const bankCount = items.filter((r) => r.status === "bank").length;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex justify-end bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <aside
+        onClick={(e) => e.stopPropagation()}
+        className="h-full w-full max-w-md overflow-y-auto border-l border-line bg-panel p-5 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-500">
+              NRB ESRM Annex 5
+            </div>
+            <div className="text-lg font-semibold text-white">
+              ESDD checklist
+            </div>
+            <div className="text-xs text-slate-500">
+              {borrower.name} · {borrower.nrbSector}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md border border-line bg-panelAlt px-2 py-1 text-xs text-slate-300"
+            aria-label="Close ESDD checklist"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <Badge className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+            {janaCount} Jana data
+          </Badge>
+          {limitedCount > 0 && (
+            <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-300">
+              {limitedCount} Jana partial
+            </Badge>
+          )}
+          <Badge className="border-slate-500/30 bg-slate-500/10 text-slate-400">
+            {bankCount} Bank review
+          </Badge>
+        </div>
+
+        <div className="mt-4 divide-y divide-line/40">
+          {items.map((item) => (
+            <div
+              key={item.category}
+              className="flex items-start justify-between gap-3 py-2.5"
+            >
+              <div className="flex-1">
+                <div className="text-sm text-slate-200">{item.category}</div>
+                <div className="text-xs text-slate-500">{item.detail}</div>
+              </div>
+              <Badge
+                className={
+                  item.status === "jana"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : item.status === "limited"
+                      ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                      : "border-slate-500/30 bg-slate-500/10 text-slate-400"
+                }
+              >
+                {item.status === "jana"
+                  ? "Jana data"
+                  : item.status === "limited"
+                    ? "Jana partial"
+                    : "Bank review"}
+              </Badge>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-md border border-line/60 bg-panelAlt p-3 text-xs text-slate-400">
+          ESDD is fundamentally a bank workflow. Jana automates the parts
+          that benefit from satellite and inventory data. The rest stays
+          with the credit officer.
+        </div>
+      </aside>
+    </div>
   );
 }

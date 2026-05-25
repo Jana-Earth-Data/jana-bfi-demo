@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { LoanRow } from "@/lib/data/portfolio-query";
 import { NrbTaxonomyColor, Loan } from "@/lib/types/bfi";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
+import { NPR_PER_USD } from "@/lib/data/util";
 
 type TaxonomyFilter = NrbTaxonomyColor | "all";
 type BusinessUnitFilter = NonNullable<Loan["businessUnit"]> | "all";
@@ -403,6 +404,7 @@ function LoanDrawer({ row, onClose }: { row: LoanRow; onClose: () => void }) {
           <Badge className={taxonomyColors[loan.nrbTaxonomy]}>
             {loan.nrbTaxonomy}
           </Badge>
+          <InfoTip id={`taxonomy-${loan.nrbTaxonomy}`} side="below" />
           {loan.businessUnit && (
             <Badge className="border-line bg-panelAlt text-slate-300">
               {loan.businessUnit}
@@ -438,7 +440,7 @@ function LoanDrawer({ row, onClose }: { row: LoanRow; onClose: () => void }) {
                 <InfoTip id="ev-demo-only" side="left" />
               </span>
             }
-            value={formatUsd(borrower.enterpriseValueUsd)}
+            value={`${formatNpr(borrower.enterpriseValueUsd * NPR_PER_USD)} · ${formatUsd(borrower.enterpriseValueUsd)}`}
             hint="demo only"
           />
           {borrower.parent && (

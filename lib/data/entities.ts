@@ -508,24 +508,33 @@ function ctMatchedBorrowers(): Borrower[] {
       ? `${prefix} ${muni} ${pool.suffix.split(" ")[0]} Pvt Ltd`
       : `${prefix} ${pool.suffix}`;
 
-    // EV heuristic: scale to emissions (rougher than cement, since the
-    // capital intensity of a hotel vs landfill vs cargo hub varies wildly).
-    // Same caveat the rest of the demo carries: this is illustrative;
-    // the bank would use their own credit-system EV.
+    // Attribution scale: a CT transportation / buildings / waste facility
+    // represents a regional zone or shared infrastructure, not a single
+    // company's operations. We attribute 15-25% of the facility's annual
+    // CO2e to this synthesized borrower, modeling them as one of several
+    // operators on the asset (one hotel chain among many in a district,
+    // one fleet on a transport corridor, one utility on a regional landfill).
+    const attributionShare = rangeFloat(0.15, 0.25, r);
+    const attributed2024 = Math.round(f.co2e2024Tonnes * attributionShare);
+
+    // EV heuristic: scale to attributed emissions (rougher than cement,
+    // since the capital intensity of a hotel vs landfill vs cargo hub
+    // varies wildly). Same caveat the rest of the demo carries: this is
+    // illustrative; the bank would use their own credit-system EV.
     const evUsd = Math.round(
       rangeFloat(15_000_000, 80_000_000, r) +
-        f.co2e2024Tonnes * rangeFloat(20, 80, r)
+        attributed2024 * rangeFloat(20, 80, r)
     );
 
     const series = (function () {
       const r2 = mulberry32(0xd100 + idx);
       return [2021, 2022, 2023, 2024, 2025].map((y) => {
-        if (y === 2024) return { year: y, co2eTonnes: f.co2e2024Tonnes };
+        if (y === 2024) return { year: y, co2eTonnes: attributed2024 };
         if (y === 2025) {
           return {
             year: y,
             co2eTonnes: Math.round(
-              f.co2e2024Tonnes * (10 / 12) * rangeFloat(0.93, 1.07, r2)
+              attributed2024 * (10 / 12) * rangeFloat(0.93, 1.07, r2)
             ),
           };
         }
@@ -534,7 +543,7 @@ function ctMatchedBorrowers(): Borrower[] {
         const noise = rangeFloat(0.93, 1.07, r2);
         return {
           year: y,
-          co2eTonnes: Math.round(f.co2e2024Tonnes * drift * noise),
+          co2eTonnes: Math.round(attributed2024 * drift * noise),
         };
       });
     })();
@@ -555,14 +564,14 @@ function ctMatchedBorrowers(): Borrower[] {
           sector: `${f.sector}-${pool.suffix.toLowerCase().replace(/ /g, "-")}`,
           lat: f.lat,
           lng: f.lng,
-          annualCo2eTonnes: f.co2e2024Tonnes,
+          annualCo2eTonnes: attributed2024,
           emissionsYear: 2024,
           emissionsByYear: series,
           matchMethod: "geocoded",
           matchConfidence: 0.95,
         },
       ],
-      totalCo2eTonnes: f.co2e2024Tonnes,
+      totalCo2eTonnes: attributed2024,
     });
   });
 

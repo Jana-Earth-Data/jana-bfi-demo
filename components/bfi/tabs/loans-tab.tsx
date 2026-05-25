@@ -34,7 +34,7 @@ export function LoansTab({ data }: { data: DashboardSsrData }) {
             </span>
           }
           value={(s.funnel?.facilityMatchedLoans ?? 0).toLocaleString()}
-          sublabel="facility-tier data"
+          sublabel={`${(s.funnel?.facilityMatchedBorrowers ?? 0).toLocaleString()} unique borrowers · facility-tier data`}
           accent
         />
       </div>

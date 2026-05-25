@@ -311,19 +311,26 @@ function recomputeSummary(
 
   const dqBuckets = new Map<
     1 | 2 | 3 | 4 | 5,
-    { count: number; outstandingUsd: number; co2: number }
+    {
+      count: number;
+      outstandingUsd: number;
+      outstandingNpr: number;
+      co2: number;
+    }
   >();
   for (const a of attributions) {
     const prev =
       dqBuckets.get(a.dataQualityScore) ?? {
         count: 0,
         outstandingUsd: 0,
+        outstandingNpr: 0,
         co2: 0,
       };
     const loan = loans.find((l) => l.id === a.loanId);
     dqBuckets.set(a.dataQualityScore, {
       count: prev.count + 1,
       outstandingUsd: prev.outstandingUsd + (loan?.outstandingUsd ?? 0),
+      outstandingNpr: prev.outstandingNpr + (loan?.outstandingNpr ?? 0),
       co2: prev.co2 + a.attributedCo2eTonnes,
     });
   }
@@ -332,12 +339,14 @@ function recomputeSummary(
       dqBuckets.get(s as 1 | 2 | 3 | 4 | 5) ?? {
         count: 0,
         outstandingUsd: 0,
+        outstandingNpr: 0,
         co2: 0,
       };
     return {
       score: s as 1 | 2 | 3 | 4 | 5,
       loanCount: v.count,
       outstandingUsd: Math.round(v.outstandingUsd),
+      outstandingNpr: Math.round(v.outstandingNpr),
       attributedCo2eTonnes: Math.round(v.co2),
     };
   });
@@ -397,6 +406,9 @@ function recomputeSummary(
       totalLoans,
       inScopeLoans: inScopeLoans.length,
       facilityMatchedLoans: facilityMatchedLoans.length,
+      facilityMatchedBorrowers: new Set(
+        facilityMatchedLoans.map((l) => l.borrowerId)
+      ).size,
       totalOutstandingNpr,
       inScopeOutstandingNpr,
       facilityMatchedOutstandingNpr,

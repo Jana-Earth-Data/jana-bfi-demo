@@ -138,7 +138,7 @@ export function topContributors(
   }).rows;
 }
 
-/** The ESRM queue: loans currently under review, newest first. */
+/** The ESRM queue: loans currently under review, biggest emitters first. */
 export function applicationQueue(
   data: BfiDemoData,
   n = 30
@@ -147,7 +147,7 @@ export function applicationQueue(
     page: 1,
     pageSize: n,
     filter: { status: "under-review" },
-    sort: { field: "disbursedDate", direction: "desc" },
+    sort: { field: "attributedCo2eTonnes", direction: "desc" },
   }).rows;
 }
 

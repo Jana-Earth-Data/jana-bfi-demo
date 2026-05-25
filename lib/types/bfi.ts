@@ -209,6 +209,8 @@ export type PortfolioFunnel = {
   totalLoans: number;
   inScopeLoans: number;
   facilityMatchedLoans: number;
+  /** Count of unique borrowers with facility-tier data appearing in the loan book */
+  facilityMatchedBorrowers: number;
   totalOutstandingNpr: number;
   inScopeOutstandingNpr: number;
   facilityMatchedOutstandingNpr: number;
@@ -218,6 +220,7 @@ export type DataQualityDistribution = Array<{
   score: 1 | 2 | 3 | 4 | 5;
   loanCount: number;
   outstandingUsd: number;
+  outstandingNpr: number;
   attributedCo2eTonnes: number;
 }>;
 

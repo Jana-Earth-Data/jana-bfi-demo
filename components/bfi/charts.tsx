@@ -15,6 +15,8 @@ import {
   LineChart,
   Pie,
   PieChart,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -184,6 +186,12 @@ export function EmissionsTrendChart({
     unclassified: p.byTaxonomy.unclassified,
     total: p.totalAttributedCo2eTonnes,
   }));
+  // Mark any year >= 2025 as partial (Climate TRACE Nepal coverage runs
+  // through October 2025). The reference area + tooltip annotation tells the
+  // viewer the visual dip on the right edge is a coverage artifact, not a
+  // real emissions decline.
+  const partialFromYear = 2025;
+  const hasPartial = rows.some((r) => r.year >= partialFromYear);
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer>
@@ -205,8 +213,28 @@ export function EmissionsTrendChart({
                 name,
               ]
             }
+            labelFormatter={(label) =>
+              Number(label) >= partialFromYear
+                ? `${label} · partial year`
+                : `${label}`
+            }
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
+          {hasPartial && (
+            <ReferenceArea
+              x1={partialFromYear - 0.5}
+              x2={partialFromYear + 0.5}
+              strokeOpacity={0}
+              fill="#0f172a"
+              fillOpacity={0.55}
+              label={{
+                value: "partial",
+                position: "insideTop",
+                fill: "#94a3b8",
+                fontSize: 10,
+              }}
+            />
+          )}
           <Area
             type="monotone"
             dataKey="red"
@@ -318,13 +346,13 @@ export function DataQualityBars({
   distribution: Array<{
     score: 1 | 2 | 3 | 4 | 5;
     loanCount: number;
-    outstandingUsd: number;
+    outstandingNpr: number;
     attributedCo2eTonnes: number;
   }>;
 }) {
   const rows = distribution.map((d) => ({
     score: `Score ${d.score}`,
-    outstandingUsd: d.outstandingUsd,
+    outstandingNpr: d.outstandingNpr,
     loanCount: d.loanCount,
     attributedCo2eTonnes: d.attributedCo2eTonnes,
     fill:
@@ -344,7 +372,7 @@ export function DataQualityBars({
           <XAxis dataKey="score" stroke="#93a4b8" tick={{ fontSize: 11 }} />
           <YAxis
             stroke="#93a4b8"
-            tickFormatter={(v) => `$${compact(v)}`}
+            tickFormatter={(v) => `NPR ${compact(v)}`}
             tick={{ fontSize: 11 }}
           />
           <Tooltip
@@ -354,12 +382,12 @@ export function DataQualityBars({
             formatter={(_: number, _name, item) => {
               const row = item as unknown as { payload: (typeof rows)[number] };
               return [
-                `$${new Intl.NumberFormat("en-US").format(row.payload.outstandingUsd)} outstanding`,
+                `NPR ${new Intl.NumberFormat("en-US").format(row.payload.outstandingNpr)} outstanding`,
                 `${row.payload.loanCount.toLocaleString()} loans · ${new Intl.NumberFormat("en-US").format(row.payload.attributedCo2eTonnes)} tCO2e`,
               ];
             }}
           />
-          <Bar dataKey="outstandingUsd" radius={[8, 8, 0, 0]}>
+          <Bar dataKey="outstandingNpr" radius={[8, 8, 0, 0]}>
             {rows.map((r, i) => (
               <Cell key={i} fill={r.fill} />
             ))}

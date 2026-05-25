@@ -19,11 +19,11 @@ import {
   formatCo2e,
   formatNpr,
   formatPercent,
-  formatUsd,
   qualityScoreColors,
   taxonomyColors,
 } from "@/components/bfi/ui";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
+import { NPR_PER_USD } from "@/lib/data/util";
 
 export function NsrsTab({ data }: { data: DashboardSsrData }) {
   const s = data.portfolio;
@@ -33,10 +33,16 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
   const yoy = useMemo(() => {
     const fullYears = trend.filter((p) => p.year < 2025);
     if (fullYears.length < 2) return null;
-    const last = fullYears[fullYears.length - 1].totalAttributedCo2eTonnes;
-    const prev = fullYears[fullYears.length - 2].totalAttributedCo2eTonnes;
-    if (prev === 0) return null;
-    return (last - prev) / prev;
+    const last = fullYears[fullYears.length - 1];
+    const prev = fullYears[fullYears.length - 2];
+    if (prev.totalAttributedCo2eTonnes === 0) return null;
+    return {
+      pct:
+        (last.totalAttributedCo2eTonnes - prev.totalAttributedCo2eTonnes) /
+        prev.totalAttributedCo2eTonnes,
+      lastYear: last.year,
+      prevYear: prev.year,
+    };
   }, [trend]);
 
   const facilityBorrowers = data.facilityBorrowers.length;
@@ -50,8 +56,8 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
           value={formatCo2e(s.totalAttributedCo2eTonnes)}
           sublabel={
             yoy != null ? (
-              <span className={yoy >= 0 ? "text-rose-300" : "text-emerald-300"}>
-                {yoy >= 0 ? "▲" : "▼"} {formatPercent(Math.abs(yoy))} YoY
+              <span className={yoy.pct >= 0 ? "text-rose-300" : "text-emerald-300"}>
+                {yoy.pct >= 0 ? "▲" : "▼"} {formatPercent(Math.abs(yoy.pct))} YoY ({yoy.prevYear} → {yoy.lastYear})
               </span>
             ) : (
               "PCAF Cat. 15 Scope 3"
@@ -94,21 +100,7 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
         />
       </div>
 
-      {/* Main row: contributors + sector chart */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel
-          title="Top contributors"
-          subtitle="Loans driving the largest attributed emissions"
-          className="lg:col-span-2"
-        >
-          <TopContributorsTable data={data} />
-        </Panel>
-        <Panel title="Emissions by sector">
-          <SectorEmissionsChart data={s.sectorBreakdown} />
-        </Panel>
-      </div>
-
-      {/* Trend + data quality */}
+      {/* Charts row 1: multi-year trend + data quality */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel
           title="Multi-year trend"
@@ -124,7 +116,7 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
         <div data-tour="data-quality">
         <Panel
           title="Data quality distribution"
-          subtitle="PCAF score by USD outstanding"
+          subtitle="PCAF score by NPR outstanding"
         >
           <DataQualityBars distribution={s.dataQualityDistribution ?? []} />
           <div className="mt-3 space-y-1">
@@ -141,7 +133,7 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
                 </span>
                 <span className="text-slate-400">
                   {d.loanCount.toLocaleString()} loans ·{" "}
-                  {formatUsd(d.outstandingUsd)} ·{" "}
+                  {formatNpr(d.outstandingNpr)} ·{" "}
                   {formatCo2e(d.attributedCo2eTonnes)}
                 </span>
               </div>
@@ -151,12 +143,28 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
         </div>
       </div>
 
+      {/* Sector emissions chart — full width */}
+      <Panel
+        title="Emissions by sector"
+        subtitle="Attributed CO₂e for the disclosure year"
+      >
+        <SectorEmissionsChart data={s.sectorBreakdown} />
+      </Panel>
+
       {/* Disclosure preview */}
       <Panel
         title="Annual report disclosure preview"
         subtitle="IFRS S2 / NSRS-aligned excerpt"
       >
         <DisclosurePreview data={data} />
+      </Panel>
+
+      {/* Top contributors — detail table at the bottom of the page */}
+      <Panel
+        title="Top contributors"
+        subtitle="Loans driving the largest attributed emissions"
+      >
+        <TopContributorsTable data={data} />
       </Panel>
     </div>
   );
@@ -271,17 +279,17 @@ function DrillDown({
       <div className="mt-3 space-y-1">
         <StatRow
           label="Loan outstanding"
-          value={`${formatNpr(loan.outstandingNpr)} · ${formatUsd(loan.outstandingUsd)}`}
+          value={formatNpr(loan.outstandingNpr)}
         />
         <StatRow
           label="Borrower EV"
-          value={formatUsd(borrower.enterpriseValueUsd)}
-          hint={`Source: ${borrower.evSource}`}
+          value={formatNpr(borrower.enterpriseValueUsd * NPR_PER_USD)}
+          hint="demo only"
         />
         <StatRow
           label="Attribution factor"
           value={`${(attribution.attributionFactor * 100).toFixed(2)}%`}
-          hint="outstanding USD / enterprise value"
+          hint="loan outstanding ÷ enterprise value"
         />
         <StatRow
           label="Borrower CO₂e"

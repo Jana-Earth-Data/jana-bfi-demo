@@ -69,7 +69,7 @@ export function TaxonomyTab({ data }: { data: DashboardSsrData }) {
             </span>
           }
           value={(funnel?.facilityMatchedLoans ?? 0).toLocaleString()}
-          sublabel={`${formatPercent((funnel?.facilityMatchedOutstandingNpr ?? 0) / Math.max(1, funnel?.inScopeOutstandingNpr ?? 1))} of in-scope value · facility-tier data`}
+          sublabel={`${(funnel?.facilityMatchedBorrowers ?? 0).toLocaleString()} unique borrowers · ${formatPercent((funnel?.facilityMatchedOutstandingNpr ?? 0) / Math.max(1, funnel?.inScopeOutstandingNpr ?? 1))} of in-scope value`}
           accent
         />
       </div>
@@ -124,6 +124,7 @@ export function TaxonomyTab({ data }: { data: DashboardSsrData }) {
                       <Badge className={taxonomyColors[color]}>
                         {color}
                       </Badge>
+                      <InfoTip id={`taxonomy-${color}`} side="right" />
                       <span className="text-slate-300">
                         {mode === "count"
                           ? `${v.toLocaleString()} loans`
@@ -223,9 +224,17 @@ function Funnel({ data }: { data: DashboardSsrData }) {
           </div>
           <p className="mt-2 text-sm text-slate-200">
             <span className="font-semibold text-white">
+              {(f.facilityMatchedBorrowers ?? 0).toLocaleString()}
+            </span>{" "}
+            unique borrowers carry facility-tier emissions data across{" "}
+            <span className="font-semibold text-white">
+              {f.facilityMatchedLoans.toLocaleString()}
+            </span>{" "}
+            of the bank's loans. That is{" "}
+            <span className="font-semibold text-white">
               {formatPercent(totalPct / 100)}
             </span>{" "}
-            of the book by loan count carries facility-tier emissions data,{" "}
+            of the book by count,{" "}
             <span className="font-semibold text-white">
               {formatPercent(valuePct / 100)}
             </span>{" "}
