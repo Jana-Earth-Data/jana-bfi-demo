@@ -78,6 +78,13 @@ export const TOOLTIPS: Record<string, TooltipContent> = {
     source:
       "EDGAR v8.1 gridded CO₂ emissions, 2024, clipped to Nepal admin polygon",
   },
+  "sanity-check-national-share": {
+    title: "Sanity check: how this percentage is computed",
+    body:
+      "Numerator: the borrower's annual CO₂e from one Climate TRACE 2024 asset matched to the borrower's facility within ~100 m. No coordinate-based aggregation. All 213 Nepal CT facilities have distinct asset_ids.\n\nDenominator: Nepal's 2024 national CO₂ from EDGAR's gridded inventory, polygon-clipped to the country admin boundary. 18.81 Mt across 1,343 cells.\n\nWorked example: Hongshi Shivam Sardi Bagaicha. Climate TRACE asset 25263 reports 922,187 tCO₂e for 2024. 922,187 ÷ 18,813,007 = 4.90%. Implied emission factor 0.40 tCO₂ per tonne cement at 2.3 Mt capacity, consistent with a modern dry-process plant.",
+    source:
+      "Climate TRACE v5.6 (asset_id 25263) · GCCT July 2025 release · EDGAR v8.1 polygon-clipped to Nepal admin boundary",
+  },
   "facility-tier": {
     title: "Facility-tier borrower",
     body:

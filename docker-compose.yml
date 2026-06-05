@@ -8,6 +8,11 @@ services:
         NEXT_PUBLIC_DEMO_USE_MOCKS: ${NEXT_PUBLIC_DEMO_USE_MOCKS:-true}
     ports:
       - "3001:3000"
+    # Pull Supabase keys + seed token from .env.local at runtime. Anything in
+    # .env.local flows in here, so adding a new env var only requires editing
+    # that one file (and restarting the container).
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - PORT=3000
