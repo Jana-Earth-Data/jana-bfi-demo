@@ -1,6 +1,33 @@
+# Build / IDE / OS artifacts
 node_modules
 .next
 .git
-.env*
+.DS_Store
+tsconfig.tsbuildinfo
+coverage
+dist
+
+# Environment + secrets
+.env
+.env.*
+!.env.local.example
+*.key
+tts.key*
+*.pem
+keys-do-not-commit/
+.aws/
+
+# Dev-only scripts and source inputs that are not needed at runtime
+scripts/
+data/_raw_*.csv
+data/_raw_*.geojson
+
+# Internal documentation (PDFs, sales notes, sanity checks, session context)
+docs/
+
+# Vercel-only artifacts
+.vercel/
+
+# Misc markdown (keep README so the deploy carries a top-level overview)
 *.md
 !README.md

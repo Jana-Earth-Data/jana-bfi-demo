@@ -323,8 +323,11 @@ export function LoanTable({
       {/* Pagination */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
         <span>
-          Page {page} of {totalPages.toLocaleString()} · {pageSize} loans per
-          page
+          Showing {((page - 1) * pageSize + 1).toLocaleString()}
+          {"–"}
+          {Math.min(page * pageSize, total).toLocaleString()} of{" "}
+          {total.toLocaleString()} loans &nbsp;·&nbsp; page {page} of{" "}
+          {totalPages.toLocaleString()}
         </span>
         <div className="flex items-center gap-1">
           <button
