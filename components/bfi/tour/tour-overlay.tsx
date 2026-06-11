@@ -98,13 +98,49 @@ export function TourOverlay() {
     };
   }, [step?.id, step?.target]);
 
-  // Scroll the target into view when a new step arrives.
+  // Scroll handling when a new step arrives.
+  //
+  // Two things must happen in order:
+  //   1. Reset the window scroll to the top of the page IMMEDIATELY. The user
+  //      may have been scrolled somewhere arbitrary before pressing Play, and
+  //      the previous tour step may also have left the page scrolled deep.
+  //      We always want a clean baseline so the next step starts from the
+  //      top of the new tab.
+  //   2. After a beat (to let the new tab mount / fade in), find the target
+  //      and scroll it so its TOP sits at TOP_OFFSET_PX below the viewport
+  //      top. This guarantees the user sees the start of the target (the
+  //      loan table title, the borrower-detail header, the NSRS headline)
+  //      rather than its middle. We retry a few times because tab content
+  //      sometimes fades in async.
   useEffect(() => {
     if (!step) return;
-    const el = document.querySelector(step.target);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // 1. Instant reset to page top.
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    // 2. Scroll target into view, top-aligned, with breathing room.
+    const TOP_OFFSET_PX = 88;
+    const RETRY_DELAYS_MS = [150, 350, 700];
+    const timers: number[] = [];
+
+    let landed = false;
+    const ensureTargetVisible = () => {
+      if (landed) return;
+      const el = document.querySelector(step.target) as HTMLElement | null;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return; // not laid out yet
+      const targetY = Math.max(0, window.scrollY + rect.top - TOP_OFFSET_PX);
+      window.scrollTo({ top: targetY, left: 0, behavior: "smooth" });
+      landed = true;
+    };
+
+    for (const delay of RETRY_DELAYS_MS) {
+      timers.push(window.setTimeout(ensureTargetVisible, delay));
     }
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+    };
   }, [step?.id]);
 
   if (status === "idle" || !step) return null;
