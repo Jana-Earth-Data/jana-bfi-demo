@@ -253,10 +253,21 @@ function pcafFor(
     };
   }
 
-  // Sector-benchmark for SMEs (and any borrower with no facilities)
+  // Sector-benchmark for SMEs, hydropower, and any borrower with no
+  // facility-tier data. Note text is tailored to the sector when we know
+  // the methodology should be described differently (hydropower comes from
+  // installed-capacity lifecycle attribution, not EDGAR emission intensity,
+  // because Climate TRACE does not currently track Nepal hydropower at
+  // facility level).
   if (borrower.dataTier === "sector-benchmark" || borrower.facilities.length === 0) {
     const ev = Math.max(50_000, borrower.enterpriseValueUsd);
     const af = loan.outstandingUsd / ev;
+    const sectorLower = borrower.nrbSector.toLowerCase();
+    const isHydro =
+      sectorLower.includes("hydropower") || sectorLower.includes("hydro");
+    const qualityNote = isHydro
+      ? "Hydropower emissions estimated from installed capacity (lifecycle attribution). Climate TRACE does not currently track Nepal hydropower at facility level."
+      : "EDGAR sector emission intensity x estimated revenue";
     return {
       loanId: loan.id,
       borrowerId: borrower.id,
@@ -264,7 +275,7 @@ function pcafFor(
       attributionFactor: af,
       attributedCo2eTonnes: Math.round(af * borrower.totalCo2eTonnes),
       dataQualityScore: 4,
-      qualityNote: "EDGAR sector emission intensity x estimated revenue",
+      qualityNote,
     };
   }
 

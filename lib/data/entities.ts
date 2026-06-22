@@ -245,7 +245,12 @@ function hydroBorrowers(): Borrower[] {
   const out: Borrower[] = [];
   (hydroSnapshot.operators as HydroOperator[]).forEach((op, i) => {
     const facilities: MatchedFacility[] = op.operatingStations.map((s, j) => {
-      // Hydropower direct ops emissions ≈ small (10-40 tCO2/MW/yr life-cycle attribution).
+      // Hydropower direct ops emissions estimated from operating capacity
+      // (~15 tCO2/MW/yr lifecycle attribution). Climate TRACE does NOT
+      // currently track Nepal hydropower at facility level — this number
+      // is a sector-benchmark estimate from installed capacity, not a
+      // measured emission. The facility name, coordinates, and capacity
+      // are real (sourced from operator filings + public registries).
       const baseAnnual = Math.round(s.capacityMw * 15);
       const seed = (i + 1) * 1000 + j;
       return {
@@ -274,7 +279,11 @@ function hydroBorrowers(): Borrower[] {
       nrbSector: "Energy - Hydropower",
       enterpriseValueUsd: evUsd,
       evSource: publiclyListed ? "public-filing" : "estimated",
-      dataTier: "facility",
+      // Sector-benchmark tier, NOT facility tier: Climate TRACE does not
+      // cover Nepal hydropower at facility level (verified directly against
+      // the Jana platform), so we route hydropower attribution through the
+      // sector-benchmark PCAF branch and label it Score 4.
+      dataTier: "sector-benchmark",
       parent: null,
       publiclyListed,
       facilities,
