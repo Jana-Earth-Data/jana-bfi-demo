@@ -86,6 +86,39 @@ const SORT_FIELD_TO_COLUMN: Record<LoanSort["field"], string> = {
   id: "id",
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Retry a transient-failing async operation with exponential backoff.
+ *
+ * Supabase (especially free/dev tiers) can cold-start, hit a statement timeout,
+ * or briefly exhaust its connection pool. Those failures are transient and clear
+ * on a retry a moment later, so we give the query a few attempts before giving
+ * up and surfacing a 500.
+ */
+async function withRetry<T>(
+  op: () => Promise<T>,
+  { attempts = 3, baseDelayMs = 250 }: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await op();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < attempts) {
+        const delay = baseDelayMs * 2 ** (attempt - 1);
+        console.warn(
+          `[portfolio/loans] Supabase query attempt ${attempt}/${attempts} failed, retrying in ${delay}ms:`,
+          (err as Error).message
+        );
+        await sleep(delay);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 /**
  * Run the paginated loan query against Supabase. Returns the same shape the
  * in-memory queryLoans returns so the client doesn't need to know which backend
@@ -100,38 +133,45 @@ async function querySupabase(
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Supabase not configured");
 
-  let q = supabase
-    .from(BFI_LOANS_TABLE)
-    .select("*", { count: "exact" });
+  // Build a fresh query builder per attempt — Supabase builders are single-use
+  // thenables and cannot be safely re-awaited once executed.
+  const runQuery = async () => {
+    let q = supabase
+      .from(BFI_LOANS_TABLE)
+      .select("*", { count: "exact" });
 
-  if (filter.taxonomy) q = q.eq("nrb_taxonomy", filter.taxonomy);
-  if (filter.businessUnit) q = q.eq("business_unit", filter.businessUnit);
-  if (filter.status) q = q.eq("status", filter.status);
-  if (filter.branchCode) q = q.eq("branch_code", filter.branchCode);
-  if (filter.sector) q = q.eq("borrower_sector", filter.sector);
-  if (filter.category) q = q.eq("category", filter.category);
-  if (filter.minNpr != null) q = q.gte("outstanding_npr", filter.minNpr);
-  if (filter.maxNpr != null) q = q.lte("outstanding_npr", filter.maxNpr);
-  if (filter.query) {
-    // Trigram-backed search across the concatenated text columns; ilike works
-    // and uses the gin trigram index for prefix/contains queries.
-    const term = filter.query.replace(/[%_]/g, " ").trim();
-    if (term) {
-      q = q.or(
-        `id.ilike.%${term}%,borrower_name.ilike.%${term}%,branch.ilike.%${term}%,borrower_sector.ilike.%${term}%`
-      );
+    if (filter.taxonomy) q = q.eq("nrb_taxonomy", filter.taxonomy);
+    if (filter.businessUnit) q = q.eq("business_unit", filter.businessUnit);
+    if (filter.status) q = q.eq("status", filter.status);
+    if (filter.branchCode) q = q.eq("branch_code", filter.branchCode);
+    if (filter.sector) q = q.eq("borrower_sector", filter.sector);
+    if (filter.category) q = q.eq("category", filter.category);
+    if (filter.minNpr != null) q = q.gte("outstanding_npr", filter.minNpr);
+    if (filter.maxNpr != null) q = q.lte("outstanding_npr", filter.maxNpr);
+    if (filter.query) {
+      // Trigram-backed search across the concatenated text columns; ilike works
+      // and uses the gin trigram index for prefix/contains queries.
+      const term = filter.query.replace(/[%_]/g, " ").trim();
+      if (term) {
+        q = q.or(
+          `id.ilike.%${term}%,borrower_name.ilike.%${term}%,branch.ilike.%${term}%,borrower_sector.ilike.%${term}%`
+        );
+      }
     }
-  }
 
-  const column = SORT_FIELD_TO_COLUMN[sort.field];
-  q = q.order(column, { ascending: sort.direction === "asc" });
+    const column = SORT_FIELD_TO_COLUMN[sort.field];
+    q = q.order(column, { ascending: sort.direction === "asc" });
 
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  q = q.range(from, to);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    q = q.range(from, to);
 
-  const { data, count, error } = await q;
-  if (error) throw new Error(`Supabase loan query failed: ${error.message}`);
+    const { data, count, error } = await q;
+    if (error) throw new Error(`Supabase loan query failed: ${error.message}`);
+    return { data, count };
+  };
+
+  const { data, count } = await withRetry(runQuery);
 
   // Map the flat denormalized rows back into the LoanRow shape the client expects.
   // Supabase returns the literal-union columns as plain strings, so we narrow
@@ -221,6 +261,14 @@ export async function GET(request: NextRequest) {
     const result = queryLoans(data, { page, pageSize, filter, sort });
     return NextResponse.json(result);
   } catch (err) {
+    // Log server-side so transient backend failures (e.g. Supabase cold start,
+    // statement timeout, connection cap) are visible in `docker compose logs`
+    // instead of surfacing only as an opaque 500 in the browser.
+    console.error(
+      "[portfolio/loans] query failed",
+      JSON.stringify({ filter, sort, page, pageSize }),
+      (err as Error).message
+    );
     return NextResponse.json(
       { error: (err as Error).message },
       { status: 500 }
