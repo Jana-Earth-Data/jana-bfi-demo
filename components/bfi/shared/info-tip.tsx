@@ -10,12 +10,81 @@
  * Hover shows the popover; click pins it; click outside or press Escape to
  * close. The content lives in lib/tooltips/tooltips.ts — adding a new tip is
  * a one-line edit there plus dropping <InfoTip id="..."/> at the use site.
+ *
+ * Rendering note: the popover is rendered into a React portal at
+ * document.body with `position: fixed`, then clamped to the viewport. This
+ * lets the popover escape any ancestor with `overflow:auto/hidden` (notably
+ * the loan-detail slide-over drawer) and guarantees it never gets cut off
+ * by viewport edges.
  */
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { getTooltip } from "@/lib/tooltips/tooltips";
 
 type Side = "right" | "left" | "above" | "below";
+
+// Layout constants used to position the popover.
+const TIP_WIDTH = 288; // matches Tailwind w-72
+const ESTIMATED_TIP_HEIGHT = 140; // best-effort; clamped to viewport below
+const GAP = 8;
+const VIEWPORT_GUTTER = 8;
+
+function clampToViewport(
+  top: number,
+  left: number,
+  height: number,
+): { top: number; left: number } {
+  if (typeof window === "undefined") return { top, left };
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (left + TIP_WIDTH > vw - VIEWPORT_GUTTER) {
+    left = vw - VIEWPORT_GUTTER - TIP_WIDTH;
+  }
+  if (left < VIEWPORT_GUTTER) {
+    left = VIEWPORT_GUTTER;
+  }
+  if (top + height > vh - VIEWPORT_GUTTER) {
+    top = vh - VIEWPORT_GUTTER - height;
+  }
+  if (top < VIEWPORT_GUTTER) {
+    top = VIEWPORT_GUTTER;
+  }
+  return { top, left };
+}
+
+function computeCoords(
+  anchor: DOMRect,
+  side: Side,
+  tipHeight: number,
+): { top: number; left: number } {
+  let top = 0;
+  let left = 0;
+  switch (side) {
+    case "right":
+      top = anchor.top + anchor.height / 2 - tipHeight / 2;
+      left = anchor.right + GAP;
+      break;
+    case "left":
+      top = anchor.top + anchor.height / 2 - tipHeight / 2;
+      left = anchor.left - GAP - TIP_WIDTH;
+      break;
+    case "above":
+      top = anchor.top - GAP - tipHeight;
+      left = anchor.left + anchor.width / 2 - TIP_WIDTH / 2;
+      break;
+    case "below":
+      top = anchor.bottom + GAP;
+      left = anchor.left + anchor.width / 2 - TIP_WIDTH / 2;
+      break;
+  }
+  return clampToViewport(top, left, tipHeight);
+}
 
 export function InfoTip({
   id,
@@ -31,14 +100,58 @@ export function InfoTip({
 }) {
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+  const wrapperRef = useRef<HTMLSpanElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLSpanElement>(null);
   const content = getTooltip(id);
 
-  // Click-outside / Escape close
+  // Position the popover on open + on resize/scroll while open.
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) {
+      setCoords(null);
+      return;
+    }
+    const recompute = () => {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const anchor = btn.getBoundingClientRect();
+      // First pass with the estimated height
+      const initial = computeCoords(anchor, side, ESTIMATED_TIP_HEIGHT);
+      setCoords(initial);
+      // After the popover renders, measure its real height and re-clamp.
+      requestAnimationFrame(() => {
+        if (!popoverRef.current || !buttonRef.current) return;
+        const realHeight = popoverRef.current.getBoundingClientRect().height;
+        const refined = computeCoords(
+          buttonRef.current.getBoundingClientRect(),
+          side,
+          realHeight,
+        );
+        setCoords(refined);
+      });
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    // capture-phase so scrolls inside any ancestor (e.g. drawer) also trigger
+    window.addEventListener("scroll", recompute, true);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      window.removeEventListener("scroll", recompute, true);
+    };
+  }, [open, side]);
+
+  // Click-outside / Escape close (operates on the wrapper that holds the icon
+  // and on the portal popover via its own ref).
   useEffect(() => {
     if (!pinned) return;
     function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const t = e.target as Node;
+      const inWrapper = wrapperRef.current?.contains(t);
+      const inPopover = popoverRef.current?.contains(t);
+      if (!inWrapper && !inPopover) {
         setPinned(false);
         setOpen(false);
       }
@@ -64,21 +177,45 @@ export function InfoTip({
     return null;
   }
 
-  const sidePos: Record<Side, string> = {
-    right: "top-1/2 left-full ml-2 -translate-y-1/2",
-    left: "top-1/2 right-full mr-2 -translate-y-1/2",
-    above: "bottom-full left-1/2 mb-2 -translate-x-1/2",
-    below: "top-full left-1/2 mt-2 -translate-x-1/2",
-  };
+  const popover =
+    open && coords && typeof document !== "undefined"
+      ? createPortal(
+          <span
+            ref={popoverRef}
+            role="tooltip"
+            style={{
+              position: "fixed",
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              width: `${TIP_WIDTH}px`,
+            }}
+            className="z-[100] rounded-lg border border-line bg-panel/98 p-3 text-left text-xs text-slate-200 shadow-2xl backdrop-blur"
+          >
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-accent">
+              {content.title}
+            </span>
+            <span className="mt-1 block whitespace-pre-line leading-relaxed text-slate-200">
+              {content.body}
+            </span>
+            {content.source && (
+              <span className="mt-2 block border-t border-line/60 pt-2 text-[10px] text-slate-500">
+                {content.source}
+              </span>
+            )}
+          </span>,
+          document.body,
+        )
+      : null;
 
   return (
     <span
-      ref={ref}
+      ref={wrapperRef}
       className={`relative inline-flex items-center gap-1 align-baseline ${className}`}
       onMouseEnter={() => !pinned && setOpen(true)}
       onMouseLeave={() => !pinned && setOpen(false)}
     >
       <button
+        ref={buttonRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -94,24 +231,7 @@ export function InfoTip({
         i
       </button>
       {label && <span className="text-xs text-slate-500">{label}</span>}
-      {open && (
-        <span
-          role="tooltip"
-          className={`pointer-events-none absolute z-50 w-72 rounded-lg border border-line bg-panel/98 p-3 text-left text-xs text-slate-200 shadow-2xl backdrop-blur ${sidePos[side]}`}
-        >
-          <span className="block text-[11px] font-semibold uppercase tracking-wide text-accent">
-            {content.title}
-          </span>
-          <span className="mt-1 block whitespace-pre-line leading-relaxed text-slate-200">
-            {content.body}
-          </span>
-          {content.source && (
-            <span className="mt-2 block border-t border-line/60 pt-2 text-[10px] text-slate-500">
-              {content.source}
-            </span>
-          )}
-        </span>
-      )}
+      {popover}
     </span>
   );
 }
