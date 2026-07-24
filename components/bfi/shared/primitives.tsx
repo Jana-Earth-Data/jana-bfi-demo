@@ -43,13 +43,16 @@ export function Panel({
 export function Badge({
   children,
   className = "",
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}
+      style={style}
     >
       {children}
     </span>
@@ -73,7 +76,8 @@ export function KpiCard({
         {label}
       </div>
       <div
-        className={`mt-2 text-2xl font-semibold ${accent ? "text-accent" : "text-white"}`}
+        className="mt-2 text-2xl font-semibold"
+        style={accent ? { color: "var(--brand-primary)" } : { color: "#FFFFFF" }}
       >
         {value}
       </div>
@@ -136,19 +140,23 @@ export function ProgressBar({
   value,
   className = "",
   trackClass = "bg-line",
-  fillClass = "bg-accent",
+  fillClass,
 }: {
   value: number; // 0..1
   className?: string;
   trackClass?: string;
+  /** Optional override; defaults to the current tenant's brand-primary. */
   fillClass?: string;
 }) {
   const pct = Math.max(0, Math.min(1, value));
+  const fillStyle: React.CSSProperties = fillClass
+    ? { width: `${pct * 100}%` }
+    : { width: `${pct * 100}%`, backgroundColor: "var(--brand-primary)" };
   return (
     <div className={`relative h-1.5 w-full overflow-hidden rounded-full ${trackClass} ${className}`}>
       <div
-        className={`absolute inset-y-0 left-0 ${fillClass}`}
-        style={{ width: `${pct * 100}%` }}
+        className={`absolute inset-y-0 left-0 ${fillClass ?? ""}`}
+        style={fillStyle}
       />
     </div>
   );

@@ -41,7 +41,8 @@ export function TourControls() {
 
         <button
           onClick={togglePlayPause}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-slate-900 shadow hover:bg-sky-300"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-white shadow transition-colors"
+          style={{ backgroundColor: "var(--brand-primary)" }}
           aria-label={isPlaying ? "Pause tour" : "Play tour"}
         >
           {isPlaying ? (
@@ -77,12 +78,15 @@ export function TourControls() {
                 onClick={() => goTo(i)}
                 aria-label={`Jump to step ${i + 1}`}
                 className={`h-2 rounded-full transition-all ${
-                  active
-                    ? "w-8 bg-accent"
-                    : done
-                      ? "w-2 bg-emerald-400"
-                      : "w-2 bg-line"
+                  active ? "w-8" : done ? "w-2" : "w-2 bg-line"
                 }`}
+                style={
+                  active
+                    ? { backgroundColor: "var(--brand-primary)" }
+                    : done
+                      ? { backgroundColor: "var(--brand-primary-strong)" }
+                      : undefined
+                }
               />
             );
           })}

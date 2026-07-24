@@ -24,6 +24,7 @@ import { buildScreening } from "@/lib/data/screening";
 import { LoanRow } from "@/lib/data/portfolio-query";
 import { NPR_PER_USD } from "@/lib/data/util";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
+import { OfficerWorkQueue } from "@/components/bfi/esrm/officer-work-queue";
 import { useTour } from "@/lib/tour/tour-context";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
@@ -71,6 +72,12 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
 
   return (
     <div className="grid gap-4">
+      {/*
+        Officer work queue. Only renders when an officer is signed in;
+        internally hides itself if data.currentOfficer is null.
+      */}
+      <OfficerWorkQueue currentOfficer={data.currentOfficer} />
+
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
@@ -628,6 +635,7 @@ function ScreeningWorkbench({
       {esddOpen && (
         <EsddChecklistDrawer
           borrower={borrower}
+          loanId={loan.id}
           onClose={() => setEsddOpen(false)}
         />
       )}
@@ -645,16 +653,20 @@ function ScreeningWorkbench({
 }
 
 // ---------------------------------------------------------------------------
-// ESDD checklist panel (NRB ESRM Annex 5)
+// ESDD checklist panel (NRB ESRM Annex 5) — LIVE STATUS from Supabase
 // ---------------------------------------------------------------------------
 //
-// Honest mapping of which ESDD categories Jana actually informs versus those
-// the bank must own. Only two categories carry Jana data today: borrower
-// identification (where we have a Climate TRACE or GCCT match) and pollution
-// /emissions (where Climate TRACE has facility-level coverage). Everything
-// else, including OpenAQ-based community health (sparse in Nepal),
-// biodiversity, EIA, labor, indigenous, and hydropower-specific reviews,
-// stays in the bank's ESDD workflow.
+// Shows the loan's actual ESDD progress against the NRB ESRM Annex 5
+// questions. Fetches the latest response per question from
+// bfi_esdd_responses and the latest saved screening (if any) from
+// bfi_esrm_screenings, then renders per-section progress plus an
+// "Open ESDD wizard" primary action.
+//
+// The pre-wizard "who provides this data" mapping (buildEsddRows) is kept
+// below the fold as a small "Data coverage" note so the credit officer
+// still knows which parts Jana automates. That informational panel
+// answers the "why does this data quality vary per question" question
+// but is no longer the primary content.
 
 type EsddStatus = "jana" | "limited" | "bank";
 
@@ -662,6 +674,16 @@ type EsddRow = {
   category: string;
   status: EsddStatus;
   detail: string;
+};
+
+type EsddApiResponse = {
+  ok: true;
+  responses: Array<{
+    questionId: string;
+    answer: "a" | "b" | "c" | "d";
+    remarks: string | null;
+    capturedAt: string;
+  }>;
 };
 
 function buildEsddRows(borrower: Borrower): EsddRow[] {
@@ -758,17 +780,120 @@ function buildEsddRows(borrower: Borrower): EsddRow[] {
   return rows;
 }
 
+// Structured section metadata used to render live per-question progress.
+// The sections + question ids MUST match lib/regulatory/esdd/annex5-questions.ts.
+const ANNEX5_SECTIONS: Array<{
+  title: string;
+  short: string;
+  questions: Array<{ id: string; number: string; prompt: string }>;
+}> = [
+  {
+    title: "Section 1 — General Risk",
+    short: "General",
+    questions: [
+      { id: "annex5.1.1", number: "1.1", prompt: "Legal issues with E&S performance" },
+      { id: "annex5.1.2", number: "1.2", prompt: "Stakeholder grievances or NGO campaigns" },
+      { id: "annex5.1.3", number: "1.3", prompt: "Site near sensitive areas" },
+    ],
+  },
+  {
+    title: "Section 2 — Environmental Health & Safety",
+    short: "EHS",
+    questions: [
+      { id: "annex5.2.1", number: "2.1", prompt: "Air and noise pollution" },
+      { id: "annex5.2.2", number: "2.2", prompt: "Water pollution" },
+      { id: "annex5.2.3", number: "2.3", prompt: "Land pollution / waste handling" },
+      { id: "annex5.2.4", number: "2.4", prompt: "Energy efficiency / renewables" },
+    ],
+  },
+  {
+    title: "Section 3 — Social Risks",
+    short: "Social",
+    questions: [
+      { id: "annex5.3.1", number: "3.1", prompt: "Fire risk / occupational H&S" },
+      { id: "annex5.3.2", number: "3.2", prompt: "Labour and working conditions" },
+      { id: "annex5.3.3", number: "3.3", prompt: "Community health & safety" },
+      { id: "annex5.3.4", number: "3.4", prompt: "Stakeholder consultation / indigenous people" },
+    ],
+  },
+];
+
+const ANSWER_COLOR: Record<"a" | "b" | "c" | "d", string> = {
+  a: "#22c55e", // green — best case
+  b: "#eab308", // yellow — partial mitigation
+  c: "#ef4444", // red — no plan / escalation trigger
+  d: "#6b7280", // gray — not applicable
+};
+
 function EsddChecklistDrawer({
   borrower,
+  loanId,
   onClose,
 }: {
   borrower: Borrower;
+  loanId: string;
   onClose: () => void;
 }) {
-  const items = buildEsddRows(borrower);
-  const janaCount = items.filter((r) => r.status === "jana").length;
-  const limitedCount = items.filter((r) => r.status === "limited").length;
-  const bankCount = items.filter((r) => r.status === "bank").length;
+  // Live status from the capture APIs. Both requests run in parallel on
+  // open; the drawer shows a "Loading…" state until they resolve.
+  const [responses, setResponses] = useState<Map<string, EsddApiResponse["responses"][number]>>(
+    new Map(),
+  );
+  const [screening, setScreening] = useState<{
+    riskClass: "low" | "medium" | "high" | "extreme";
+    recommendation: string;
+    escalationFlag: boolean;
+    capturedAt: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [respRes, scrRes] = await Promise.all([
+          fetch(`/api/esdd/responses?loanId=${encodeURIComponent(loanId)}`),
+          fetch(`/api/esrm/screenings?loanId=${encodeURIComponent(loanId)}`).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const map = new Map<string, EsddApiResponse["responses"][number]>();
+        if (respRes.ok) {
+          const body = (await respRes.json()) as EsddApiResponse;
+          for (const r of body.responses) map.set(r.questionId, r);
+        }
+        setResponses(map);
+        // Screening endpoint is optional (GET may not exist yet); tolerate.
+        if (scrRes && scrRes.ok) {
+          const body = await scrRes.json();
+          if (body?.latest) {
+            setScreening({
+              riskClass: body.latest.computed_risk_class,
+              recommendation: body.latest.computed_recommendation,
+              escalationFlag: body.latest.escalation_flag,
+              capturedAt: body.latest.captured_at,
+            });
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loanId]);
+
+  const totalQuestions = ANNEX5_SECTIONS.reduce((s, sec) => s + sec.questions.length, 0);
+  const answered = ANNEX5_SECTIONS.reduce(
+    (s, sec) => s + sec.questions.filter((q) => responses.has(q.id)).length,
+    0,
+  );
+  const pct = totalQuestions > 0 ? answered / totalQuestions : 0;
+
+  // Retain the pre-wizard "who provides data" note as a small
+  // informational panel at the bottom.
+  const coverageItems = buildEsddRows(borrower);
 
   return (
     <div
@@ -790,6 +915,7 @@ function EsddChecklistDrawer({
             <div className="text-xs text-slate-500">
               {borrower.name} · {borrower.nrbSector}
             </div>
+            <div className="text-[11px] text-slate-600">Loan {loanId}</div>
           </div>
           <button
             onClick={onClose}
@@ -800,54 +926,181 @@ function EsddChecklistDrawer({
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <Badge className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
-            {janaCount} Jana data
-          </Badge>
-          {limitedCount > 0 && (
-            <Badge className="border-sky-500/40 bg-sky-500/10 text-sky-300">
-              {limitedCount} Jana partial
-            </Badge>
-          )}
-          <Badge className="border-slate-500/30 bg-slate-500/10 text-slate-400">
-            {bankCount} Bank review
-          </Badge>
-        </div>
-
-        <div className="mt-4 divide-y divide-line/40">
-          {items.map((item) => (
-            <div
-              key={item.category}
-              className="flex items-start justify-between gap-3 py-2.5"
-            >
-              <div className="flex-1">
-                <div className="text-sm text-slate-200">{item.category}</div>
-                <div className="text-xs text-slate-500">{item.detail}</div>
-              </div>
-              <Badge
-                className={
-                  item.status === "jana"
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                    : item.status === "limited"
-                      ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
-                      : "border-slate-500/30 bg-slate-500/10 text-slate-400"
-                }
-              >
-                {item.status === "jana"
-                  ? "Jana data"
-                  : item.status === "limited"
-                    ? "Jana partial"
-                    : "Bank review"}
-              </Badge>
+        {/* Overall progress + latest screening chip */}
+        <div className="mt-4 rounded-lg border border-line bg-panelAlt p-4">
+          <div className="flex items-baseline justify-between">
+            <div className="text-sm font-semibold text-white">
+              {loading ? "Loading status…" : `${answered} of ${totalQuestions} answered`}
             </div>
-          ))}
+            {screening ? (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+                style={{
+                  backgroundColor:
+                    screening.riskClass === "extreme"
+                      ? "#ef4444"
+                      : screening.riskClass === "high"
+                        ? "#f97316"
+                        : screening.riskClass === "medium"
+                          ? "#eab308"
+                          : "#22c55e",
+                }}
+                title={`Saved ${new Date(screening.capturedAt).toLocaleString()}`}
+              >
+                {screening.riskClass.toUpperCase()}
+              </span>
+            ) : answered > 0 ? (
+              <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-400">
+                In progress
+              </span>
+            ) : (
+              <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-500">
+                Not started
+              </span>
+            )}
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
+            <div
+              className="h-full"
+              style={{
+                width: `${pct * 100}%`,
+                backgroundColor: "var(--brand-primary)",
+              }}
+            />
+          </div>
+          {screening?.escalationFlag && (
+            <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+              Escalated to credit committee per NRB ESRM guidance
+            </div>
+          )}
+          <a
+            href={`/esdd/${encodeURIComponent(loanId)}`}
+            className="mt-3 flex items-center justify-between rounded-md px-3 py-2 text-sm font-semibold text-white transition"
+            style={{ backgroundColor: "var(--brand-primary)" }}
+          >
+            <span>
+              {answered === 0
+                ? "Start ESDD checklist"
+                : screening
+                  ? "Review saved screening"
+                  : "Continue ESDD checklist"}
+            </span>
+            <span aria-hidden>→</span>
+          </a>
+          <a
+            href={`/taxonomy/${encodeURIComponent(loanId)}`}
+            className="mt-2 flex items-center justify-between rounded-md border px-3 py-2 text-sm font-semibold transition hover:bg-white/5"
+            style={{
+              borderColor: "var(--brand-primary)",
+              color: "var(--brand-primary)",
+            }}
+          >
+            <span>Classify against NRB Green Finance Taxonomy</span>
+            <span aria-hidden>→</span>
+          </a>
         </div>
 
-        <div className="mt-4 rounded-md border border-line/60 bg-panelAlt p-3 text-xs text-slate-400">
-          ESDD is fundamentally a bank workflow. Jana automates the parts
-          that benefit from satellite and inventory data. The rest stays
-          with the credit officer.
+        {/* Per-section, per-question status */}
+        <div className="mt-4 flex flex-col gap-3">
+          {ANNEX5_SECTIONS.map((sec) => {
+            const secAnswered = sec.questions.filter((q) =>
+              responses.has(q.id),
+            ).length;
+            return (
+              <div
+                key={sec.title}
+                className="rounded-lg border border-line bg-panelAlt"
+              >
+                <div className="flex items-baseline justify-between border-b border-line/60 px-3 py-2">
+                  <div className="text-xs font-semibold text-slate-200">
+                    {sec.title}
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {secAnswered}/{sec.questions.length}
+                  </div>
+                </div>
+                <div className="divide-y divide-line/40">
+                  {sec.questions.map((q) => {
+                    const r = responses.get(q.id);
+                    return (
+                      <div
+                        key={q.id}
+                        className="flex items-start justify-between gap-3 px-3 py-2"
+                      >
+                        <div className="flex-1">
+                          <div className="text-[13px] text-slate-200">
+                            <span className="text-slate-500">Q {q.number}</span>{" "}
+                            {q.prompt}
+                          </div>
+                          {r?.remarks && (
+                            <div className="mt-0.5 text-[11px] italic text-slate-500">
+                              &ldquo;{r.remarks}&rdquo;
+                            </div>
+                          )}
+                        </div>
+                        {r ? (
+                          <span
+                            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                            style={{ backgroundColor: ANSWER_COLOR[r.answer] }}
+                            title={
+                              r.answer === "a"
+                                ? "Best case — no evidence of concern"
+                                : r.answer === "b"
+                                  ? "Partial mitigation, definite plan"
+                                  : r.answer === "c"
+                                    ? "Concern with no plan — escalation trigger"
+                                    : "Not applicable"
+                            }
+                          >
+                            {r.answer.toUpperCase()}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">—</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
+
+        {/* Data coverage note — small, below the fold */}
+        <details className="mt-4 rounded-md border border-line/60 bg-panelAlt/50 p-3 text-xs">
+          <summary className="cursor-pointer text-slate-400 hover:text-slate-200">
+            Data coverage — where Jana informs the answer
+          </summary>
+          <div className="mt-3 space-y-2">
+            {coverageItems.map((item) => (
+              <div key={item.category} className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <div className="text-[11px] text-slate-300">{item.category}</div>
+                  <div className="text-[10px] text-slate-500">{item.detail}</div>
+                </div>
+                <Badge
+                  className={
+                    item.status === "jana"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                      : item.status === "limited"
+                        ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                        : "border-slate-500/30 bg-slate-500/10 text-slate-400"
+                  }
+                >
+                  {item.status === "jana"
+                    ? "Jana data"
+                    : item.status === "limited"
+                      ? "Jana partial"
+                      : "Bank"}
+                </Badge>
+              </div>
+            ))}
+            <div className="mt-2 text-[10px] italic text-slate-500">
+              Jana automates the parts that benefit from satellite and
+              inventory data. The rest stays with the credit officer.
+            </div>
+          </div>
+        </details>
       </aside>
     </div>
   );

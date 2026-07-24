@@ -420,6 +420,21 @@ function LoanDrawer({ row, onClose }: { row: LoanRow; onClose: () => void }) {
           )}
         </div>
 
+        {/*
+          Officer action bar. Sends the officer to the ESDD wizard for this
+          loan. The wizard page itself gates on the officer picker being
+          set, so clicking this without a signed-in officer bounces back to
+          the dashboard with the picker open.
+        */}
+        <a
+          href={`/esdd/${encodeURIComponent(loan.id)}`}
+          className="mt-4 flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition"
+          style={{ backgroundColor: "var(--brand-primary)" }}
+        >
+          <span>Start ESDD checklist</span>
+          <span aria-hidden>→</span>
+        </a>
+
         <dl className="mt-4 space-y-2 text-sm">
           <DrawerRow label="Product" value={loan.product} />
           <DrawerRow label="Purpose" value={loan.purpose} />

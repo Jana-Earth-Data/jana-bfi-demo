@@ -54,7 +54,7 @@ export function TaxonomyTab({ data }: { data: DashboardSsrData }) {
         <KpiCard
           label="Total outstanding"
           value={formatNpr(totalValue)}
-          sublabel={`First Bank of Nepal · ${data.meta.asOfDate ?? ""}`}
+          sublabel={`${data.meta.bankName} · ${data.meta.asOfDate ?? ""}`}
         />
         <KpiCard
           label="In scope for taxonomy"

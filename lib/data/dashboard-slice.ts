@@ -33,10 +33,17 @@ const INITIAL_PAGE_SIZE = 50;
 const TOP_N = 20;
 const APP_QUEUE = 30;
 
+/**
+ * Data-shape return type. Callers layer identity fields (officers,
+ * currentOfficer) on top before handing to <Dashboard>. See app/page.tsx
+ * and app/api/dashboard-data/route.ts.
+ */
+type DashboardSlicePartial = Omit<DashboardSsrData, "officers" | "currentOfficer">;
+
 export async function buildDashboardSlice(
   data: BfiDemoData,
   token?: string | null
-): Promise<DashboardSsrData> {
+): Promise<DashboardSlicePartial> {
   const top = topContributors(data, TOP_N);
   const apps = applicationQueue(data, APP_QUEUE);
   const initial = queryLoans(data, {

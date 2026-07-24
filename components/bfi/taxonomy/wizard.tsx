@@ -1,0 +1,869 @@
+"use client";
+
+/**
+ * Taxonomy classification wizard — client component.
+ *
+ * Multi-step form that walks a signed-in officer through NRB Green
+ * Finance Taxonomy (October 2024) classification for a single loan:
+ *   Step 0: Loan and borrower basics (prefilled)
+ *   Step 1: Activity picker — sector-suggested first, then full list
+ *   Step 2: Criterion answers for the chosen activity
+ *   Step 3: Review and save — runs activity.classify() and POSTs the
+ *           derivation to /api/taxonomy/assessments, then renders the
+ *           saved color, rationale, DNSH failures, and citation.
+ *
+ * Existing assessments are loaded on mount so a subsequent visit shows
+ * the last saved classification, and the officer can re-run with fresh
+ * answers if the underlying facts have changed.
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Borrower, Loan } from "@/lib/types/bfi";
+import type { Officer } from "@/lib/tenants";
+import {
+  TAXONOMY_ACTIVITIES,
+  findActivityById,
+  type TaxonomyActivity,
+  type TaxonomyClassification,
+  type TaxonomyColor,
+  type TaxonomyCriterion,
+} from "@/lib/regulatory/taxonomy/activities";
+import { formatNpr } from "@/components/bfi/ui";
+
+type WizardStep = 0 | 1 | 2 | 3;
+
+type SavedAssessment = {
+  id: string;
+  capturedAt: string;
+  activityId: string;
+  activityName: string;
+  color: TaxonomyColor;
+  rationale: string;
+  citation: string;
+  dnshFailures: string[];
+  officer: { id: string; name: string; role: string };
+};
+
+const ROLE_LABEL: Record<Officer["role"], string> = {
+  loan_officer: "Loan officer",
+  esg_officer: "ESG officer",
+  compliance: "Compliance",
+  credit_committee: "Credit committee",
+};
+
+const COLOR_BG: Record<TaxonomyColor, string> = {
+  green: "#22c55e",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  unclassified: "#64748b",
+};
+
+const COLOR_LABEL: Record<TaxonomyColor, string> = {
+  green: "Green — Transformative",
+  amber: "Amber — Transitional",
+  red: "Red — Not aligned",
+  unclassified: "Unclassified",
+};
+
+export function TaxonomyWizard({
+  tenantName,
+  officer,
+  loan,
+  borrower,
+  suggestedActivityIds,
+}: {
+  tenantName: string;
+  officer: Officer;
+  loan: Loan;
+  borrower: Borrower;
+  suggestedActivityIds: string[];
+}) {
+  const router = useRouter();
+  const [step, setStep] = useState<WizardStep>(0);
+  const [activityId, setActivityId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [saved, setSaved] = useState<SavedAssessment | null>(null);
+  const [savedFromApi, setSavedFromApi] = useState<{
+    activityId: string;
+    color: TaxonomyColor;
+    rationale: string;
+    citation: string;
+    capturedAt: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load prior assessment (if any) on mount so the officer sees the
+  // last saved classification without re-entering data.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/taxonomy/assessments?loanId=${encodeURIComponent(loan.id)}`,
+        );
+        if (!res.ok) return;
+        const body = await res.json();
+        if (cancelled || !body?.latest) return;
+        setSavedFromApi({
+          activityId: body.latest.activity_id,
+          color: body.latest.computed_color,
+          rationale: body.latest.computed_rationale,
+          citation: body.latest.citation,
+          capturedAt: body.latest.captured_at,
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loan.id]);
+
+  const activity = activityId ? findActivityById(activityId) : null;
+
+  const steps = useMemo(
+    () => [
+      { title: "Loan basics", subtitle: "Client, transaction, sector" },
+      {
+        title: "Choose activity",
+        subtitle: `${TAXONOMY_ACTIVITIES.length} taxonomy activities`,
+      },
+      {
+        title: "Answer criteria",
+        subtitle: activity ? activity.name : "Select activity first",
+      },
+      { title: "Review", subtitle: "Computed classification" },
+    ],
+    [activity],
+  );
+
+  async function saveAssessment() {
+    if (!activity) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/taxonomy/assessments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          loanId: loan.id,
+          borrowerId: borrower.id,
+          activityId: activity.id,
+          criterionAnswers: answers,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error ?? `Server returned ${res.status}`);
+        return;
+      }
+      setSaved(body.assessment);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-surface text-slate-100">
+      <TopBar
+        tenantName={tenantName}
+        officer={officer}
+        loan={loan}
+        borrower={borrower}
+        onExit={() => router.push("/")}
+      />
+      <div className="mx-auto flex max-w-5xl gap-6 p-6">
+        <aside className="hidden w-56 shrink-0 md:block">
+          <StepIndicator
+            step={step}
+            steps={steps}
+            onJump={(s) => setStep(s as WizardStep)}
+            canJumpToCriteria={activity !== null}
+          />
+        </aside>
+        <main className="flex-1">
+          {loading ? (
+            <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
+              Loading prior assessments…
+            </div>
+          ) : saved ? (
+            <ResultCard
+              saved={saved}
+              onEdit={() => {
+                setSaved(null);
+                setStep(2);
+              }}
+              onExit={() => router.push("/")}
+            />
+          ) : step === 0 ? (
+            <BasicsStep
+              loan={loan}
+              borrower={borrower}
+              savedFromApi={savedFromApi}
+              onContinue={() => setStep(1)}
+            />
+          ) : step === 1 ? (
+            <ActivityPickerStep
+              suggestedIds={suggestedActivityIds}
+              currentId={activityId}
+              onPick={(id) => {
+                setActivityId(id);
+                setAnswers({});
+                setStep(2);
+              }}
+              onBack={() => setStep(0)}
+            />
+          ) : step === 2 ? (
+            activity ? (
+              <CriteriaStep
+                activity={activity}
+                answers={answers}
+                onChange={setAnswers}
+                onBack={() => setStep(1)}
+                onContinue={() => setStep(3)}
+              />
+            ) : (
+              <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
+                Choose an activity first.
+                <button
+                  onClick={() => setStep(1)}
+                  className="ml-3 rounded-md px-3 py-1 text-white"
+                  style={{ backgroundColor: "var(--brand-primary)" }}
+                >
+                  Back to picker
+                </button>
+              </div>
+            )
+          ) : (
+            <ReviewStep
+              activity={activity!}
+              answers={answers}
+              saving={saving}
+              error={error}
+              onBack={() => setStep(2)}
+              onSave={saveAssessment}
+            />
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function TopBar({
+  tenantName,
+  officer,
+  loan,
+  borrower,
+  onExit,
+}: {
+  tenantName: string;
+  officer: Officer;
+  loan: Loan;
+  borrower: Borrower;
+  onExit: () => void;
+}) {
+  return (
+    <div className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-slate-500">
+            {tenantName} — NRB Green Finance Taxonomy
+          </div>
+          <div className="text-base font-semibold text-white">
+            {borrower.name}{" "}
+            <span className="text-slate-500">· {loan.id}</span>
+          </div>
+          <div className="text-xs text-slate-400">
+            {borrower.nrbSector} · Outstanding {formatNpr(loan.outstandingNpr)}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right text-xs">
+            <div className="text-slate-300">{officer.name}</div>
+            <div className="text-slate-500">{ROLE_LABEL[officer.role]}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onExit}
+            className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
+          >
+            Save & exit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepIndicator({
+  step,
+  steps,
+  onJump,
+  canJumpToCriteria,
+}: {
+  step: number;
+  steps: { title: string; subtitle: string }[];
+  onJump: (s: number) => void;
+  canJumpToCriteria: boolean;
+}) {
+  return (
+    <ol className="flex flex-col gap-2">
+      {steps.map((s, i) => {
+        const active = i === step;
+        const past = i < step;
+        const disabled = i >= 2 && !canJumpToCriteria;
+        return (
+          <li key={i}>
+            <button
+              type="button"
+              onClick={() => (disabled ? undefined : onJump(i))}
+              disabled={disabled}
+              className={`flex w-full items-start gap-3 rounded-lg border px-3 py-2 text-left transition ${
+                active
+                  ? "border-white/20 bg-white/5"
+                  : disabled
+                    ? "border-line bg-panel/30 opacity-50"
+                    : "border-line bg-panel/50 hover:bg-white/5"
+              }`}
+              style={active ? { borderColor: "var(--brand-primary)" } : undefined}
+            >
+              <span
+                className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold"
+                style={{
+                  backgroundColor: active
+                    ? "var(--brand-primary)"
+                    : past
+                      ? "var(--brand-primary-soft)"
+                      : "transparent",
+                  color: active ? "#fff" : "var(--brand-primary)",
+                  borderWidth: past || active ? 0 : 1,
+                  borderStyle: "solid",
+                  borderColor: "rgba(255,255,255,0.15)",
+                }}
+              >
+                {i + 1}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-white">
+                  {s.title}
+                </span>
+                <span className="block text-xs text-slate-400">
+                  {s.subtitle}
+                </span>
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function BasicsStep({
+  loan,
+  borrower,
+  savedFromApi,
+  onContinue,
+}: {
+  loan: Loan;
+  borrower: Borrower;
+  savedFromApi: {
+    activityId: string;
+    color: TaxonomyColor;
+    rationale: string;
+    citation: string;
+    capturedAt: string;
+  } | null;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-line bg-panel p-6">
+        <h2 className="text-lg font-semibold text-white">Loan basics</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Prefilled from the loan and borrower record. Please confirm before
+          proceeding to the activity picker.
+        </p>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Date" value={new Date().toISOString().slice(0, 10)} />
+          <Field label="Transaction ID" value={loan.id} />
+          <Field label="Client / Account" value={borrower.name} />
+          <Field label="Industry / Sector" value={borrower.nrbSector} />
+          <Field label="Business line" value={loan.businessUnit ?? "—"} />
+          <Field label="Purpose" value={loan.purpose ?? "—"} />
+        </div>
+        <div className="mt-6 flex justify-end">
+          <button
+            type="button"
+            onClick={onContinue}
+            className="rounded-md px-4 py-2 text-sm font-semibold text-white transition"
+            style={{ backgroundColor: "var(--brand-primary)" }}
+          >
+            Continue to activity picker →
+          </button>
+        </div>
+      </div>
+
+      {savedFromApi && (
+        <div className="rounded-2xl border border-line bg-panel p-6">
+          <div className="text-xs uppercase tracking-wide text-slate-500">
+            Prior taxonomy assessment
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <span
+              className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+              style={{ backgroundColor: COLOR_BG[savedFromApi.color] }}
+            >
+              {COLOR_LABEL[savedFromApi.color]}
+            </span>
+            <span className="text-xs text-slate-400">
+              Saved {new Date(savedFromApi.capturedAt).toLocaleString()}
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-slate-300">{savedFromApi.rationale}</p>
+          <div className="mt-2 text-xs italic text-slate-500">
+            {savedFromApi.citation}
+          </div>
+          <div className="mt-3 text-xs text-slate-500">
+            Running a new classification below will replace this on future
+            reads. The prior assessment stays in the audit trail.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 text-sm text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+function ActivityPickerStep({
+  suggestedIds,
+  currentId,
+  onPick,
+  onBack,
+}: {
+  suggestedIds: string[];
+  currentId: string | null;
+  onPick: (id: string) => void;
+  onBack: () => void;
+}) {
+  const suggested = TAXONOMY_ACTIVITIES.filter((a) =>
+    suggestedIds.includes(a.id),
+  );
+  const rest = TAXONOMY_ACTIVITIES.filter(
+    (a) => !suggestedIds.includes(a.id),
+  );
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-line bg-panel p-6">
+        <h2 className="text-lg font-semibold text-white">
+          Choose the applicable activity
+        </h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Activities suggested for this borrower&rsquo;s NRB sector appear
+          first. If none fit, the full catalog is below. Each activity
+          carries its own criterion list from the taxonomy.
+        </p>
+
+        {suggested.length > 0 && (
+          <div className="mt-6">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Suggested for this sector
+            </div>
+            <div className="flex flex-col gap-2">
+              {suggested.map((a) => (
+                <ActivityRow
+                  key={a.id}
+                  activity={a}
+                  selected={currentId === a.id}
+                  onPick={onPick}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            {suggested.length > 0 ? "Full catalog" : "All activities"}
+          </div>
+          <div className="flex flex-col gap-2">
+            {rest.map((a) => (
+              <ActivityRow
+                key={a.id}
+                activity={a}
+                selected={currentId === a.id}
+                onPick={onPick}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
+        >
+          ← Back
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({
+  activity,
+  selected,
+  onPick,
+}: {
+  activity: TaxonomyActivity;
+  selected: boolean;
+  onPick: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(activity.id)}
+      className={`flex items-start justify-between gap-4 rounded-lg border bg-panelAlt px-4 py-3 text-left transition ${
+        selected ? "" : "border-line hover:bg-white/5"
+      }`}
+      style={selected ? { borderColor: "var(--brand-primary)" } : undefined}
+    >
+      <div className="flex-1">
+        <div className="text-sm font-semibold text-white">{activity.name}</div>
+        <div className="text-xs text-slate-400">
+          {activity.sectorLabel} · {activity.criteria.length} criteria
+        </div>
+        <div className="mt-1 text-xs italic text-slate-500">
+          {activity.nrbCitation}
+        </div>
+      </div>
+      <div className="text-xs" style={{ color: "var(--brand-primary)" }}>
+        {selected ? "Selected" : "Choose →"}
+      </div>
+    </button>
+  );
+}
+
+function CriteriaStep({
+  activity,
+  answers,
+  onChange,
+  onBack,
+  onContinue,
+}: {
+  activity: TaxonomyActivity;
+  answers: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+  onBack: () => void;
+  onContinue: () => void;
+}) {
+  const setAnswer = (id: string, value: unknown) =>
+    onChange({ ...answers, [id]: value });
+  const answered = activity.criteria.filter(
+    (c) => answers[c.id] !== undefined,
+  ).length;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-line bg-panel p-6">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold text-white">
+            Criteria for {activity.name}
+          </h2>
+          <div className="text-xs text-slate-400">
+            {answered}/{activity.criteria.length} answered
+          </div>
+        </div>
+        <div className="mt-1 text-xs italic text-slate-500">
+          {activity.nrbCitation}
+        </div>
+      </div>
+
+      {activity.criteria.map((c) => (
+        <CriterionCard
+          key={c.id}
+          criterion={c}
+          value={answers[c.id]}
+          onChange={(v) => setAnswer(c.id, v)}
+        />
+      ))}
+
+      <div className="flex justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
+        >
+          ← Back
+        </button>
+        <button
+          type="button"
+          onClick={onContinue}
+          className="rounded-md px-4 py-2 text-sm font-semibold text-white transition"
+          style={{ backgroundColor: "var(--brand-primary)" }}
+        >
+          Continue to review →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CriterionCard({
+  criterion,
+  value,
+  onChange,
+}: {
+  criterion: TaxonomyCriterion;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-line bg-panel p-5">
+      <div className="mb-3 text-sm text-white">{criterion.prompt}</div>
+      {criterion.type === "yes_no" ? (
+        <div className="flex gap-2">
+          {[true, false].map((b) => {
+            const selected = value === b;
+            return (
+              <button
+                key={String(b)}
+                type="button"
+                onClick={() => onChange(b)}
+                className={`rounded-md border px-3 py-1.5 text-sm transition ${
+                  selected ? "text-white" : "border-line bg-panelAlt text-slate-200 hover:bg-white/5"
+                }`}
+                style={
+                  selected
+                    ? {
+                        backgroundColor: "var(--brand-primary)",
+                        borderColor: "var(--brand-primary)",
+                      }
+                    : undefined
+                }
+              >
+                {b ? "Yes" : "No"}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={typeof value === "number" ? value : ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              onChange(v === "" ? undefined : Number(v));
+            }}
+            className="w-32 rounded-md border border-line bg-panelAlt px-3 py-1.5 text-sm text-slate-100 focus:outline-none"
+          />
+          <span className="text-xs text-slate-400">{criterion.unit}</span>
+        </div>
+      )}
+      {criterion.helpText && (
+        <div className="mt-3 text-xs text-slate-500">{criterion.helpText}</div>
+      )}
+    </div>
+  );
+}
+
+function ReviewStep({
+  activity,
+  answers,
+  saving,
+  error,
+  onBack,
+  onSave,
+}: {
+  activity: TaxonomyActivity;
+  answers: Record<string, unknown>;
+  saving: boolean;
+  error: string | null;
+  onBack: () => void;
+  onSave: () => void;
+}) {
+  const preview: TaxonomyClassification = useMemo(
+    () => activity.classify(answers),
+    [activity, answers],
+  );
+  const answered = activity.criteria.filter(
+    (c) => answers[c.id] !== undefined,
+  ).length;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-line bg-panel p-6">
+        <h2 className="text-lg font-semibold text-white">Review and save</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Preview of the derivation below is computed live from your answers.
+          Saving records the classification, rationale, and citation to the
+          audit trail against your officer identity.
+        </p>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-500">
+              Activity
+            </div>
+            <div className="mt-1 text-sm text-slate-100">{activity.name}</div>
+            <div className="text-xs italic text-slate-500">
+              {activity.nrbCitation}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-500">
+              Answered
+            </div>
+            <div className="mt-1 text-sm text-slate-100">
+              {answered}/{activity.criteria.length}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="text-xs uppercase tracking-wide text-slate-500">
+            Preview classification
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <span
+              className="rounded-full px-3 py-1 text-sm font-semibold text-white"
+              style={{ backgroundColor: COLOR_BG[preview.color] }}
+            >
+              {COLOR_LABEL[preview.color]}
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-slate-200">{preview.rationale}</p>
+          <div className="mt-2 text-xs italic text-slate-500">
+            {preview.citation}
+          </div>
+          {preview.dnshFailures && preview.dnshFailures.length > 0 && (
+            <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+              <div className="text-xs font-semibold text-amber-200">
+                Do No Significant Harm — flagged items
+              </div>
+              <ul className="mt-1 space-y-0.5 pl-4 text-xs text-amber-100">
+                {preview.dnshFailures.map((f, i) => (
+                  <li key={i} className="list-disc">
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+            style={{ backgroundColor: "var(--brand-primary)" }}
+          >
+            {saving ? "Saving…" : "Save classification"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultCard({
+  saved,
+  onEdit,
+  onExit,
+}: {
+  saved: SavedAssessment;
+  onEdit: () => void;
+  onExit: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-line bg-panel p-6">
+      <div className="text-xs uppercase tracking-wide text-slate-500">
+        Taxonomy classification saved
+      </div>
+      <div className="mt-1 text-lg font-semibold text-white">
+        {saved.activityName}
+      </div>
+      <div className="text-xs text-slate-400">
+        Saved {new Date(saved.capturedAt).toLocaleString()} by{" "}
+        {saved.officer.name}
+      </div>
+
+      <div className="mt-6 flex items-center gap-3">
+        <span
+          className="rounded-full px-3 py-1 text-sm font-semibold text-white"
+          style={{ backgroundColor: COLOR_BG[saved.color] }}
+        >
+          {COLOR_LABEL[saved.color]}
+        </span>
+      </div>
+      <p className="mt-3 text-sm text-slate-200">{saved.rationale}</p>
+      <div className="mt-2 text-xs italic text-slate-500">{saved.citation}</div>
+      {saved.dnshFailures.length > 0 && (
+        <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+          <div className="text-xs font-semibold text-amber-200">
+            Do No Significant Harm — flagged items
+          </div>
+          <ul className="mt-1 space-y-0.5 pl-4 text-xs text-amber-100">
+            {saved.dnshFailures.map((f, i) => (
+              <li key={i} className="list-disc">
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-between">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
+        >
+          Edit criteria
+        </button>
+        <button
+          type="button"
+          onClick={onExit}
+          className="rounded-md px-4 py-2 text-sm font-semibold text-white transition"
+          style={{ backgroundColor: "var(--brand-primary)" }}
+        >
+          Back to dashboard
+        </button>
+      </div>
+    </div>
+  );
+}

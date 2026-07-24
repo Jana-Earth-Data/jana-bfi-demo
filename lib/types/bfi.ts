@@ -293,6 +293,13 @@ export type BfiDemoMeta = {
   generatedAt: string;
   pcafMethodologyNote: string;
   asOfDate?: string;
+  /**
+   * Runtime tenant identity injected by app/page.tsx from the current
+   * tenant cookie. Everything downstream reads these fields to render the
+   * correct bank name, logo, and brand palette.
+   */
+  tenantId?: string;
+  tenantLogoPath?: string;
 };
 
 export type BfiDemoData = {
