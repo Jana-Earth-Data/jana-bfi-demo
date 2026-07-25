@@ -202,7 +202,9 @@ export function TaxonomyWizard({
         officer={officer}
         loan={loan}
         borrower={borrower}
-        onExit={() => router.push("/")}
+        hasPriorAssessment={savedFromApi !== null}
+        onSaveExit={() => router.push("/")}
+        onDiscardExit={() => router.push("/")}
       />
       <div className="mx-auto flex max-w-5xl gap-6 p-6">
         <aside className="hidden w-56 shrink-0 md:block">
@@ -287,14 +289,43 @@ function TopBar({
   officer,
   loan,
   borrower,
-  onExit,
+  hasPriorAssessment,
+  onSaveExit,
+  onDiscardExit,
 }: {
   tenantName: string;
   officer: Officer;
   loan: Loan;
   borrower: Borrower;
-  onExit: () => void;
+  hasPriorAssessment: boolean;
+  onSaveExit: () => void;
+  onDiscardExit: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function discardAndExit() {
+    setDiscarding(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/taxonomy/assessments?loanId=${encodeURIComponent(loan.id)}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error ?? `Server returned ${res.status}`);
+        setDiscarding(false);
+        return;
+      }
+      onDiscardExit();
+    } catch (e) {
+      setError((e as Error).message);
+      setDiscarding(false);
+    }
+  }
+
   return (
     <div className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
@@ -317,13 +348,96 @@ function TopBar({
           </div>
           <button
             type="button"
-            onClick={onExit}
+            onClick={() => setConfirming(true)}
+            className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
+            title={
+              hasPriorAssessment
+                ? "Delete the prior taxonomy classification for this loan and discard any answers on this page"
+                : "Discard any answers on this page (nothing has been saved yet)"
+            }
+          >
+            Exit without saving
+          </button>
+          <button
+            type="button"
+            onClick={onSaveExit}
             className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
+            title="Close the wizard. Any prior saved classification is preserved."
           >
             Save & exit
           </button>
         </div>
       </div>
+
+      {confirming && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(2,6,23,0.85)" }}
+          onClick={() => (discarding ? undefined : setConfirming(false))}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-line p-6 shadow-2xl"
+            style={{ backgroundColor: "#111827" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-xs uppercase tracking-wide text-rose-300">
+              Discard classification
+            </div>
+            <h3 className="mt-1 text-lg font-semibold text-white">
+              Exit without saving?
+            </h3>
+            <p className="mt-3 text-sm text-slate-300">
+              {hasPriorAssessment ? (
+                <>
+                  This will permanently delete the prior taxonomy
+                  classification saved for{" "}
+                  <span className="font-semibold text-white">
+                    {borrower.name}
+                  </span>{" "}
+                  (loan {loan.id}). Any answers you have entered on this
+                  page are also discarded. Other officers&rsquo;
+                  classifications on this loan are not affected.
+                </>
+              ) : (
+                <>
+                  This discards any answers you have entered on this page.
+                  Nothing has been saved to the audit trail yet for this
+                  loan, so no saved record is affected.
+                </>
+              )}
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              If you just want to step away without changing anything, use{" "}
+              <em>Save &amp; exit</em> instead — the prior classification
+              (if any) stays in the audit trail and you can pick this
+              back up later.
+            </p>
+            {error && (
+              <div className="mt-3 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+                {error}
+              </div>
+            )}
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={discarding}
+                className="rounded-md border border-line bg-panel px-3 py-1.5 text-sm text-slate-200 hover:bg-line/30 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={discardAndExit}
+                disabled={discarding}
+                className="rounded-md border border-rose-500/50 bg-rose-500/20 px-3 py-1.5 text-sm font-semibold text-rose-100 hover:bg-rose-500/30 disabled:opacity-50"
+              >
+                {discarding ? "Discarding…" : "Discard and exit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

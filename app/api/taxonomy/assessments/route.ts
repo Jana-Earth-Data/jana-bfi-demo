@@ -160,3 +160,51 @@ export async function GET(request: NextRequest) {
     latest: row ? { ...row, officer_name: officerName } : null,
   });
 }
+
+/**
+ * DELETE /api/taxonomy/assessments?loanId=X
+ *
+ * Discard every taxonomy assessment this officer has recorded for this
+ * loan. Scoped to (bank_id, loan_id, officer_id) — other officers'
+ * classifications on the same loan (if any) are untouched.
+ *
+ * Used by the wizard's "Exit without saving" action.
+ */
+export async function DELETE(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Supabase not configured." },
+      { status: 500 },
+    );
+  }
+  const tenant = await resolveCurrentTenant();
+  const officer = await resolveCurrentOfficer();
+  if (!officer) {
+    return NextResponse.json(
+      { error: "Officer must be selected before discarding assessments." },
+      { status: 401 },
+    );
+  }
+  const loanId = request.nextUrl.searchParams.get("loanId");
+  if (!loanId) {
+    return NextResponse.json(
+      { error: "loanId query parameter is required." },
+      { status: 400 },
+    );
+  }
+
+  const { error, count } = await supabase
+    .from("bfi_taxonomy_assessments")
+    .delete({ count: "exact" })
+    .eq("bank_id", tenant.id)
+    .eq("loan_id", loanId)
+    .eq("officer_id", officer.id);
+  if (error) {
+    return NextResponse.json(
+      { error: `Delete failed: ${error.message}` },
+      { status: 500 },
+    );
+  }
+  return NextResponse.json({ ok: true, loanId, deleted: count ?? 0 });
+}
