@@ -7,6 +7,7 @@ import { TaxonomyTab } from "@/components/bfi/tabs/taxonomy-tab";
 import { NsrsTab } from "@/components/bfi/tabs/nsrs-tab";
 import { EsrmTab } from "@/components/bfi/tabs/esrm-tab";
 import { LoansTab } from "@/components/bfi/tabs/loans-tab";
+import { MyWorkTab } from "@/components/bfi/tabs/my-work-tab";
 import { TourProvider, useTour } from "@/lib/tour/tour-context";
 import { TourOverlay } from "@/components/bfi/tour/tour-overlay";
 import { TourControls } from "@/components/bfi/tour/tour-controls";
@@ -46,13 +47,18 @@ export type DashboardSsrData = {
   currentOfficer: Officer | null;
 };
 
-type TabId = "loans" | "esrm" | "taxonomy" | "nsrs";
+type TabId = "mywork" | "loans" | "esrm" | "taxonomy" | "nsrs";
 
 const TABS: Array<{
   id: TabId;
   label: string;
   description: string;
 }> = [
+  {
+    id: "mywork",
+    label: "My Work",
+    description: "Your ESRM queue · Assigned loans, in-progress checklists",
+  },
   {
     id: "loans",
     label: "Loan Book",
@@ -61,7 +67,7 @@ const TABS: Array<{
   {
     id: "esrm",
     label: "ESRM",
-    description: "Credit Decision · Screen new loans (2018 NRB Directive)",
+    description: "Manager view · All loans under review (2018 NRB Directive)",
   },
   {
     id: "taxonomy",
@@ -76,20 +82,25 @@ const TABS: Array<{
 ];
 
 const VALID_TABS: ReadonlySet<TabId> = new Set([
+  "mywork",
   "loans",
   "esrm",
   "taxonomy",
   "nsrs",
 ]);
 
-function tabFromHash(): TabId {
-  if (typeof window === "undefined") return "loans";
+function tabFromHash(fallback: TabId): TabId {
+  if (typeof window === "undefined") return fallback;
   const h = window.location.hash.replace(/^#/, "");
-  return VALID_TABS.has(h as TabId) ? (h as TabId) : "loans";
+  return VALID_TABS.has(h as TabId) ? (h as TabId) : fallback;
 }
 
 function DashboardInner({ data }: { data: DashboardSsrData }) {
-  const [tab, setTab] = useState<TabId>("loans");
+  // Default tab depends on identity: signed-in officers land on their
+  // work queue; unsigned visitors land on the loan book (the natural
+  // demo intro). Explicit URL hash always wins.
+  const defaultTab: TabId = data.currentOfficer ? "mywork" : "loans";
+  const [tab, setTab] = useState<TabId>(defaultTab);
   const [liveData, setLiveData] = useState<DashboardSsrData | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -98,11 +109,11 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
 
   // Resolve initial tab from URL hash after hydration
   useEffect(() => {
-    setTab(tabFromHash());
-    const onHash = () => setTab(tabFromHash());
+    setTab(tabFromHash(defaultTab));
+    const onHash = () => setTab(tabFromHash(defaultTab));
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
-  }, []);
+  }, [defaultTab]);
 
   // When the tour wants a different tab, drive ours
   useEffect(() => {
@@ -214,6 +225,7 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
       )}
 
       <main className="mx-auto max-w-[1500px] px-6 py-6">
+        {tab === "mywork" && <MyWorkTab data={active} />}
         {tab === "loans" && <LoansTab data={active} />}
         {tab === "esrm" && <EsrmTab data={active} />}
         {tab === "taxonomy" && <TaxonomyTab data={active} />}

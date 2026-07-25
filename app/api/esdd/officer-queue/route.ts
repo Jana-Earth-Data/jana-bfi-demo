@@ -151,25 +151,60 @@ export async function GET() {
     });
   }
 
-  // 5. Fold in a slice of under-review loans this officer hasn't touched yet.
+  // 5. Fold in loans awaiting this officer's review.
+  //
+  //    Preferred source: bfi_loan_assignments where officer_id = this
+  //    officer AND the officer has NOT touched the loan yet. This makes
+  //    "awaiting" mean "assigned to me but I haven't started."
+  //
+  //    Fallback: if there are no assignments in the tenant yet (early
+  //    demo state), fall back to the top-N under-review loans so the
+  //    queue is not empty on first render.
   const touched = new Set(rows.map((r) => r.loanId));
-  const applications = applicationQueue(data, AWAITING_SLICE * 2);
+  const applications = applicationQueue(data, AWAITING_SLICE * 4);
   const awaiting: OfficerQueueRow[] = [];
-  for (const app of applications) {
-    if (touched.has(app.loan.id)) continue;
-    const sectorSlug = sectorSlugFor(app.borrower.nrbSector);
-    awaiting.push({
-      loanId: app.loan.id,
-      borrowerId: app.borrower.id,
-      borrowerName: app.borrower.name,
-      sector: app.borrower.nrbSector,
-      outstandingNpr: app.loan.outstandingNpr,
-      answered: 0,
-      total: fullChecklist(sectorSlug).length,
-      state: "awaiting",
-      lastActivityAt: null,
-    });
-    if (awaiting.length >= AWAITING_SLICE) break;
+
+  const { data: myAssigns } = await supabase
+    .from("bfi_loan_assignments")
+    .select("loan_id")
+    .eq("bank_id", tenant.id)
+    .eq("officer_id", officer.id);
+  const assignedLoanIds = new Set((myAssigns ?? []).map((a) => a.loan_id));
+
+  if (assignedLoanIds.size > 0) {
+    for (const app of applications) {
+      if (touched.has(app.loan.id)) continue;
+      if (!assignedLoanIds.has(app.loan.id)) continue;
+      const sectorSlug = sectorSlugFor(app.borrower.nrbSector);
+      awaiting.push({
+        loanId: app.loan.id,
+        borrowerId: app.borrower.id,
+        borrowerName: app.borrower.name,
+        sector: app.borrower.nrbSector,
+        outstandingNpr: app.loan.outstandingNpr,
+        answered: 0,
+        total: fullChecklist(sectorSlug).length,
+        state: "awaiting",
+        lastActivityAt: null,
+      });
+    }
+  } else {
+    for (const app of applications) {
+      if (touched.has(app.loan.id)) continue;
+      const sectorSlug = sectorSlugFor(app.borrower.nrbSector);
+      awaiting.push({
+        loanId: app.loan.id,
+        borrowerId: app.borrower.id,
+        borrowerName: app.borrower.name,
+        sector: app.borrower.nrbSector,
+        outstandingNpr: app.loan.outstandingNpr,
+        answered: 0,
+        total: fullChecklist(sectorSlug).length,
+        state: "awaiting",
+        lastActivityAt: null,
+      });
+      if (awaiting.length >= AWAITING_SLICE) break;
+    }
   }
 
   // Sort: in-progress and complete first (by last activity desc), then

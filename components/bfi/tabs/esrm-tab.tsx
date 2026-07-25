@@ -24,19 +24,82 @@ import { buildScreening } from "@/lib/data/screening";
 import { LoanRow } from "@/lib/data/portfolio-query";
 import { NPR_PER_USD } from "@/lib/data/util";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
-import { OfficerWorkQueue } from "@/components/bfi/esrm/officer-work-queue";
 import { useTour } from "@/lib/tour/tour-context";
+import type { Officer } from "@/lib/tenants";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 
 const NRB_REGULATORY_LINK =
   "https://www.nrb.org.np/contents/uploads/2018/05/Environment-Social-Risk-Management-Guidelines-2018.pdf";
 
+// Row shape returned by /api/manager/queue (kept local so this tab does
+// not depend on API types from the route module).
+type ManagerRow = {
+  loanId: string;
+  ownerOfficerId: string | null;
+  ownerOfficerName: string | null;
+  answered: number;
+  total: number;
+  riskClass: "low" | "medium" | "high" | "extreme" | null;
+  escalated: boolean;
+  screeningAt: string | null;
+  lastEsddActivityAt: string | null;
+};
+
+type OwnerFilter = "all" | "unassigned" | { officerId: string };
+
 export function EsrmTab({ data }: { data: DashboardSsrData }) {
   const apps = data.applications;
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(
     apps[0]?.loan.id ?? null
   );
+
+  // Manager-view aggregate data. Loaded once on mount; refetched when an
+  // assignment change happens (via bumpVersion).
+  const [managerRows, setManagerRows] = useState<Map<string, ManagerRow>>(
+    new Map(),
+  );
+  const [escalatedCount, setEscalatedCount] = useState(0);
+  const [version, setVersion] = useState(0);
+  const bumpVersion = () => setVersion((v) => v + 1);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/manager/queue");
+        if (!res.ok) return;
+        const body = await res.json();
+        if (cancelled) return;
+        const map = new Map<string, ManagerRow>();
+        for (const r of body.rows ?? []) map.set(r.loanId, r);
+        setManagerRows(map);
+        setEscalatedCount(body.escalatedCount ?? 0);
+      } catch {
+        /* silent — the tab still works from data.applications */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [version]);
+
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
+
+  const filteredApps = useMemo(() => {
+    if (ownerFilter === "all") return apps;
+    if (ownerFilter === "unassigned") {
+      return apps.filter((r) => {
+        const m = managerRows.get(r.loan.id);
+        return !m || !m.ownerOfficerId;
+      });
+    }
+    const wantId = ownerFilter.officerId;
+    return apps.filter((r) => {
+      const m = managerRows.get(r.loan.id);
+      return m?.ownerOfficerId === wantId;
+    });
+  }, [apps, managerRows, ownerFilter]);
 
   const selectedRow = useMemo(
     () => apps.find((r) => r.loan.id === selectedLoanId) ?? null,
@@ -73,10 +136,18 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
   return (
     <div className="grid gap-4">
       {/*
-        Officer work queue. Only renders when an officer is signed in;
-        internally hides itself if data.currentOfficer is null.
+        Escalation banner + manager summary. Fetches the whole-book
+        aggregate view (owner, ESDD progress, latest screening,
+        escalation flags) from /api/manager/queue so this tab can act as
+        a compliance / credit-committee dashboard. The personal officer
+        queue now lives on its own "My Work" tab.
       */}
-      <OfficerWorkQueue currentOfficer={data.currentOfficer} />
+      <ManagerSummary
+        managerRows={managerRows}
+        escalatedCount={escalatedCount}
+        apps={apps}
+        onSelectLoan={setSelectedLoanId}
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -112,12 +183,18 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         <div className="lg:col-span-2" data-tour="application-queue">
           <Panel
             title="Application queue"
-            subtitle="Pending ESRM screening — newest first"
+            subtitle={`${filteredApps.length} of ${apps.length} loans · newest first`}
           >
+            <OwnerFilterBar
+              value={ownerFilter}
+              officers={data.officers}
+              onChange={setOwnerFilter}
+            />
             <ApplicationsList
-              apps={apps}
+              apps={filteredApps}
               selectedLoanId={selectedLoanId}
               onSelect={setSelectedLoanId}
+              managerRows={managerRows}
             />
           </Panel>
         </div>
@@ -129,6 +206,10 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
               prebuiltScreening={data.screenings[selectedRow.borrower.id]}
               liveEnrichment={data.liveEnrichment}
               isMock={data.meta.isMock}
+              managerRow={managerRows.get(selectedRow.loan.id) ?? null}
+              officers={data.officers}
+              currentOfficer={data.currentOfficer}
+              onAssignmentChanged={bumpVersion}
             />
           ) : (
             <Panel title="Screening workbench">
@@ -151,16 +232,20 @@ function ApplicationsList({
   apps,
   selectedLoanId,
   onSelect,
+  managerRows,
 }: {
   apps: LoanRow[];
   selectedLoanId: string | null;
   onSelect: (id: string) => void;
+  managerRows: Map<string, ManagerRow>;
 }) {
   return (
     <div className="-m-2 max-h-[640px] overflow-y-auto">
       <ul className="space-y-1 p-2">
         {apps.map((r) => {
           const isSel = r.loan.id === selectedLoanId;
+          const m = managerRows.get(r.loan.id);
+          const pct = m && m.total > 0 ? m.answered / m.total : 0;
           return (
             <li key={r.loan.id}>
               <button
@@ -175,7 +260,17 @@ function ApplicationsList({
                   <span className="font-mono text-xs text-slate-400">
                     {r.loan.id}
                   </span>
-                  <TaxonomyDot color={r.loan.nrbTaxonomy} />
+                  <div className="flex items-center gap-1.5">
+                    {m?.escalated && (
+                      <span
+                        title="Escalation flag set by ESRM screening"
+                        className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-200"
+                      >
+                        ESC
+                      </span>
+                    )}
+                    <TaxonomyDot color={r.loan.nrbTaxonomy} />
+                  </div>
                 </div>
                 <div className="mt-0.5 truncate font-medium">
                   {r.borrower.name}
@@ -189,16 +284,250 @@ function ApplicationsList({
                   </span>
                   <span className="text-slate-500">{r.loan.branch}</span>
                 </div>
+                {m && (
+                  <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+                    <span
+                      className="truncate"
+                      style={{
+                        color: m.ownerOfficerName ? "var(--brand-primary)" : "#64748b",
+                      }}
+                    >
+                      {m.ownerOfficerName ?? "Unassigned"}
+                    </span>
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <div className="h-1 w-16 overflow-hidden rounded-full bg-line">
+                        <div
+                          className="h-full"
+                          style={{
+                            width: `${pct * 100}%`,
+                            backgroundColor: "var(--brand-primary)",
+                          }}
+                        />
+                      </div>
+                      <span className="text-slate-500">
+                        {m.answered}/{m.total}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </button>
             </li>
           );
         })}
         {apps.length === 0 && (
           <li className="px-3 py-6 text-center text-sm text-slate-500">
-            No applications currently under review.
+            No applications match the current filter.
           </li>
         )}
       </ul>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Manager-view helpers: escalation banner, owner filter, assign control
+// ---------------------------------------------------------------------------
+
+function ManagerSummary({
+  managerRows,
+  escalatedCount,
+  apps,
+  onSelectLoan,
+}: {
+  managerRows: Map<string, ManagerRow>;
+  escalatedCount: number;
+  apps: LoanRow[];
+  onSelectLoan: (loanId: string) => void;
+}) {
+  const assignedCount = Array.from(managerRows.values()).filter(
+    (m) => m.ownerOfficerId,
+  ).length;
+  const unassignedCount = apps.length - assignedCount;
+  const inProgressCount = Array.from(managerRows.values()).filter(
+    (m) => m.answered > 0 && m.answered < m.total && !m.screeningAt,
+  ).length;
+  const completeCount = Array.from(managerRows.values()).filter(
+    (m) => m.screeningAt,
+  ).length;
+
+  const escalatedApps = apps.filter((r) => managerRows.get(r.loan.id)?.escalated);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {escalatedCount > 0 && (
+        <div className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4">
+          <div className="flex items-baseline justify-between">
+            <div className="text-sm font-semibold text-amber-100">
+              {escalatedCount} loan{escalatedCount === 1 ? "" : "s"} escalated to credit committee
+            </div>
+            <div className="text-xs text-amber-200/70">
+              Any &lsquo;c&rsquo; answer in NRB ESRM Annex 5 triggers escalation
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {escalatedApps.slice(0, 8).map((r) => (
+              <button
+                key={r.loan.id}
+                type="button"
+                onClick={() => onSelectLoan(r.loan.id)}
+                className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-xs text-amber-100 transition hover:bg-amber-500/25"
+              >
+                {r.borrower.name}
+              </button>
+            ))}
+            {escalatedApps.length > 8 && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-200/70">
+                +{escalatedApps.length - 8} more
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      <div className="rounded-2xl border border-line bg-panel px-4 py-3 text-xs text-slate-400">
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+          <div>
+            <span className="text-white">{assignedCount}</span> assigned
+          </div>
+          <div>
+            <span className="text-white">{unassignedCount}</span> unassigned
+          </div>
+          <div>
+            <span className="text-white">{inProgressCount}</span> ESDD in progress
+          </div>
+          <div>
+            <span className="text-white">{completeCount}</span> screening complete
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OwnerFilterBar({
+  value,
+  officers,
+  onChange,
+}: {
+  value: OwnerFilter;
+  officers: Officer[];
+  onChange: (next: OwnerFilter) => void;
+}) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
+      <FilterPill active={value === "all"} onClick={() => onChange("all")}>
+        All
+      </FilterPill>
+      <FilterPill
+        active={value === "unassigned"}
+        onClick={() => onChange("unassigned")}
+      >
+        Unassigned
+      </FilterPill>
+      <span className="mx-1 text-slate-600">·</span>
+      <select
+        value={
+          typeof value === "object" && "officerId" in value
+            ? value.officerId
+            : ""
+        }
+        onChange={(e) => {
+          if (e.target.value) onChange({ officerId: e.target.value });
+          else onChange("all");
+        }}
+        className="rounded-md border border-line bg-panelAlt px-2 py-1 text-xs text-slate-200"
+      >
+        <option value="">By officer…</option>
+        {officers.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function FilterPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-2.5 py-0.5 transition ${
+        active ? "text-white" : "border-line bg-panelAlt text-slate-300 hover:bg-white/5"
+      }`}
+      style={
+        active
+          ? {
+              backgroundColor: "var(--brand-primary)",
+              borderColor: "var(--brand-primary)",
+            }
+          : undefined
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function AssignmentControl({
+  loanId,
+  currentOwnerId,
+  officers,
+  onChange,
+}: {
+  loanId: string;
+  currentOwnerId: string | null;
+  officers: Officer[];
+  onChange: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  async function assign(officerId: string | null) {
+    setSaving(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/manager/assignments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ loanId, officerId }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setErr(body.error ?? `Server returned ${res.status}`);
+        return;
+      }
+      onChange();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <select
+        value={currentOwnerId ?? ""}
+        disabled={saving}
+        onChange={(e) => assign(e.target.value || null)}
+        className="rounded-md border border-line bg-panelAlt px-2 py-1 text-slate-200"
+      >
+        <option value="">Unassigned</option>
+        {officers.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+      {saving && <span className="text-slate-500">Saving…</span>}
+      {err && <span className="text-red-300">{err}</span>}
     </div>
   );
 }
@@ -212,11 +541,19 @@ function ScreeningWorkbench({
   prebuiltScreening,
   liveEnrichment,
   isMock,
+  managerRow,
+  officers,
+  currentOfficer,
+  onAssignmentChanged,
 }: {
   row: LoanRow;
   prebuiltScreening?: import("@/lib/types/bfi").BorrowerScreening;
   liveEnrichment?: { edgar: boolean; openaq: boolean; edgarYear?: number };
   isMock: boolean;
+  managerRow: ManagerRow | null;
+  officers: Officer[];
+  currentOfficer: Officer | null;
+  onAssignmentChanged: () => void;
 }) {
   const { loan, borrower, attribution } = row;
   const screening = useMemo(
@@ -337,6 +674,27 @@ function ScreeningWorkbench({
                   <InfoTip id={`risk-${riskClass}`} side="left" />
                 </span>
               </div>
+            </div>
+            {/* Manager assignment control */}
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-panelAlt px-3 py-2">
+              <div className="text-xs">
+                <div className="text-slate-500">Owner</div>
+                <div className="text-slate-200">
+                  {managerRow?.ownerOfficerName ?? "Unassigned"}
+                  {currentOfficer &&
+                    managerRow?.ownerOfficerId === currentOfficer.id && (
+                      <span className="ml-2 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-slate-300">
+                        that&rsquo;s you
+                      </span>
+                    )}
+                </div>
+              </div>
+              <AssignmentControl
+                loanId={loan.id}
+                currentOwnerId={managerRow?.ownerOfficerId ?? null}
+                officers={officers}
+                onChange={onAssignmentChanged}
+              />
             </div>
             <div className="mt-3">
               <StatRow
