@@ -32,6 +32,7 @@ import {
 } from "@/lib/regulatory/taxonomy/activities";
 import { ANNEX5_SECTOR_SUPPLEMENTS } from "@/lib/regulatory/esdd/annex5-questions";
 import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
+import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 
@@ -483,6 +484,302 @@ function FilterPill({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Workbench compliance status stripe — live ESDD + Taxonomy for the
+// selected loan, rendered inline on the manager view so the screening
+// state and any escalation are visible without opening the drawer.
+// ---------------------------------------------------------------------------
+
+const WB_RISK_BG: Record<"low" | "medium" | "high" | "extreme", string> = {
+  low: "#22c55e",
+  medium: "#eab308",
+  high: "#f97316",
+  extreme: "#ef4444",
+};
+const WB_TAX_BG: Record<TaxonomyColor, string> = {
+  green: "#22c55e",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  unclassified: "#64748b",
+};
+const WB_TAX_LABEL: Record<TaxonomyColor, string> = {
+  green: "GREEN",
+  amber: "AMBER",
+  red: "RED",
+  unclassified: "UNCLASSIFIED",
+};
+
+// Compact prompt lookup — number + short label per question so the
+// escalation list on the workbench can render "Q 3.2 Labour · Q H.2
+// Resettlement" without opening a wizard-scale block of text.
+function shortQuestionLabel(id: string): { number: string; short: string } {
+  // Core sections: derive number from id (annex5.<section>.<n>)
+  const parts = id.split(".");
+  if (id.startsWith("annex5.1.")) {
+    return {
+      number: `${parts[1]}.${parts[2]}`,
+      short:
+        parts[2] === "1"
+          ? "Legal issues"
+          : parts[2] === "2"
+            ? "Stakeholder grievances"
+            : "Sensitive-area siting",
+    };
+  }
+  if (id.startsWith("annex5.2.")) {
+    return {
+      number: `${parts[1]}.${parts[2]}`,
+      short:
+        parts[2] === "1"
+          ? "Air & noise pollution"
+          : parts[2] === "2"
+            ? "Water pollution"
+            : parts[2] === "3"
+              ? "Waste handling"
+              : "Energy efficiency",
+    };
+  }
+  if (id.startsWith("annex5.3.")) {
+    return {
+      number: `${parts[1]}.${parts[2]}`,
+      short:
+        parts[2] === "1"
+          ? "Fire / OHS risk"
+          : parts[2] === "2"
+            ? "Labour practices"
+            : parts[2] === "3"
+              ? "Community H&S"
+              : "Stakeholder consultation",
+    };
+  }
+  // Sector supplements — look up by id via ANNEX5_SECTOR_SUPPLEMENTS.
+  for (const questions of Object.values(ANNEX5_SECTOR_SUPPLEMENTS)) {
+    const match = questions.find((q) => q.id === id);
+    if (match) {
+      return { number: match.number, short: truncate(match.prompt, 32) };
+    }
+  }
+  return { number: id, short: "" };
+}
+
+function truncate(s: string, n: number): string {
+  return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
+}
+
+type WbStripeState = {
+  esdd: {
+    loading: boolean;
+    answered: number;
+    total: number;
+    riskClass: "low" | "medium" | "high" | "extreme" | null;
+    escalated: boolean;
+    drivingQuestionIds: string[];
+  };
+  taxonomy: {
+    loading: boolean;
+    color: TaxonomyColor | null;
+    activityId: string | null;
+    activityName: string | null;
+  };
+};
+
+function WorkbenchComplianceStripe({
+  loanId,
+  borrower,
+}: {
+  loanId: string;
+  borrower: Borrower;
+}) {
+  const sectorSlug = sectorSlugFor(borrower.nrbSector);
+  const total =
+    3 +
+    4 +
+    4 +
+    (sectorSlug ? ANNEX5_SECTOR_SUPPLEMENTS[sectorSlug]?.length ?? 0 : 0);
+  const taxApplicable = isTaxonomyExpected(borrower.nrbSector);
+
+  const [state, setState] = useState<WbStripeState>({
+    esdd: {
+      loading: true,
+      answered: 0,
+      total,
+      riskClass: null,
+      escalated: false,
+      drivingQuestionIds: [],
+    },
+    taxonomy: { loading: true, color: null, activityId: null, activityName: null },
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [respRes, scrRes, taxRes] = await Promise.all([
+        fetch(`/api/esdd/responses?loanId=${encodeURIComponent(loanId)}`).catch(
+          () => null,
+        ),
+        fetch(`/api/esrm/screenings?loanId=${encodeURIComponent(loanId)}`).catch(
+          () => null,
+        ),
+        fetch(`/api/taxonomy/assessments?loanId=${encodeURIComponent(loanId)}`).catch(
+          () => null,
+        ),
+      ]);
+      if (cancelled) return;
+
+      let answered = 0;
+      if (respRes && respRes.ok) {
+        const body = await respRes.json();
+        const distinct = new Set<string>();
+        for (const r of body.responses ?? []) distinct.add(r.questionId);
+        answered = distinct.size;
+      }
+      let riskClass: WbStripeState["esdd"]["riskClass"] = null;
+      let escalated = false;
+      let drivingQuestionIds: string[] = [];
+      if (scrRes && scrRes.ok) {
+        const body = await scrRes.json();
+        if (body?.latest) {
+          riskClass = body.latest.computed_risk_class;
+          escalated = body.latest.escalation_flag;
+          drivingQuestionIds = body.latest.driving_question_ids ?? [];
+        }
+      }
+      let color: TaxonomyColor | null = null;
+      let activityId: string | null = null;
+      let activityName: string | null = null;
+      if (taxRes && taxRes.ok) {
+        const body = await taxRes.json();
+        if (body?.latest) {
+          color = body.latest.computed_color;
+          activityId = body.latest.activity_id;
+          activityName = findActivityById(body.latest.activity_id)?.name ?? null;
+        }
+      }
+      setState({
+        esdd: { loading: false, answered, total, riskClass, escalated, drivingQuestionIds },
+        taxonomy: { loading: false, color, activityId, activityName },
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loanId, total]);
+
+  return (
+    <div className="mt-3 rounded-lg border border-line bg-panelAlt p-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Compliance status
+        </div>
+        <a
+          href={`/esdd/${encodeURIComponent(loanId)}`}
+          className="text-[11px] font-semibold"
+          style={{ color: "var(--brand-primary)" }}
+        >
+          Open ESDD →
+        </a>
+      </div>
+
+      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {/* ESDD */}
+        <div className="rounded-md border border-line bg-panel px-3 py-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                ESDD
+              </div>
+              <div className="text-sm font-semibold text-white">
+                {state.esdd.loading
+                  ? "Loading…"
+                  : state.esdd.riskClass
+                    ? `${state.esdd.answered}/${state.esdd.total} · Screened`
+                    : state.esdd.answered > 0
+                      ? `${state.esdd.answered}/${state.esdd.total} · In progress`
+                      : "Not started"}
+              </div>
+            </div>
+            {state.esdd.riskClass && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                style={{ backgroundColor: WB_RISK_BG[state.esdd.riskClass] }}
+              >
+                {state.esdd.riskClass.toUpperCase()}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Taxonomy */}
+        <div className="rounded-md border border-line bg-panel px-3 py-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                Taxonomy
+              </div>
+              <div className="text-sm font-semibold text-white">
+                {!taxApplicable
+                  ? "Not eligible"
+                  : state.taxonomy.loading
+                    ? "Loading…"
+                    : state.taxonomy.activityName
+                      ? truncate(state.taxonomy.activityName, 32)
+                      : "Not classified"}
+              </div>
+            </div>
+            {state.taxonomy.color && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                style={{ backgroundColor: WB_TAX_BG[state.taxonomy.color] }}
+              >
+                {WB_TAX_LABEL[state.taxonomy.color]}
+              </span>
+            )}
+          </div>
+          {taxApplicable && (
+            <div className="mt-1">
+              <a
+                href={`/taxonomy/${encodeURIComponent(loanId)}`}
+                className="text-[11px] font-semibold"
+                style={{ color: "var(--brand-primary)" }}
+              >
+                {state.taxonomy.color ? "Review taxonomy →" : "Classify →"}
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Escalation callout — the reason the manager actually cares
+          about this screening. Show driving questions inline so they
+          don't have to open the drawer to see what's wrong. */}
+      {state.esdd.escalated && (
+        <div className="mt-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2">
+          <div className="text-xs font-semibold text-amber-100">
+            Escalated to credit committee
+          </div>
+          {state.esdd.drivingQuestionIds.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {state.esdd.drivingQuestionIds.map((id) => {
+                const { number, short } = shortQuestionLabel(id);
+                return (
+                  <span
+                    key={id}
+                    className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-100"
+                    title={id}
+                  >
+                    Q {number}
+                    {short ? ` · ${short}` : ""}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AssignmentControl({
   loanId,
   currentOwnerId,
@@ -702,6 +999,14 @@ function ScreeningWorkbench({
                 onChange={onAssignmentChanged}
               />
             </div>
+
+            {/* Compliance status stripe — live ESDD + Taxonomy for this loan.
+                Renders inline in the workbench so the manager doesn't have
+                to open the drawer to see the screening state. Escalation
+                driving questions are listed here too, since they're the
+                whole reason the manager cares about the escalation. */}
+            <WorkbenchComplianceStripe loanId={loan.id} borrower={borrower} />
+
             <div className="mt-3">
               <StatRow
                 label="Loan request"

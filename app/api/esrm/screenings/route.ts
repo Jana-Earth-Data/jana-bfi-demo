@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from("bfi_esrm_screenings")
     .select(
-      "id, computed_risk_class, computed_recommendation, escalation_flag, computed_rationale, captured_at, officer_id",
+      "id, computed_risk_class, computed_recommendation, escalation_flag, computed_rationale, esdd_snapshot, captured_at, officer_id",
     )
     .eq("bank_id", tenant.id)
     .eq("loan_id", loanId)
@@ -68,10 +68,26 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+  const row = data && data[0] ? data[0] : null;
+
+  // Derive driving question ids from the snapshot — any question that
+  // received an 'c' answer triggered escalation per NRB Annex 5. Cheaper
+  // to compute here than for every drawer / stripe caller to reimplement.
+  let drivingQuestionIds: string[] = [];
+  if (row?.esdd_snapshot && typeof row.esdd_snapshot === "object") {
+    for (const [qid, entry] of Object.entries(
+      row.esdd_snapshot as Record<string, { answer?: string }>,
+    )) {
+      if (entry?.answer === "c") drivingQuestionIds.push(qid);
+    }
+    // Stable ordering: annex5.1.1 before annex5.hydro.2, etc.
+    drivingQuestionIds.sort();
+  }
+
   return NextResponse.json({
     ok: true,
     loanId,
-    latest: data && data[0] ? data[0] : null,
+    latest: row ? { ...row, driving_question_ids: drivingQuestionIds } : null,
   });
 }
 
