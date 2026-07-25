@@ -66,23 +66,46 @@ export function EsddWizard({
   const [responses, setResponses] = useState<Record<string, StoredResponse>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
   const [loading, setLoading] = useState(true);
+  // Latest saved screening for this loan, if one exists. Loaded on mount
+  // in parallel with the responses so the review step and the review
+  // landing can render as "re-run" instead of "first save".
+  const [priorScreening, setPriorScreening] = useState<SavedScreening | null>(
+    null,
+  );
 
-  // Load existing responses on mount so the officer can resume.
+  // Load existing responses + prior screening on mount so the officer can
+  // resume or see the previously saved decision.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/esdd/responses?loanId=${encodeURIComponent(loan.id)}`,
-        );
-        if (!res.ok) return;
-        const body = (await res.json()) as {
-          responses: StoredResponse[];
-        };
+        const [respRes, scrRes] = await Promise.all([
+          fetch(`/api/esdd/responses?loanId=${encodeURIComponent(loan.id)}`),
+          fetch(`/api/esrm/screenings?loanId=${encodeURIComponent(loan.id)}`).catch(
+            () => null,
+          ),
+        ]);
         if (cancelled) return;
-        const map: Record<string, StoredResponse> = {};
-        for (const r of body.responses) map[r.questionId] = r;
-        setResponses(map);
+        if (respRes.ok) {
+          const body = (await respRes.json()) as { responses: StoredResponse[] };
+          const map: Record<string, StoredResponse> = {};
+          for (const r of body.responses) map[r.questionId] = r;
+          setResponses(map);
+        }
+        if (scrRes && scrRes.ok) {
+          const body = await scrRes.json();
+          if (body?.latest) {
+            setPriorScreening({
+              id: body.latest.id,
+              capturedAt: body.latest.captured_at,
+              riskClass: body.latest.computed_risk_class,
+              recommendation: body.latest.computed_recommendation,
+              escalationFlag: body.latest.escalation_flag,
+              rationale: body.latest.computed_rationale,
+              drivingQuestionIds: [],
+            });
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -190,6 +213,7 @@ export function EsddWizard({
               loan={loan}
               borrower={borrower}
               responses={responses}
+              priorScreening={priorScreening}
               onBack={() => setStep(3)}
               onExit={() => router.push("/")}
             />
@@ -543,12 +567,14 @@ function ReviewStep({
   loan,
   borrower,
   responses,
+  priorScreening,
   onBack,
   onExit,
 }: {
   loan: Loan;
   borrower: Borrower;
   responses: Record<string, StoredResponse>;
+  priorScreening: SavedScreening | null;
   onBack: () => void;
   onExit: () => void;
 }) {
@@ -558,8 +584,12 @@ function ReviewStep({
     ANNEX5_EHS_RISK.length +
     ANNEX5_SOCIAL_RISK.length;
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState<SavedScreening | null>(null);
+  // If a prior screening exists, land on the result view rather than the
+  // review form. The officer can still click "Re-run screening" to
+  // re-compute against the current responses.
+  const [saved, setSaved] = useState<SavedScreening | null>(priorScreening);
   const [error, setError] = useState<string | null>(null);
+  const isRerun = priorScreening !== null;
 
   async function saveScreening() {
     setSaving(true);
@@ -593,6 +623,12 @@ function ReviewStep({
         borrower={borrower}
         loan={loan}
         onExit={onExit}
+        onRerun={() => {
+          // Drop into the review form so the officer can re-compute
+          // against the current responses. The prior screening stays in
+          // the audit trail either way.
+          setSaved(null);
+        }}
       />
     );
   }
@@ -600,13 +636,25 @@ function ReviewStep({
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-2xl border border-line bg-panel p-6">
-        <h2 className="text-lg font-semibold text-white">Review and save</h2>
+        <h2 className="text-lg font-semibold text-white">
+          {isRerun ? "Re-run screening" : "Review and save"}
+        </h2>
         <p className="mt-1 text-sm text-slate-400">
-          {totalAnswered} of {totalQuestions} question{totalQuestions === 1 ? "" : "s"} answered.
-          Saving will run the scoring engine over the latest response for
-          each question, derive a risk class and recommendation per NRB
-          ESRM guidance, and record the final screening in the audit trail
-          against your officer identity.
+          {isRerun ? (
+            <>
+              A screening was already saved for this loan. Re-running will
+              score the current responses again and append a new screening
+              row to the audit trail — the prior one is preserved.
+            </>
+          ) : (
+            <>
+              {totalAnswered} of {totalQuestions} question{totalQuestions === 1 ? "" : "s"} answered.
+              Saving will run the scoring engine over the latest response
+              for each question, derive a risk class and recommendation per
+              NRB ESRM guidance, and record the final screening in the
+              audit trail against your officer identity.
+            </>
+          )}
         </p>
 
         {totalAnswered < totalQuestions && (
@@ -640,7 +688,11 @@ function ReviewStep({
             className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
             style={{ backgroundColor: "var(--brand-primary)" }}
           >
-            {saving ? "Saving screening…" : "Compute risk and save screening"}
+            {saving
+              ? "Saving screening…"
+              : isRerun
+                ? "Re-run screening with current answers"
+                : "Compute risk and save screening"}
           </button>
         </div>
       </div>
@@ -653,11 +705,13 @@ function ScreeningResult({
   borrower,
   loan,
   onExit,
+  onRerun,
 }: {
   screening: SavedScreening;
   borrower: Borrower;
   loan: Loan;
   onExit: () => void;
+  onRerun?: () => void;
 }) {
   const RISK_COLORS: Record<SavedScreening["riskClass"], string> = {
     low: "#22c55e",
@@ -741,7 +795,18 @@ function ScreeningResult({
           </div>
         )}
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex items-center justify-between gap-3">
+          {onRerun ? (
+            <button
+              type="button"
+              onClick={onRerun}
+              className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
+            >
+              Re-run screening with current answers
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             onClick={onExit}

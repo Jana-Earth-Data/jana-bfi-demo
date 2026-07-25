@@ -29,6 +29,51 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/esrm/screenings?loanId=X
+ *
+ * Returns { latest: { ... } | null } — the most recent saved screening
+ * for the loan, drawn from bfi_esrm_screenings. Used by the ESDD
+ * wizard on mount and by the drawer to render live status.
+ */
+export async function GET(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Supabase not configured." },
+      { status: 500 },
+    );
+  }
+  const tenant = await resolveCurrentTenant();
+  const loanId = request.nextUrl.searchParams.get("loanId");
+  if (!loanId) {
+    return NextResponse.json(
+      { error: "loanId query parameter is required." },
+      { status: 400 },
+    );
+  }
+  const { data, error } = await supabase
+    .from("bfi_esrm_screenings")
+    .select(
+      "id, computed_risk_class, computed_recommendation, escalation_flag, computed_rationale, captured_at, officer_id",
+    )
+    .eq("bank_id", tenant.id)
+    .eq("loan_id", loanId)
+    .order("captured_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    return NextResponse.json(
+      { error: `Screening query failed: ${error.message}` },
+      { status: 500 },
+    );
+  }
+  return NextResponse.json({
+    ok: true,
+    loanId,
+    latest: data && data[0] ? data[0] : null,
+  });
+}
+
 // Precompute question-id → section lookup once at module load. Sector
 // supplements append to this at runtime once they're populated.
 const SECTION_BY_QUESTION_ID: Record<string, string> = {};
