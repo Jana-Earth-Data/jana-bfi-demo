@@ -95,8 +95,9 @@ export function TaxonomyWizard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load prior assessment (if any) on mount so the officer sees the
-  // last saved classification without re-entering data.
+  // Load prior assessment (if any) on mount so the officer lands on the
+  // saved result view — and, if they click Edit criteria / Re-run, the
+  // criterion answers are already pre-populated from the last save.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -107,12 +108,37 @@ export function TaxonomyWizard({
         if (!res.ok) return;
         const body = await res.json();
         if (cancelled || !body?.latest) return;
+        const latest = body.latest;
+        const activity = findActivityById(latest.activity_id);
+        // Hydrate wizard state from the saved row.
         setSavedFromApi({
-          activityId: body.latest.activity_id,
-          color: body.latest.computed_color,
-          rationale: body.latest.computed_rationale,
-          citation: body.latest.citation,
-          capturedAt: body.latest.captured_at,
+          activityId: latest.activity_id,
+          color: latest.computed_color,
+          rationale: latest.computed_rationale,
+          citation: latest.citation,
+          capturedAt: latest.captured_at,
+        });
+        setActivityId(latest.activity_id);
+        if (latest.criterion_answers && typeof latest.criterion_answers === "object") {
+          setAnswers(latest.criterion_answers as Record<string, unknown>);
+        }
+        // Land on the saved result view by default; officer can click
+        // "Edit criteria" (in ResultCard) to jump into step 2 with the
+        // prior answers already populated, or hit Re-run after editing.
+        setSaved({
+          id: latest.id,
+          capturedAt: latest.captured_at,
+          activityId: latest.activity_id,
+          activityName: activity?.name ?? latest.activity_id,
+          color: latest.computed_color,
+          rationale: latest.computed_rationale,
+          citation: latest.citation ?? "",
+          dnshFailures: [],
+          officer: {
+            id: latest.officer_id,
+            name: latest.officer_name ?? "prior assessment",
+            role: "loan_officer",
+          },
         });
       } finally {
         if (!cancelled) setLoading(false);

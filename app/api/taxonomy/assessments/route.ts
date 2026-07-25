@@ -139,9 +139,24 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+  const row = data && data[0] ? data[0] : null;
+
+  // Enrich with the saving officer's name so the wizard can render the
+  // "Saved by …" attribution without a second round-trip.
+  let officerName: string | null = null;
+  if (row?.officer_id) {
+    const { data: officerRow } = await supabase
+      .from("bfi_officers")
+      .select("name")
+      .eq("bank_id", tenant.id)
+      .eq("id", row.officer_id)
+      .maybeSingle();
+    officerName = officerRow?.name ?? null;
+  }
+
   return NextResponse.json({
     ok: true,
     loanId,
-    latest: data && data[0] ? data[0] : null,
+    latest: row ? { ...row, officer_name: officerName } : null,
   });
 }
