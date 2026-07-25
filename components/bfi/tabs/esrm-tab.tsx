@@ -26,6 +26,10 @@ import { NPR_PER_USD } from "@/lib/data/util";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
 import { useTour } from "@/lib/tour/tour-context";
 import type { Officer } from "@/lib/tenants";
+import {
+  findActivityById,
+  type TaxonomyColor,
+} from "@/lib/regulatory/taxonomy/activities";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 
@@ -750,7 +754,7 @@ function ScreeningWorkbench({
               onClick={() => setEsddOpen(true)}
               className="mt-3 inline-flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
             >
-              View ESDD checklist (NRB ESRM Annex 5)
+              View NRB compliance status
               <span aria-hidden>→</span>
             </button>
           </div>
@@ -1183,6 +1187,40 @@ const ANSWER_COLOR: Record<"a" | "b" | "c" | "d", string> = {
   d: "#6b7280", // gray — not applicable
 };
 
+// Taxonomy assessment shape returned by GET /api/taxonomy/assessments.
+type TaxonomyLatest = {
+  id: string;
+  activity_id: string;
+  computed_color: TaxonomyColor;
+  computed_rationale: string;
+  citation: string | null;
+  captured_at: string;
+};
+
+const TAXONOMY_COLOR_BG: Record<TaxonomyColor, string> = {
+  green: "#22c55e",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  unclassified: "#64748b",
+};
+
+const TAXONOMY_COLOR_LABEL: Record<TaxonomyColor, string> = {
+  green: "Green — Transformative",
+  amber: "Amber — Transitional",
+  red: "Red — Not aligned",
+  unclassified: "Unclassified",
+};
+
+/**
+ * NRB compliance status drawer — one drawer per loan, two subpanels:
+ *   1. ESDD (NRB ESRM Annex 5)      — risk screening
+ *   2. Taxonomy (NRB GFT Oct 2024)  — green classification
+ *
+ * Both subpanels are live: they fetch the latest saved state from
+ * Supabase on open, render the appropriate CTA (Start / Continue / Re-run),
+ * and preserve their independent status chips so the officer can see at a
+ * glance where each regulatory flow stands for this loan.
+ */
 function EsddChecklistDrawer({
   borrower,
   loanId,
@@ -1192,8 +1230,7 @@ function EsddChecklistDrawer({
   loanId: string;
   onClose: () => void;
 }) {
-  // Live status from the capture APIs. Both requests run in parallel on
-  // open; the drawer shows a "Loading…" state until they resolve.
+  // ESDD live state
   const [responses, setResponses] = useState<Map<string, EsddApiResponse["responses"][number]>>(
     new Map(),
   );
@@ -1203,25 +1240,38 @@ function EsddChecklistDrawer({
     escalationFlag: boolean;
     capturedAt: string;
   } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [esddLoading, setEsddLoading] = useState(true);
+
+  // Taxonomy live state
+  const [taxonomyLatest, setTaxonomyLatest] = useState<TaxonomyLatest | null>(null);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      setEsddLoading(true);
+      setTaxonomyLoading(true);
       try {
-        const [respRes, scrRes] = await Promise.all([
+        const [respRes, scrRes, taxRes] = await Promise.all([
           fetch(`/api/esdd/responses?loanId=${encodeURIComponent(loanId)}`),
-          fetch(`/api/esrm/screenings?loanId=${encodeURIComponent(loanId)}`).catch(() => null),
+          fetch(`/api/esrm/screenings?loanId=${encodeURIComponent(loanId)}`).catch(
+            () => null,
+          ),
+          fetch(`/api/taxonomy/assessments?loanId=${encodeURIComponent(loanId)}`).catch(
+            () => null,
+          ),
         ]);
         if (cancelled) return;
+
+        // ESDD responses
         const map = new Map<string, EsddApiResponse["responses"][number]>();
         if (respRes.ok) {
           const body = (await respRes.json()) as EsddApiResponse;
           for (const r of body.responses) map.set(r.questionId, r);
         }
         setResponses(map);
-        // Screening endpoint is optional (GET may not exist yet); tolerate.
+
+        // ESRM screening
         if (scrRes && scrRes.ok) {
           const body = await scrRes.json();
           if (body?.latest) {
@@ -1233,8 +1283,17 @@ function EsddChecklistDrawer({
             });
           }
         }
+
+        // Taxonomy assessment
+        if (taxRes && taxRes.ok) {
+          const body = await taxRes.json();
+          if (body?.latest) setTaxonomyLatest(body.latest as TaxonomyLatest);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setEsddLoading(false);
+          setTaxonomyLoading(false);
+        }
       }
     })();
     return () => {
@@ -1242,15 +1301,15 @@ function EsddChecklistDrawer({
     };
   }, [loanId]);
 
-  const totalQuestions = ANNEX5_SECTIONS.reduce((s, sec) => s + sec.questions.length, 0);
+  const totalQuestions = ANNEX5_SECTIONS.reduce(
+    (s, sec) => s + sec.questions.length,
+    0,
+  );
   const answered = ANNEX5_SECTIONS.reduce(
     (s, sec) => s + sec.questions.filter((q) => responses.has(q.id)).length,
     0,
   );
-  const pct = totalQuestions > 0 ? answered / totalQuestions : 0;
 
-  // Retain the pre-wizard "who provides data" note as a small
-  // informational panel at the bottom.
   const coverageItems = buildEsddRows(borrower);
 
   return (
@@ -1262,176 +1321,57 @@ function EsddChecklistDrawer({
         onClick={(e) => e.stopPropagation()}
         className="h-full w-full max-w-md overflow-y-auto border-l border-line bg-panel p-5 shadow-2xl"
       >
+        {/* Header — drawer covers BOTH NRB compliance flows for this loan */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-wide text-slate-500">
-              NRB ESRM Annex 5
+              NRB compliance status
             </div>
             <div className="text-lg font-semibold text-white">
-              ESDD checklist
+              {borrower.name}
             </div>
             <div className="text-xs text-slate-500">
-              {borrower.name} · {borrower.nrbSector}
+              {borrower.nrbSector} · Loan {loanId}
             </div>
-            <div className="text-[11px] text-slate-600">Loan {loanId}</div>
           </div>
           <button
             onClick={onClose}
             className="rounded-md border border-line bg-panelAlt px-2 py-1 text-xs text-slate-300"
-            aria-label="Close ESDD checklist"
+            aria-label="Close compliance status"
           >
             Close
           </button>
         </div>
 
-        {/* Overall progress + latest screening chip */}
-        <div className="mt-4 rounded-lg border border-line bg-panelAlt p-4">
-          <div className="flex items-baseline justify-between">
-            <div className="text-sm font-semibold text-white">
-              {loading ? "Loading status…" : `${answered} of ${totalQuestions} answered`}
-            </div>
-            {screening ? (
-              <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                style={{
-                  backgroundColor:
-                    screening.riskClass === "extreme"
-                      ? "#ef4444"
-                      : screening.riskClass === "high"
-                        ? "#f97316"
-                        : screening.riskClass === "medium"
-                          ? "#eab308"
-                          : "#22c55e",
-                }}
-                title={`Saved ${new Date(screening.capturedAt).toLocaleString()}`}
-              >
-                {screening.riskClass.toUpperCase()}
-              </span>
-            ) : answered > 0 ? (
-              <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-400">
-                In progress
-              </span>
-            ) : (
-              <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-500">
-                Not started
-              </span>
-            )}
-          </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
-            <div
-              className="h-full"
-              style={{
-                width: `${pct * 100}%`,
-                backgroundColor: "var(--brand-primary)",
-              }}
-            />
-          </div>
-          {screening?.escalationFlag && (
-            <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
-              Escalated to credit committee per NRB ESRM guidance
-            </div>
-          )}
-          <a
-            href={`/esdd/${encodeURIComponent(loanId)}`}
-            className="mt-3 flex items-center justify-between rounded-md px-3 py-2 text-sm font-semibold text-white transition"
-            style={{ backgroundColor: "var(--brand-primary)" }}
-          >
-            <span>
-              {answered === 0
-                ? "Start ESDD checklist"
-                : screening
-                  ? "Review saved screening"
-                  : "Continue ESDD checklist"}
-            </span>
-            <span aria-hidden>→</span>
-          </a>
-          <a
-            href={`/taxonomy/${encodeURIComponent(loanId)}`}
-            className="mt-2 flex items-center justify-between rounded-md border px-3 py-2 text-sm font-semibold transition hover:bg-white/5"
-            style={{
-              borderColor: "var(--brand-primary)",
-              color: "var(--brand-primary)",
-            }}
-          >
-            <span>Classify against NRB Green Finance Taxonomy</span>
-            <span aria-hidden>→</span>
-          </a>
-        </div>
+        {/* ESDD subpanel */}
+        <EsddSubpanel
+          loanId={loanId}
+          loading={esddLoading}
+          answered={answered}
+          total={totalQuestions}
+          responses={responses}
+          screening={screening}
+        />
 
-        {/* Per-section, per-question status */}
-        <div className="mt-4 flex flex-col gap-3">
-          {ANNEX5_SECTIONS.map((sec) => {
-            const secAnswered = sec.questions.filter((q) =>
-              responses.has(q.id),
-            ).length;
-            return (
-              <div
-                key={sec.title}
-                className="rounded-lg border border-line bg-panelAlt"
-              >
-                <div className="flex items-baseline justify-between border-b border-line/60 px-3 py-2">
-                  <div className="text-xs font-semibold text-slate-200">
-                    {sec.title}
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    {secAnswered}/{sec.questions.length}
-                  </div>
-                </div>
-                <div className="divide-y divide-line/40">
-                  {sec.questions.map((q) => {
-                    const r = responses.get(q.id);
-                    return (
-                      <div
-                        key={q.id}
-                        className="flex items-start justify-between gap-3 px-3 py-2"
-                      >
-                        <div className="flex-1">
-                          <div className="text-[13px] text-slate-200">
-                            <span className="text-slate-500">Q {q.number}</span>{" "}
-                            {q.prompt}
-                          </div>
-                          {r?.remarks && (
-                            <div className="mt-0.5 text-[11px] italic text-slate-500">
-                              &ldquo;{r.remarks}&rdquo;
-                            </div>
-                          )}
-                        </div>
-                        {r ? (
-                          <span
-                            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                            style={{ backgroundColor: ANSWER_COLOR[r.answer] }}
-                            title={
-                              r.answer === "a"
-                                ? "Best case — no evidence of concern"
-                                : r.answer === "b"
-                                  ? "Partial mitigation, definite plan"
-                                  : r.answer === "c"
-                                    ? "Concern with no plan — escalation trigger"
-                                    : "Not applicable"
-                            }
-                          >
-                            {r.answer.toUpperCase()}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500">—</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Taxonomy subpanel */}
+        <TaxonomySubpanel
+          loanId={loanId}
+          borrower={borrower}
+          loading={taxonomyLoading}
+          latest={taxonomyLatest}
+        />
 
-        {/* Data coverage note — small, below the fold */}
+        {/* Data coverage note — small, below both panels */}
         <details className="mt-4 rounded-md border border-line/60 bg-panelAlt/50 p-3 text-xs">
           <summary className="cursor-pointer text-slate-400 hover:text-slate-200">
             Data coverage — where Jana informs the answer
           </summary>
           <div className="mt-3 space-y-2">
             {coverageItems.map((item) => (
-              <div key={item.category} className="flex items-start justify-between gap-2">
+              <div
+                key={item.category}
+                className="flex items-start justify-between gap-2"
+              >
                 <div className="flex-1">
                   <div className="text-[11px] text-slate-300">{item.category}</div>
                   <div className="text-[10px] text-slate-500">{item.detail}</div>
@@ -1460,6 +1400,257 @@ function EsddChecklistDrawer({
           </div>
         </details>
       </aside>
+    </div>
+  );
+}
+
+function EsddSubpanel({
+  loanId,
+  loading,
+  answered,
+  total,
+  responses,
+  screening,
+}: {
+  loanId: string;
+  loading: boolean;
+  answered: number;
+  total: number;
+  responses: Map<string, EsddApiResponse["responses"][number]>;
+  screening: {
+    riskClass: "low" | "medium" | "high" | "extreme";
+    recommendation: string;
+    escalationFlag: boolean;
+    capturedAt: string;
+  } | null;
+}) {
+  const pct = total > 0 ? answered / total : 0;
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-panelAlt/60 p-4">
+      <div className="flex items-baseline justify-between">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          ESDD checklist
+        </div>
+        <div className="text-[10px] uppercase tracking-wide text-slate-500">
+          NRB ESRM Annex 5
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-baseline justify-between">
+        <div className="text-sm font-semibold text-white">
+          {loading ? "Loading…" : `${answered} of ${total} answered`}
+        </div>
+        {screening ? (
+          <span
+            className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+            style={{
+              backgroundColor:
+                screening.riskClass === "extreme"
+                  ? "#ef4444"
+                  : screening.riskClass === "high"
+                    ? "#f97316"
+                    : screening.riskClass === "medium"
+                      ? "#eab308"
+                      : "#22c55e",
+            }}
+            title={`Saved ${new Date(screening.capturedAt).toLocaleString()}`}
+          >
+            {screening.riskClass.toUpperCase()}
+          </span>
+        ) : answered > 0 ? (
+          <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-400">
+            In progress
+          </span>
+        ) : (
+          <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-500">
+            Not started
+          </span>
+        )}
+      </div>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
+        <div
+          className="h-full"
+          style={{
+            width: `${pct * 100}%`,
+            backgroundColor: "var(--brand-primary)",
+          }}
+        />
+      </div>
+      {screening?.escalationFlag && (
+        <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+          Escalated to credit committee per NRB ESRM guidance
+        </div>
+      )}
+      <a
+        href={`/esdd/${encodeURIComponent(loanId)}`}
+        className="mt-3 flex items-center justify-between rounded-md px-3 py-2 text-sm font-semibold text-white transition"
+        style={{ backgroundColor: "var(--brand-primary)" }}
+      >
+        <span>
+          {answered === 0
+            ? "Start ESDD checklist"
+            : screening
+              ? "Review saved screening"
+              : "Continue ESDD checklist"}
+        </span>
+        <span aria-hidden>→</span>
+      </a>
+
+      {/* Per-section, per-question status */}
+      <div className="mt-4 flex flex-col gap-3">
+        {ANNEX5_SECTIONS.map((sec) => {
+          const secAnswered = sec.questions.filter((q) => responses.has(q.id))
+            .length;
+          return (
+            <div
+              key={sec.title}
+              className="rounded-lg border border-line bg-panelAlt"
+            >
+              <div className="flex items-baseline justify-between border-b border-line/60 px-3 py-2">
+                <div className="text-xs font-semibold text-slate-200">
+                  {sec.title}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {secAnswered}/{sec.questions.length}
+                </div>
+              </div>
+              <div className="divide-y divide-line/40">
+                {sec.questions.map((q) => {
+                  const r = responses.get(q.id);
+                  return (
+                    <div
+                      key={q.id}
+                      className="flex items-start justify-between gap-3 px-3 py-2"
+                    >
+                      <div className="flex-1">
+                        <div className="text-[13px] text-slate-200">
+                          <span className="text-slate-500">Q {q.number}</span>{" "}
+                          {q.prompt}
+                        </div>
+                        {r?.remarks && (
+                          <div className="mt-0.5 text-[11px] italic text-slate-500">
+                            &ldquo;{r.remarks}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                      {r ? (
+                        <span
+                          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                          style={{ backgroundColor: ANSWER_COLOR[r.answer] }}
+                          title={
+                            r.answer === "a"
+                              ? "Best case — no evidence of concern"
+                              : r.answer === "b"
+                                ? "Partial mitigation, definite plan"
+                                : r.answer === "c"
+                                  ? "Concern with no plan — escalation trigger"
+                                  : "Not applicable"
+                          }
+                        >
+                          {r.answer.toUpperCase()}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500">—</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TaxonomySubpanel({
+  loanId,
+  borrower,
+  loading,
+  latest,
+}: {
+  loanId: string;
+  borrower: Borrower;
+  loading: boolean;
+  latest: TaxonomyLatest | null;
+}) {
+  const activity = latest ? findActivityById(latest.activity_id) : null;
+  const ctaLabel = latest
+    ? "Re-run classification"
+    : "Classify against NRB Green Finance Taxonomy";
+
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-panelAlt/60 p-4">
+      <div className="flex items-baseline justify-between">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Green Finance Taxonomy
+        </div>
+        <div className="text-[10px] uppercase tracking-wide text-slate-500">
+          NRB GFT Oct 2024
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-baseline justify-between">
+        <div className="text-sm font-semibold text-white">
+          {loading
+            ? "Loading…"
+            : latest
+              ? activity?.name ?? latest.activity_id
+              : "Not classified"}
+        </div>
+        {latest ? (
+          <span
+            className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+            style={{ backgroundColor: TAXONOMY_COLOR_BG[latest.computed_color] }}
+            title={`Saved ${new Date(latest.captured_at).toLocaleString()}`}
+          >
+            {TAXONOMY_COLOR_LABEL[latest.computed_color]}
+          </span>
+        ) : (
+          <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-slate-500">
+            Not started
+          </span>
+        )}
+      </div>
+
+      {latest && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-slate-300">{latest.computed_rationale}</p>
+          {latest.citation && (
+            <div className="text-[11px] italic text-slate-500">
+              {latest.citation}
+            </div>
+          )}
+          {activity && (
+            <div className="text-[11px] text-slate-500">
+              Sector: {activity.sectorLabel}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!latest && !loading && (
+        <p className="mt-3 text-xs text-slate-400">
+          This loan has not yet been classified against the NRB Green
+          Finance Taxonomy. The taxonomy determines whether the loan
+          counts toward the bank&rsquo;s green portfolio disclosures and
+          which DNSH checks apply. Suggested activities based on{" "}
+          {borrower.nrbSector} will appear in the wizard.
+        </p>
+      )}
+
+      <a
+        href={`/taxonomy/${encodeURIComponent(loanId)}`}
+        className="mt-3 flex items-center justify-between rounded-md border px-3 py-2 text-sm font-semibold transition hover:bg-white/5"
+        style={{
+          borderColor: "var(--brand-primary)",
+          color: "var(--brand-primary)",
+        }}
+      >
+        <span>{ctaLabel}</span>
+        <span aria-hidden>→</span>
+      </a>
     </div>
   );
 }
