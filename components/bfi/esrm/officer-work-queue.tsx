@@ -1,51 +1,81 @@
 "use client";
 
 /**
- * Officer work queue — the signed-in officer's pending ESRM view.
+ * Officer work queue — the signed-in officer's loan-oriented view.
  *
- * Shows loans that need the officer's attention, grouped by state:
- *   - In progress:  ESDD started by this officer, not yet screened
- *   - Complete:     ESDD screened and saved to bfi_esrm_screenings
- *   - Awaiting:     under-review loans this officer hasn't started
+ * Each row is a LOAN, not a compliance flow. Every loan card shows
+ * both the ESDD chip and the Taxonomy chip side by side so the
+ * officer sees the full regulatory obligation at a glance rather than
+ * having to open one wizard, then hunt through a different tab for the
+ * other.
  *
- * Fetches from /api/esdd/officer-queue on mount and every time the
- * signed-in officer changes. If no officer is signed in, this component
- * renders nothing (the panel is hidden from the ESRM tab).
+ * Sections:
+ *   - Needs your attention: any required flow incomplete OR escalated
+ *   - In review:            all required flows saved, awaiting manager /
+ *                           committee sign-off
+ *   - Recently closed:      approved / declined / withdrawn in the last
+ *                           30 days (stubbed; requires a loan-status
+ *                           change model to populate for real)
+ *
+ * Data source: /api/esdd/officer-queue (returns loan-cards, not flow rows).
  */
 
 import { useEffect, useState } from "react";
 import { formatNpr } from "@/components/bfi/ui";
 import type { Officer } from "@/lib/tenants";
 
-type QueueRow = {
+type RiskClass = "low" | "medium" | "high" | "extreme";
+type TaxColor = "green" | "amber" | "red" | "unclassified";
+
+type LoanCard = {
   loanId: string;
   borrowerId: string;
   borrowerName: string;
   sector: string;
   outstandingNpr: number;
-  answered: number;
-  total: number;
-  state: "complete" | "in-progress" | "awaiting";
   lastActivityAt: string | null;
-  riskClass?: "low" | "medium" | "high" | "extreme" | null;
+  reason: string;
+  esdd: {
+    answered: number;
+    total: number;
+    riskClass: RiskClass | null;
+    escalated: boolean;
+  };
+  taxonomy: {
+    applicable: boolean;
+    color: TaxColor | null;
+    activityId: string | null;
+    activityName: string | null;
+  };
 };
 
 type QueueBody = {
   ok: true;
   officer: { id: string; name: string; role: string };
-  inProgress: QueueRow[];
-  complete: QueueRow[];
-  awaiting: QueueRow[];
+  needsAttention: LoanCard[];
+  inReview: LoanCard[];
+  recentlyClosed: LoanCard[];
 };
 
-const RISK_COLORS: Record<
-  NonNullable<QueueRow["riskClass"]>,
-  string
-> = {
+const RISK_COLORS: Record<RiskClass, string> = {
   low: "#22c55e",
   medium: "#eab308",
   high: "#f97316",
   extreme: "#ef4444",
+};
+
+const TAX_COLORS: Record<TaxColor, string> = {
+  green: "#22c55e",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  unclassified: "#64748b",
+};
+
+const TAX_LABEL: Record<TaxColor, string> = {
+  green: "GREEN",
+  amber: "AMBER",
+  red: "RED",
+  unclassified: "UNCLASSIFIED",
 };
 
 export function OfficerWorkQueue({
@@ -92,7 +122,7 @@ export function OfficerWorkQueue({
     <div className="rounded-2xl border border-line bg-panel">
       <div className="border-b border-line/60 px-6 py-4">
         <div className="text-xs uppercase tracking-wide text-slate-500">
-          Your ESRM queue
+          Your loans
         </div>
         <div className="mt-1 flex items-baseline justify-between gap-3">
           <div className="text-base font-semibold text-white">
@@ -100,9 +130,8 @@ export function OfficerWorkQueue({
           </div>
           {data && (
             <div className="text-xs text-slate-400">
-              {data.inProgress.length} in progress ·{" "}
-              {data.complete.length} completed ·{" "}
-              {data.awaiting.length} awaiting review
+              {data.needsAttention.length} need attention ·{" "}
+              {data.inReview.length} in review
             </div>
           )}
         </div>
@@ -119,22 +148,24 @@ export function OfficerWorkQueue({
       {data && !loading && !error && (
         <div className="divide-y divide-line/60">
           <QueueSection
-            title="In progress"
-            rows={data.inProgress}
-            emptyLabel="No ESDD checklists in progress."
+            title="Needs your attention"
+            rows={data.needsAttention}
+            emptyLabel="Nothing needs your attention right now."
           />
-          {data.complete.length > 0 && (
+          {data.inReview.length > 0 && (
             <QueueSection
-              title="Completed"
-              rows={data.complete}
+              title="In review"
+              rows={data.inReview}
               emptyLabel=""
             />
           )}
-          <QueueSection
-            title="Awaiting your review"
-            rows={data.awaiting}
-            emptyLabel="No under-review loans need attention right now."
-          />
+          {data.recentlyClosed.length > 0 && (
+            <QueueSection
+              title="Recently closed"
+              rows={data.recentlyClosed}
+              emptyLabel=""
+            />
+          )}
         </div>
       )}
     </div>
@@ -147,7 +178,7 @@ function QueueSection({
   emptyLabel,
 }: {
   title: string;
-  rows: QueueRow[];
+  rows: LoanCard[];
   emptyLabel: string;
 }) {
   return (
@@ -160,7 +191,7 @@ function QueueSection({
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((row) => (
-            <QueueRowCard key={row.loanId} row={row} />
+            <LoanCardRow key={row.loanId} card={row} />
           ))}
         </div>
       )}
@@ -168,65 +199,137 @@ function QueueSection({
   );
 }
 
-function QueueRowCard({ row }: { row: QueueRow }) {
-  const pct = row.total > 0 ? row.answered / row.total : 0;
+function LoanCardRow({ card }: { card: LoanCard }) {
+  // Where does clicking the card go? Priority order:
+  //   1. Escalated → open ESDD (officer reviews the escalation trigger)
+  //   2. ESDD incomplete → open ESDD wizard
+  //   3. ESDD done, taxonomy applicable but not done → open taxonomy wizard
+  //   4. Everything done → open ESDD (review the saved screening)
+  const esddDone = card.esdd.riskClass !== null;
+  const primaryHref = card.esdd.escalated
+    ? `/esdd/${encodeURIComponent(card.loanId)}`
+    : !esddDone
+      ? `/esdd/${encodeURIComponent(card.loanId)}`
+      : card.taxonomy.applicable && card.taxonomy.color === null
+        ? `/taxonomy/${encodeURIComponent(card.loanId)}`
+        : `/esdd/${encodeURIComponent(card.loanId)}`;
+
+  const primaryLabel = card.esdd.escalated
+    ? "Review escalation →"
+    : !esddDone && card.esdd.answered > 0
+      ? "Continue ESDD →"
+      : !esddDone
+        ? "Start ESDD →"
+        : card.taxonomy.applicable && card.taxonomy.color === null
+          ? "Classify taxonomy →"
+          : "Review saved →";
+
   return (
     <a
-      href={`/esdd/${encodeURIComponent(row.loanId)}`}
+      href={primaryHref}
       className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3 transition hover:bg-white/5"
     >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-2">
           <span className="text-sm font-semibold text-white">
-            {row.borrowerName}
+            {card.borrowerName}
           </span>
-          <span className="text-xs text-slate-500">{row.loanId}</span>
+          <span className="text-xs text-slate-500">{card.loanId}</span>
         </div>
         <div className="text-xs text-slate-400">
-          {row.sector} · {formatNpr(row.outstandingNpr)} outstanding
+          {card.sector} · {formatNpr(card.outstandingNpr)} outstanding
         </div>
-        {row.lastActivityAt && (
-          <div className="mt-0.5 text-xs text-slate-500">
-            Last activity {new Date(row.lastActivityAt).toLocaleString()}
-          </div>
-        )}
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        {row.state === "complete" && row.riskClass ? (
-          <span
-            className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-            style={{ backgroundColor: RISK_COLORS[row.riskClass] }}
-          >
-            {row.riskClass.toUpperCase()}
-          </span>
-        ) : row.state === "in-progress" ? (
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-line">
-              <div
-                className="h-full"
-                style={{
-                  width: `${pct * 100}%`,
-                  backgroundColor: "var(--brand-primary)",
-                }}
-              />
-            </div>
-            <span className="text-xs text-slate-400">
-              {row.answered}/{row.total}
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <EsddChip esdd={card.esdd} />
+          <TaxonomyChip taxonomy={card.taxonomy} />
+          {card.esdd.escalated && (
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
+              ESCALATED
             </span>
-          </div>
-        ) : (
-          <span className="rounded-full border border-line bg-panel px-3 py-1 text-xs text-slate-400">
-            Not started
-          </span>
-        )}
-        <span className="text-xs" style={{ color: "var(--brand-primary)" }}>
-          {row.state === "complete"
-            ? "View screening →"
-            : row.state === "in-progress"
-              ? "Continue ESDD →"
-              : "Start ESDD →"}
-        </span>
+          )}
+        </div>
+        <div className="mt-1 text-[11px] text-slate-500">
+          {card.reason}
+          {card.lastActivityAt && (
+            <>
+              {" · "}
+              <span title={new Date(card.lastActivityAt).toLocaleString()}>
+                last activity {new Date(card.lastActivityAt).toLocaleDateString()}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+      <div
+        className="shrink-0 text-xs"
+        style={{ color: "var(--brand-primary)" }}
+      >
+        {primaryLabel}
       </div>
     </a>
+  );
+}
+
+function EsddChip({ esdd }: { esdd: LoanCard["esdd"] }) {
+  if (esdd.riskClass) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+        style={{ backgroundColor: RISK_COLORS[esdd.riskClass] }}
+      >
+        <span className="opacity-70">ESDD</span>
+        <span>{esdd.riskClass.toUpperCase()}</span>
+      </span>
+    );
+  }
+  if (esdd.answered > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 text-[10px] text-slate-300">
+        <span className="opacity-70">ESDD</span>
+        <span>
+          {esdd.answered}/{esdd.total}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-line/60 bg-panel/60 px-2 py-0.5 text-[10px] text-slate-500">
+      <span>ESDD</span>
+      <span>Not started</span>
+    </span>
+  );
+}
+
+function TaxonomyChip({ taxonomy }: { taxonomy: LoanCard["taxonomy"] }) {
+  if (!taxonomy.applicable) {
+    // Non-eligible sector — small muted chip so the officer knows we
+    // deliberately skipped taxonomy rather than forgot it.
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full border border-line/40 bg-panel/40 px-2 py-0.5 text-[10px] text-slate-600"
+        title="Not eligible for NRB Green Finance Taxonomy classification based on sector"
+      >
+        <span>Taxonomy</span>
+        <span>N/A</span>
+      </span>
+    );
+  }
+  if (taxonomy.color) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+        style={{ backgroundColor: TAX_COLORS[taxonomy.color] }}
+        title={taxonomy.activityName ?? undefined}
+      >
+        <span className="opacity-70">Taxonomy</span>
+        <span>{TAX_LABEL[taxonomy.color]}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-line/60 bg-panel/60 px-2 py-0.5 text-[10px] text-slate-500">
+      <span>Taxonomy</span>
+      <span>Not classified</span>
+    </span>
   );
 }
