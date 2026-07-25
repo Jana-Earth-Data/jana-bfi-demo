@@ -200,35 +200,34 @@ function QueueSection({
 }
 
 function LoanCardRow({ card }: { card: LoanCard }) {
-  // Where does clicking the card go? Priority order:
-  //   1. Escalated → open ESDD (officer reviews the escalation trigger)
-  //   2. ESDD incomplete → open ESDD wizard
-  //   3. ESDD done, taxonomy applicable but not done → open taxonomy wizard
-  //   4. Everything done → open ESDD (review the saved screening)
+  // Priority determines which CTA is styled as primary (filled brand
+  // color); the other is a plain link. Officer can always click either.
+  //   1. Escalated → ESDD (officer reviews the escalation trigger)
+  //   2. ESDD incomplete → ESDD wizard
+  //   3. ESDD done + taxonomy applicable but not done → taxonomy wizard
+  //   4. Everything done → ESDD (review the saved screening)
   const esddDone = card.esdd.riskClass !== null;
-  const primaryHref = card.esdd.escalated
-    ? `/esdd/${encodeURIComponent(card.loanId)}`
-    : !esddDone
-      ? `/esdd/${encodeURIComponent(card.loanId)}`
-      : card.taxonomy.applicable && card.taxonomy.color === null
-        ? `/taxonomy/${encodeURIComponent(card.loanId)}`
-        : `/esdd/${encodeURIComponent(card.loanId)}`;
-
-  const primaryLabel = card.esdd.escalated
-    ? "Review escalation →"
-    : !esddDone && card.esdd.answered > 0
-      ? "Continue ESDD →"
+  const taxDone = card.taxonomy.color !== null;
+  const primaryFlow: "esdd" | "taxonomy" =
+    card.esdd.escalated
+      ? "esdd"
       : !esddDone
-        ? "Start ESDD →"
-        : card.taxonomy.applicable && card.taxonomy.color === null
-          ? "Classify taxonomy →"
-          : "Review saved →";
+        ? "esdd"
+        : card.taxonomy.applicable && !taxDone
+          ? "taxonomy"
+          : "esdd";
+
+  const esddLabel = card.esdd.escalated
+    ? "Review escalation"
+    : esddDone
+      ? "Review ESDD"
+      : card.esdd.answered > 0
+        ? "Continue ESDD"
+        : "Start ESDD";
+  const taxLabel = taxDone ? "Review taxonomy" : "Classify taxonomy";
 
   return (
-    <a
-      href={primaryHref}
-      className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3 transition hover:bg-white/5"
-    >
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-2">
           <span className="text-sm font-semibold text-white">
@@ -254,18 +253,66 @@ function LoanCardRow({ card }: { card: LoanCard }) {
             <>
               {" · "}
               <span title={new Date(card.lastActivityAt).toLocaleString()}>
-                last activity {new Date(card.lastActivityAt).toLocaleDateString()}
+                last activity{" "}
+                {new Date(card.lastActivityAt).toLocaleDateString()}
               </span>
             </>
           )}
         </div>
       </div>
-      <div
-        className="shrink-0 text-xs"
-        style={{ color: "var(--brand-primary)" }}
-      >
-        {primaryLabel}
+
+      {/* Two independent CTAs — officer picks the flow they want to
+          work on next. Primary flow is filled brand; the other is a
+          plain outline link. Taxonomy CTA is hidden entirely when the
+          borrower's sector is not taxonomy-eligible. */}
+      <div className="flex shrink-0 flex-col items-stretch gap-1.5 text-xs">
+        <CardCta
+          href={`/esdd/${encodeURIComponent(card.loanId)}`}
+          label={esddLabel}
+          primary={primaryFlow === "esdd"}
+        />
+        {card.taxonomy.applicable && (
+          <CardCta
+            href={`/taxonomy/${encodeURIComponent(card.loanId)}`}
+            label={taxLabel}
+            primary={primaryFlow === "taxonomy"}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function CardCta({
+  href,
+  label,
+  primary,
+}: {
+  href: string;
+  label: string;
+  primary: boolean;
+}) {
+  if (primary) {
+    return (
+      <a
+        href={href}
+        className="rounded-md px-3 py-1.5 text-center text-xs font-semibold text-white transition hover:opacity-90"
+        style={{ backgroundColor: "var(--brand-primary)" }}
+      >
+        {label} →
+      </a>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className="rounded-md border px-3 py-1.5 text-center text-xs font-semibold transition hover:bg-white/5"
+      style={{
+        borderColor: "var(--brand-primary)",
+        color: "var(--brand-primary)",
+      }}
+    >
+      {label} →
     </a>
   );
 }
