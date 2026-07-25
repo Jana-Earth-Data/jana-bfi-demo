@@ -421,19 +421,14 @@ function LoanDrawer({ row, onClose }: { row: LoanRow; onClose: () => void }) {
         </div>
 
         {/*
-          Officer action bar. Sends the officer to the ESDD wizard for this
-          loan. The wizard page itself gates on the officer picker being
-          set, so clicking this without a signed-in officer bounces back to
-          the dashboard with the picker open.
+          Compact NRB compliance stripe — two live-status CTAs for the
+          two independent NRB frameworks (ESDD Annex 5 risk screening,
+          Green Finance Taxonomy Oct 2024 classification). Chips fetch
+          from the same Supabase endpoints the rich compliance drawer
+          uses. For full per-question detail, use the "View NRB
+          compliance status" button on the ESRM tab.
         */}
-        <a
-          href={`/esdd/${encodeURIComponent(loan.id)}`}
-          className="mt-4 flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition"
-          style={{ backgroundColor: "var(--brand-primary)" }}
-        >
-          <span>Start ESDD checklist</span>
-          <span aria-hidden>→</span>
-        </a>
+        <NrbComplianceStripe loanId={loan.id} />
 
         <dl className="mt-4 space-y-2 text-sm">
           <DrawerRow label="Product" value={loan.product} />
@@ -555,5 +550,250 @@ function DrawerRow({
         {hint && <div className="text-xs text-slate-500">{hint}</div>}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NRB compliance stripe — two compact live-status cards
+// ---------------------------------------------------------------------------
+
+const NRB_TAXONOMY_COLOR_BG: Record<
+  "green" | "amber" | "red" | "unclassified",
+  string
+> = {
+  green: "#22c55e",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  unclassified: "#64748b",
+};
+
+const NRB_RISK_COLOR_BG: Record<"low" | "medium" | "high" | "extreme", string> = {
+  low: "#22c55e",
+  medium: "#eab308",
+  high: "#f97316",
+  extreme: "#ef4444",
+};
+
+type StripeState = {
+  esdd: {
+    loading: boolean;
+    answered: number;
+    total: number;
+    riskClass: "low" | "medium" | "high" | "extreme" | null;
+    escalated: boolean;
+  };
+  taxonomy: {
+    loading: boolean;
+    color: "green" | "amber" | "red" | "unclassified" | null;
+    activityId: string | null;
+  };
+};
+
+// ESDD total question count is a fixed 11 in current annex5 catalog
+// (Section 1 x3 + Section 2 x4 + Section 3 x4). We hardcode here rather
+// than importing the module (keeps this drawer client component slim).
+const ESDD_TOTAL = 11;
+
+function NrbComplianceStripe({ loanId }: { loanId: string }) {
+  const [state, setState] = useState<StripeState>({
+    esdd: {
+      loading: true,
+      answered: 0,
+      total: ESDD_TOTAL,
+      riskClass: null,
+      escalated: false,
+    },
+    taxonomy: { loading: true, color: null, activityId: null },
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [respRes, scrRes, taxRes] = await Promise.all([
+        fetch(`/api/esdd/responses?loanId=${encodeURIComponent(loanId)}`).catch(
+          () => null,
+        ),
+        fetch(`/api/esrm/screenings?loanId=${encodeURIComponent(loanId)}`).catch(
+          () => null,
+        ),
+        fetch(`/api/taxonomy/assessments?loanId=${encodeURIComponent(loanId)}`).catch(
+          () => null,
+        ),
+      ]);
+      if (cancelled) return;
+
+      let answered = 0;
+      if (respRes && respRes.ok) {
+        const body = await respRes.json();
+        const distinct = new Set<string>();
+        for (const r of body.responses ?? []) distinct.add(r.questionId);
+        answered = distinct.size;
+      }
+
+      let riskClass: StripeState["esdd"]["riskClass"] = null;
+      let escalated = false;
+      if (scrRes && scrRes.ok) {
+        const body = await scrRes.json();
+        if (body?.latest) {
+          riskClass = body.latest.computed_risk_class;
+          escalated = body.latest.escalation_flag;
+        }
+      }
+
+      let color: StripeState["taxonomy"]["color"] = null;
+      let activityId: string | null = null;
+      if (taxRes && taxRes.ok) {
+        const body = await taxRes.json();
+        if (body?.latest) {
+          color = body.latest.computed_color;
+          activityId = body.latest.activity_id;
+        }
+      }
+
+      setState({
+        esdd: {
+          loading: false,
+          answered,
+          total: ESDD_TOTAL,
+          riskClass,
+          escalated,
+        },
+        taxonomy: { loading: false, color, activityId },
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loanId]);
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2">
+      <StripeCard
+        label="ESDD"
+        subtitle="Annex 5"
+        chip={
+          state.esdd.loading ? (
+            <StripeChip tone="neutral">…</StripeChip>
+          ) : state.esdd.riskClass ? (
+            <StripeChip
+              tone="filled"
+              bg={NRB_RISK_COLOR_BG[state.esdd.riskClass]}
+            >
+              {state.esdd.riskClass.toUpperCase()}
+            </StripeChip>
+          ) : state.esdd.answered > 0 ? (
+            <StripeChip tone="neutral">
+              {state.esdd.answered}/{state.esdd.total}
+            </StripeChip>
+          ) : (
+            <StripeChip tone="dim">Not started</StripeChip>
+          )
+        }
+        ctaHref={`/esdd/${encodeURIComponent(loanId)}`}
+        ctaLabel={
+          state.esdd.riskClass
+            ? "Review"
+            : state.esdd.answered > 0
+              ? "Continue"
+              : "Start"
+        }
+        escalated={state.esdd.escalated}
+      />
+      <StripeCard
+        label="Taxonomy"
+        subtitle="GFT Oct 2024"
+        chip={
+          state.taxonomy.loading ? (
+            <StripeChip tone="neutral">…</StripeChip>
+          ) : state.taxonomy.color ? (
+            <StripeChip
+              tone="filled"
+              bg={NRB_TAXONOMY_COLOR_BG[state.taxonomy.color]}
+            >
+              {state.taxonomy.color.toUpperCase()}
+            </StripeChip>
+          ) : (
+            <StripeChip tone="dim">Not classified</StripeChip>
+          )
+        }
+        ctaHref={`/taxonomy/${encodeURIComponent(loanId)}`}
+        ctaLabel={state.taxonomy.color ? "Re-run" : "Classify"}
+      />
+    </div>
+  );
+}
+
+function StripeCard({
+  label,
+  subtitle,
+  chip,
+  ctaHref,
+  ctaLabel,
+  escalated,
+}: {
+  label: string;
+  subtitle: string;
+  chip: React.ReactNode;
+  ctaHref: string;
+  ctaLabel: string;
+  escalated?: boolean;
+}) {
+  return (
+    <a
+      href={ctaHref}
+      className="flex flex-col justify-between rounded-lg border border-line bg-panelAlt p-3 transition hover:bg-white/5"
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold text-slate-200">{label}</div>
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">
+            {subtitle}
+          </div>
+        </div>
+        {chip}
+      </div>
+      {escalated && (
+        <div className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
+          Escalated
+        </div>
+      )}
+      <div
+        className="mt-3 flex items-center justify-between text-xs font-semibold"
+        style={{ color: "var(--brand-primary)" }}
+      >
+        <span>{ctaLabel}</span>
+        <span aria-hidden>→</span>
+      </div>
+    </a>
+  );
+}
+
+function StripeChip({
+  tone,
+  bg,
+  children,
+}: {
+  tone: "filled" | "neutral" | "dim";
+  bg?: string;
+  children: React.ReactNode;
+}) {
+  if (tone === "filled") {
+    return (
+      <span
+        className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+        style={{ backgroundColor: bg }}
+      >
+        {children}
+      </span>
+    );
+  }
+  const cls =
+    tone === "neutral"
+      ? "border-line bg-panel text-slate-300"
+      : "border-line/60 bg-panel/60 text-slate-500";
+  return (
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] ${cls}`}>
+      {children}
+    </span>
   );
 }
