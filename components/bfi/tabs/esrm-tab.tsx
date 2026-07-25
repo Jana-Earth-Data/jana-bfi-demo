@@ -30,6 +30,8 @@ import {
   findActivityById,
   type TaxonomyColor,
 } from "@/lib/regulatory/taxonomy/activities";
+import { ANNEX5_SECTOR_SUPPLEMENTS } from "@/lib/regulatory/esdd/annex5-questions";
+import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 
@@ -1144,6 +1146,27 @@ function buildEsddRows(borrower: Borrower): EsddRow[] {
 
 // Structured section metadata used to render live per-question progress.
 // The sections + question ids MUST match lib/regulatory/esdd/annex5-questions.ts.
+function sectorSupplementTitle(slug: string): string {
+  switch (slug) {
+    case "hydropower":
+      return "Hydropower supplement";
+    case "cement":
+      return "Cement supplement";
+    case "textiles":
+      return "Textiles supplement";
+    case "steel":
+      return "Steel supplement";
+    case "chemicals":
+      return "Chemicals supplement";
+    case "brick":
+      return "Brick supplement";
+    case "agriculture":
+      return "Agriculture supplement";
+    default:
+      return "Sector supplement";
+  }
+}
+
 const ANNEX5_SECTIONS: Array<{
   title: string;
   short: string;
@@ -1301,11 +1324,35 @@ function EsddChecklistDrawer({
     };
   }, [loanId]);
 
-  const totalQuestions = ANNEX5_SECTIONS.reduce(
+  // Build the full section list for this borrower — core three + a
+  // sector-specific supplement when one exists for the borrower's NRB
+  // sector. Keeps the drawer's totals and per-section rendering in
+  // sync with the wizard's flow.
+  const borrowerSectorSlug = sectorSlugFor(borrower.nrbSector);
+  const sectorSupplement = borrowerSectorSlug
+    ? ANNEX5_SECTOR_SUPPLEMENTS[borrowerSectorSlug] ?? []
+    : [];
+  const sections = useMemo(() => {
+    if (sectorSupplement.length === 0) return ANNEX5_SECTIONS;
+    return [
+      ...ANNEX5_SECTIONS,
+      {
+        title: `Section 4 — ${sectorSupplementTitle(borrowerSectorSlug!)}`,
+        short: "Sector",
+        questions: sectorSupplement.map((q) => ({
+          id: q.id,
+          number: q.number,
+          prompt: q.prompt,
+        })),
+      },
+    ];
+  }, [sectorSupplement, borrowerSectorSlug]);
+
+  const totalQuestions = sections.reduce(
     (s, sec) => s + sec.questions.length,
     0,
   );
-  const answered = ANNEX5_SECTIONS.reduce(
+  const answered = sections.reduce(
     (s, sec) => s + sec.questions.filter((q) => responses.has(q.id)).length,
     0,
   );
@@ -1351,6 +1398,7 @@ function EsddChecklistDrawer({
           total={totalQuestions}
           responses={responses}
           screening={screening}
+          sections={sections}
         />
 
         {/* Taxonomy subpanel */}
@@ -1411,6 +1459,7 @@ function EsddSubpanel({
   total,
   responses,
   screening,
+  sections,
 }: {
   loanId: string;
   loading: boolean;
@@ -1423,6 +1472,11 @@ function EsddSubpanel({
     escalationFlag: boolean;
     capturedAt: string;
   } | null;
+  sections: Array<{
+    title: string;
+    short: string;
+    questions: Array<{ id: string; number: string; prompt: string }>;
+  }>;
 }) {
   const pct = total > 0 ? answered / total : 0;
   return (
@@ -1498,7 +1552,7 @@ function EsddSubpanel({
 
       {/* Per-section, per-question status */}
       <div className="mt-4 flex flex-col gap-3">
-        {ANNEX5_SECTIONS.map((sec) => {
+        {sections.map((sec) => {
           const secAnswered = sec.questions.filter((q) => responses.has(q.id))
             .length;
           return (

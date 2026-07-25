@@ -428,7 +428,7 @@ function LoanDrawer({ row, onClose }: { row: LoanRow; onClose: () => void }) {
           uses. For full per-question detail, use the "View NRB
           compliance status" button on the ESRM tab.
         */}
-        <NrbComplianceStripe loanId={loan.id} />
+        <NrbComplianceStripe loanId={loan.id} nrbSector={borrower.nrbSector} />
 
         <dl className="mt-4 space-y-2 text-sm">
           <DrawerRow label="Product" value={loan.product} />
@@ -589,17 +589,28 @@ type StripeState = {
   };
 };
 
-// ESDD total question count is a fixed 11 in current annex5 catalog
-// (Section 1 x3 + Section 2 x4 + Section 3 x4). We hardcode here rather
-// than importing the module (keeps this drawer client component slim).
-const ESDD_TOTAL = 11;
+// ESDD total is dynamic per-sector: 11 core questions + N sector
+// supplement questions. Import fullChecklist so the total matches what
+// the wizard actually asks the officer to complete.
+import {
+  fullChecklist as annex5FullChecklist,
+} from "@/lib/regulatory/esdd/annex5-questions";
+import { sectorSlugFor as annex5SectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 
-function NrbComplianceStripe({ loanId }: { loanId: string }) {
+function NrbComplianceStripe({
+  loanId,
+  nrbSector,
+}: {
+  loanId: string;
+  nrbSector: string;
+}) {
+  const sectorSlug = annex5SectorSlugFor(nrbSector);
+  const esddTotal = annex5FullChecklist(sectorSlug).length;
   const [state, setState] = useState<StripeState>({
     esdd: {
       loading: true,
       answered: 0,
-      total: ESDD_TOTAL,
+      total: esddTotal,
       riskClass: null,
       escalated: false,
     },
@@ -654,7 +665,7 @@ function NrbComplianceStripe({ loanId }: { loanId: string }) {
         esdd: {
           loading: false,
           answered,
-          total: ESDD_TOTAL,
+          total: esddTotal,
           riskClass,
           escalated,
         },

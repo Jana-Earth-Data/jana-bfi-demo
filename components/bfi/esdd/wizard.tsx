@@ -26,13 +26,28 @@ import type { Officer } from "@/lib/tenants";
 import {
   ANNEX5_EHS_RISK,
   ANNEX5_GENERAL_RISK,
+  ANNEX5_SECTOR_SUPPLEMENTS,
   ANNEX5_SOCIAL_RISK,
   type EsddAnswer,
   type EsddQuestion,
 } from "@/lib/regulatory/esdd/annex5-questions";
+import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 import { formatNpr } from "@/components/bfi/ui";
 
-type WizardStep = 0 | 1 | 2 | 3 | 4;
+// Steps: 0 basics, 1 general, 2 ehs, 3 social, 4 sector supplement
+// (conditional), 5 review. When there is no sector supplement, the
+// wizard skips 4 and goes directly from 3 to 5.
+type WizardStep = 0 | 1 | 2 | 3 | 4 | 5;
+
+const SECTOR_TITLE: Record<string, string> = {
+  hydropower: "Hydropower supplement",
+  cement: "Cement supplement",
+  textiles: "Textiles supplement",
+  steel: "Steel supplement",
+  chemicals: "Chemicals supplement",
+  brick: "Brick supplement",
+  agriculture: "Agriculture supplement",
+};
 
 type StoredResponse = {
   questionId: string;
@@ -153,16 +168,44 @@ export function EsddWizard({
     }
   }
 
+  // Detect the borrower's sector supplement (if any) once — the wizard
+  // conditionally shows a Section 4 step for sector-specific questions.
+  const sectorSlug = sectorSlugFor(borrower.nrbSector);
+  const sectorQuestions = sectorSlug
+    ? ANNEX5_SECTOR_SUPPLEMENTS[sectorSlug] ?? []
+    : [];
+  const hasSectorSupplement = sectorQuestions.length > 0;
+
   const steps = useMemo(
-    () => [
-      { title: "Basic information", subtitle: "Client, transaction, and sector" },
-      { title: "Section 1", subtitle: `General Risk (${ANNEX5_GENERAL_RISK.length} questions)` },
-      { title: "Section 2", subtitle: `Environmental Health & Safety (${ANNEX5_EHS_RISK.length} questions)` },
-      { title: "Section 3", subtitle: `Social Risks (${ANNEX5_SOCIAL_RISK.length} questions)` },
-      { title: "Review", subtitle: "Computed risk classification and recommendation" },
-    ],
-    [],
+    () =>
+      hasSectorSupplement
+        ? [
+            { title: "Basic information", subtitle: "Client, transaction, and sector" },
+            { title: "Section 1", subtitle: `General Risk (${ANNEX5_GENERAL_RISK.length} questions)` },
+            { title: "Section 2", subtitle: `Environmental Health & Safety (${ANNEX5_EHS_RISK.length} questions)` },
+            { title: "Section 3", subtitle: `Social Risks (${ANNEX5_SOCIAL_RISK.length} questions)` },
+            {
+              title: "Section 4",
+              subtitle: `${SECTOR_TITLE[sectorSlug!] ?? "Sector supplement"} (${sectorQuestions.length} questions)`,
+            },
+            { title: "Review", subtitle: "Computed risk classification and recommendation" },
+          ]
+        : [
+            { title: "Basic information", subtitle: "Client, transaction, and sector" },
+            { title: "Section 1", subtitle: `General Risk (${ANNEX5_GENERAL_RISK.length} questions)` },
+            { title: "Section 2", subtitle: `Environmental Health & Safety (${ANNEX5_EHS_RISK.length} questions)` },
+            { title: "Section 3", subtitle: `Social Risks (${ANNEX5_SOCIAL_RISK.length} questions)` },
+            { title: "Review", subtitle: "Computed risk classification and recommendation" },
+          ],
+    [hasSectorSupplement, sectorSlug, sectorQuestions.length],
   );
+
+  // Navigation helpers: skip step 4 (sector) when there is no supplement,
+  // so the wizard flows 3 → 5 directly.
+  const advanceFromSocial = () =>
+    setStep(hasSectorSupplement ? 4 : 5);
+  const backFromReview = () =>
+    setStep(hasSectorSupplement ? 4 : 3);
 
   return (
     <div className="min-h-screen bg-surface text-slate-100">
@@ -213,7 +256,18 @@ export function EsddWizard({
               saveStatus={saveStatus}
               onAnswer={recordAnswer}
               onBack={() => setStep(2)}
-              onContinue={() => setStep(4)}
+              onContinue={advanceFromSocial}
+            />
+          ) : step === 4 && hasSectorSupplement ? (
+            <SectionStep
+              title={`Section 4 — ${SECTOR_TITLE[sectorSlug!] ?? "Sector supplement"}`}
+              subtitle={`NRB expects these ${SECTOR_TITLE[sectorSlug!] ? SECTOR_TITLE[sectorSlug!].replace(" supplement", "").toLowerCase() : "sector-specific"} questions in addition to the core checklist.`}
+              questions={sectorQuestions}
+              responses={responses}
+              saveStatus={saveStatus}
+              onAnswer={recordAnswer}
+              onBack={() => setStep(3)}
+              onContinue={() => setStep(5)}
             />
           ) : (
             <ReviewStep
@@ -221,7 +275,8 @@ export function EsddWizard({
               borrower={borrower}
               responses={responses}
               priorScreening={priorScreening}
-              onBack={() => setStep(3)}
+              sectorQuestions={sectorQuestions}
+              onBack={backFromReview}
               onExit={() => router.push("/")}
             />
           )}
@@ -482,6 +537,7 @@ function Field({ label, value }: { label: string; value: string }) {
 
 function SectionStep({
   title,
+  subtitle,
   questions,
   responses,
   saveStatus,
@@ -490,6 +546,7 @@ function SectionStep({
   onContinue,
 }: {
   title: string;
+  subtitle?: string;
   questions: EsddQuestion[];
   responses: Record<string, StoredResponse>;
   saveStatus: Record<string, SaveStatus>;
@@ -507,6 +564,9 @@ function SectionStep({
             {answered}/{questions.length} answered
           </div>
         </div>
+        {subtitle && (
+          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+        )}
       </div>
 
       {questions.map((q) => (
@@ -668,6 +728,7 @@ function ReviewStep({
   borrower,
   responses,
   priorScreening,
+  sectorQuestions,
   onBack,
   onExit,
 }: {
@@ -675,6 +736,7 @@ function ReviewStep({
   borrower: Borrower;
   responses: Record<string, StoredResponse>;
   priorScreening: SavedScreening | null;
+  sectorQuestions: EsddQuestion[];
   onBack: () => void;
   onExit: () => void;
 }) {
@@ -682,7 +744,8 @@ function ReviewStep({
   const totalQuestions =
     ANNEX5_GENERAL_RISK.length +
     ANNEX5_EHS_RISK.length +
-    ANNEX5_SOCIAL_RISK.length;
+    ANNEX5_SOCIAL_RISK.length +
+    sectorQuestions.length;
   const [saving, setSaving] = useState(false);
   // If a prior screening exists, land on the result view rather than the
   // review form. The officer can still click "Re-run screening" to

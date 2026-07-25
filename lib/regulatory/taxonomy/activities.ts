@@ -126,7 +126,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         return {
           color: "unclassified",
           rationale:
-            "This wizard covers small hydro up to 25 MW. Plants over 25 MW are classified under the medium-hydro activity (separate wizard flow).",
+            "This wizard covers small hydro up to 25 MW. Go back to the activity picker and choose Hydropower — medium (25 to 100 MW) or Hydropower — large (over 100 MW) as appropriate; those wizards apply the correct DNSH checks.",
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
         };
       }
@@ -157,6 +157,211 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         color: "green",
         rationale:
           `Small hydropower plant (${mw ?? "capacity not entered"} MW) with current IEE/EIA approval, maintained environmental flow, and cleared resettlement obligations. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
+        citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+      };
+    },
+  },
+
+  // -------------------------------------------------------------------------
+  // Renewable Energy — Hydropower (medium, 25 to 100 MW)
+  // -------------------------------------------------------------------------
+  {
+    id: "hydro-medium",
+    name: "Hydropower — medium (25 to 100 MW)",
+    sectorLabel: "Renewable Energy",
+    nrbCitation: "NRB GFT 2024, Ch. 2 / Annex 1 Renewable Energy",
+    applicableTo: ["hydropower", "renewable"],
+    criteria: [
+      {
+        id: "installed_capacity_mw",
+        type: "numeric",
+        unit: "MW",
+        prompt: "Installed capacity of the plant (MW)",
+        helpText:
+          "Medium hydro under NRB GFT covers 25 to 100 MW. Plants outside this range should be re-classified against the small (< 25 MW) or large (> 100 MW) wizard.",
+      },
+      {
+        id: "iee_or_eia_current",
+        type: "yes_no",
+        prompt:
+          "Does the plant hold a current Environmental Impact Assessment (EIA) approval?",
+        helpText:
+          "Medium hydro requires a full EIA under Nepal's Environment Protection Rules — an IEE alone is not sufficient.",
+      },
+      {
+        id: "downstream_flow_maintained",
+        type: "yes_no",
+        prompt:
+          "Is the environmental release / downstream flow maintained per licence conditions?",
+        helpText:
+          "DNSH — the environmental flow requirement scales up with capacity. Verify the metered release matches the licence percentage.",
+      },
+      {
+        id: "resettlement_completed",
+        type: "yes_no",
+        prompt:
+          "Have all resettlement and community compensation obligations been discharged?",
+      },
+      {
+        id: "biodiversity_offset_active",
+        type: "yes_no",
+        prompt:
+          "Where the EIA required a biodiversity offset or fish passage, is it built and operational?",
+        helpText:
+          "Medium hydro projects on Nepal's mid-hill rivers typically trigger fish-passage or offset conditions. Missing these is a DNSH failure.",
+      },
+    ],
+    classify: (a) => {
+      const mw = num(a, "installed_capacity_mw");
+      const eia = yn(a, "iee_or_eia_current");
+      const flow = yn(a, "downstream_flow_maintained");
+      const reset = yn(a, "resettlement_completed");
+      const bio = yn(a, "biodiversity_offset_active");
+      if (mw !== null && (mw <= 25 || mw > 100)) {
+        return {
+          color: "unclassified",
+          rationale:
+            mw <= 25
+              ? "This wizard covers medium hydro (25 to 100 MW). Re-run under the small-hydro activity."
+              : "This wizard covers medium hydro (25 to 100 MW). Re-run under the large-hydro activity.",
+          citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+        };
+      }
+      if (!eia) {
+        return {
+          color: "red",
+          rationale:
+            "Medium hydro (25 to 100 MW) requires a full EIA under Nepal's Environment Protection Rules. Missing EIA disqualifies alignment. Recommend the borrower obtain the approval before drawing conclusions.",
+          citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+        };
+      }
+      const dnshFailures: string[] = [];
+      if (!flow) dnshFailures.push("Environmental downstream flow not maintained");
+      if (!reset)
+        dnshFailures.push(
+          "Resettlement and community compensation obligations outstanding",
+        );
+      if (!bio)
+        dnshFailures.push(
+          "Required biodiversity offset or fish-passage measure not operational",
+        );
+      if (dnshFailures.length > 0) {
+        return {
+          color: "amber",
+          rationale:
+            "Medium hydro is a green-eligible activity but the DNSH checks below are not fully passed. Approve as amber (transitional) with conditions on the flagged items.",
+          citation: "NRB GFT 2024, Ch. 2 Renewable Energy · DNSH",
+          dnshFailures,
+        };
+      }
+      return {
+        color: "green",
+        rationale:
+          `Medium hydropower plant (${mw ?? "capacity not entered"} MW) with current EIA approval, maintained environmental flow, cleared resettlement obligations, and biodiversity mitigation operational. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
+        citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+      };
+    },
+  },
+
+  // -------------------------------------------------------------------------
+  // Renewable Energy — Hydropower (large, over 100 MW)
+  // -------------------------------------------------------------------------
+  {
+    id: "hydro-large",
+    name: "Hydropower — large (over 100 MW)",
+    sectorLabel: "Renewable Energy",
+    nrbCitation: "NRB GFT 2024, Ch. 2 / Annex 1 Renewable Energy",
+    applicableTo: ["hydropower", "renewable"],
+    criteria: [
+      {
+        id: "installed_capacity_mw",
+        type: "numeric",
+        unit: "MW",
+        prompt: "Installed capacity of the plant (MW)",
+        helpText:
+          "Large hydro under NRB GFT covers plants above 100 MW. These typically include storage / peaking-run-of-river projects on the Bagmati, Karnali, or Koshi basins.",
+      },
+      {
+        id: "eia_and_sea_current",
+        type: "yes_no",
+        prompt:
+          "Is a full EIA in force AND (where applicable) a Strategic Environmental Assessment or basin-level cumulative-impact study?",
+        helpText:
+          "Large hydro is expected to demonstrate consideration of cumulative basin-level impacts, not just project-level EIA.",
+      },
+      {
+        id: "downstream_flow_maintained",
+        type: "yes_no",
+        prompt:
+          "Is the environmental release / downstream flow maintained per licence conditions, with metering shared with the regulator?",
+      },
+      {
+        id: "resettlement_completed",
+        type: "yes_no",
+        prompt:
+          "Have all resettlement and community compensation obligations been discharged, including any local shareholding / benefit-sharing agreements?",
+      },
+      {
+        id: "cumulative_impact_addressed",
+        type: "yes_no",
+        prompt:
+          "Have cumulative impacts on the river system (sediment, migratory fish, downstream users) been addressed per the EIA / SEA recommendations?",
+      },
+      {
+        id: "seismic_landslide_updated",
+        type: "yes_no",
+        prompt:
+          "Have seismic and landslide hazard assessments been updated post-2015 (or since last major event) and design updated accordingly?",
+      },
+    ],
+    classify: (a) => {
+      const mw = num(a, "installed_capacity_mw");
+      const eia = yn(a, "eia_and_sea_current");
+      const flow = yn(a, "downstream_flow_maintained");
+      const reset = yn(a, "resettlement_completed");
+      const cumulative = yn(a, "cumulative_impact_addressed");
+      const seismic = yn(a, "seismic_landslide_updated");
+      if (mw !== null && mw <= 100) {
+        return {
+          color: "unclassified",
+          rationale:
+            "This wizard covers large hydro (over 100 MW). Re-run under the small or medium-hydro activity.",
+          citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+        };
+      }
+      if (!eia) {
+        return {
+          color: "red",
+          rationale:
+            "Large hydro requires a full EIA and — for projects with material basin-level impact — a Strategic Environmental Assessment. Missing either disqualifies alignment.",
+          citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+        };
+      }
+      const dnshFailures: string[] = [];
+      if (!flow) dnshFailures.push("Environmental downstream flow not maintained");
+      if (!reset)
+        dnshFailures.push(
+          "Resettlement / benefit-sharing obligations outstanding",
+        );
+      if (!cumulative)
+        dnshFailures.push("Cumulative basin-level impacts not addressed");
+      if (!seismic)
+        dnshFailures.push(
+          "Seismic / landslide hazard assessment not updated post-2015",
+        );
+      if (dnshFailures.length > 0) {
+        return {
+          color: "amber",
+          rationale:
+            "Large hydro is a green-eligible activity but the DNSH checks below are not fully passed. Approve as amber (transitional) with conditions on the flagged items. For large hydro, an escalation to credit committee is recommended regardless of the count of unmet DNSH items.",
+          citation: "NRB GFT 2024, Ch. 2 Renewable Energy · DNSH",
+          dnshFailures,
+        };
+      }
+      return {
+        color: "green",
+        rationale:
+          `Large hydropower plant (${mw ?? "capacity not entered"} MW) with current EIA/SEA approval, maintained environmental flow, cleared resettlement / benefit-sharing obligations, addressed cumulative basin impacts, and updated seismic assessment. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
         citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
       };
     },

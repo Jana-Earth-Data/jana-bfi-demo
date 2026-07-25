@@ -22,6 +22,7 @@ import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
+import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -225,21 +226,3 @@ export async function GET() {
   });
 }
 
-/**
- * Map an NRB sector label to the sector slug used in
- * ANNEX5_SECTOR_SUPPLEMENTS. Sector supplements are not yet populated so
- * this returns undefined for every value today; when Phase 2 completion
- * lands, the total question count per loan will reflect the sector's
- * supplementary questions automatically.
- */
-function sectorSlugFor(nrbSector: string): string | undefined {
-  const s = nrbSector.toLowerCase();
-  if (s.includes("hydropower")) return "hydropower";
-  if (s.includes("cement")) return "cement";
-  if (s.includes("textile")) return "textiles";
-  if (s.includes("steel")) return "steel";
-  if (s.includes("chemical")) return "chemicals";
-  if (s.includes("brick")) return "brick";
-  if (s.includes("agriculture")) return "agriculture";
-  return undefined;
-}
