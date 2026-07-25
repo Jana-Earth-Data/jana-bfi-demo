@@ -167,3 +167,55 @@ export async function GET(request: NextRequest) {
     responses: Array.from(latest.values()),
   });
 }
+
+/**
+ * DELETE /api/esdd/responses?loanId=X
+ *
+ * Discard every response row this officer has recorded for this loan.
+ * Used by the wizard's "Exit without saving" action. Deletion is scoped
+ * to (bank_id, loan_id, officer_id) — other officers' work on the same
+ * loan (if any) is untouched, and saved ESRM screenings that snapshot
+ * the responses remain intact.
+ */
+export async function DELETE(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Supabase not configured." },
+      { status: 500 },
+    );
+  }
+  const tenant = await resolveCurrentTenant();
+  const officer = await resolveCurrentOfficer();
+  if (!officer) {
+    return NextResponse.json(
+      { error: "Officer must be selected before discarding answers." },
+      { status: 401 },
+    );
+  }
+  const loanId = request.nextUrl.searchParams.get("loanId");
+  if (!loanId) {
+    return NextResponse.json(
+      { error: "loanId query parameter is required." },
+      { status: 400 },
+    );
+  }
+
+  const { error, count } = await supabase
+    .from("bfi_esdd_responses")
+    .delete({ count: "exact" })
+    .eq("bank_id", tenant.id)
+    .eq("loan_id", loanId)
+    .eq("officer_id", officer.id);
+  if (error) {
+    return NextResponse.json(
+      { error: `Delete failed: ${error.message}` },
+      { status: 500 },
+    );
+  }
+  return NextResponse.json({
+    ok: true,
+    loanId,
+    deleted: count ?? 0,
+  });
+}
