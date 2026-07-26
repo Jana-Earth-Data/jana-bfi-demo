@@ -667,17 +667,8 @@ function WorkbenchComplianceStripe({
 
   return (
     <div className="mt-3 rounded-lg border border-line bg-panelAlt p-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Compliance status
-        </div>
-        <a
-          href={`/esdd/${encodeURIComponent(loanId)}`}
-          className="text-[11px] font-semibold"
-          style={{ color: "var(--brand-primary)" }}
-        >
-          Open ESDD →
-        </a>
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Compliance status
       </div>
 
       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -706,6 +697,19 @@ function WorkbenchComplianceStripe({
                 {state.esdd.riskClass.toUpperCase()}
               </span>
             )}
+          </div>
+          <div className="mt-1">
+            <a
+              href={`/esdd/${encodeURIComponent(loanId)}`}
+              className="text-[11px] font-semibold"
+              style={{ color: "var(--brand-primary)" }}
+            >
+              {state.esdd.riskClass
+                ? "Review ESDD →"
+                : state.esdd.answered > 0
+                  ? "Continue ESDD →"
+                  : "Start ESDD →"}
+            </a>
           </div>
         </div>
 
