@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardSsrData } from "@/components/bfi/dashboard";
 import {
   Badge,
@@ -24,6 +24,7 @@ import {
 } from "@/components/bfi/ui";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
 import { NPR_PER_USD } from "@/lib/data/util";
+import { NrbTaxonomyExportButton } from "@/components/bfi/reports/nrb-taxonomy-export-button";
 
 export function NsrsTab({ data }: { data: DashboardSsrData }) {
   const s = data.portfolio;
@@ -100,6 +101,14 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
         />
       </div>
 
+      {/* Regulatory exports — bank-branded downloads (JSON / xlsx / PDF) */}
+      <Panel
+        title="Regulatory exports"
+        subtitle="Portfolio-level NRB Green Finance Taxonomy classification report"
+      >
+        <NrbTaxonomyExportButton />
+      </Panel>
+
       {/* Charts row 1: multi-year trend + data quality */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel
@@ -157,6 +166,14 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
         subtitle="IFRS S2 / NSRS-aligned excerpt"
       >
         <DisclosurePreview data={data} />
+      </Panel>
+
+      {/* Taxonomy portfolio breakdown — reads latest saved assessments */}
+      <Panel
+        title="Taxonomy portfolio breakdown"
+        subtitle="Latest saved NRB Green Finance Taxonomy classification per loan"
+      >
+        <TaxonomyBreakdownSection />
       </Panel>
 
       {/* Top contributors — detail table at the bottom of the page */}
@@ -412,6 +429,186 @@ function DisclosurePreview({ data }: { data: DashboardSsrData }) {
           Climate TRACE Nepal facility emissions; Global Cement and Concrete
           Tracker (July 2025); Global Energy Monitor.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Taxonomy portfolio breakdown — reads /api/portfolio/taxonomy-summary
+//
+// Splits the tenant's saved NRB Green Finance Taxonomy assessments into the
+// four disclosure buckets and surfaces the Amber "transitional financing"
+// footnote plus the "not yet classified" callout so an officer can see how
+// much of the eligible book is still unreviewed.
+// ---------------------------------------------------------------------------
+
+type TxBucketKey = "green" | "amber" | "red" | "unclassified";
+
+type TxActivityBreakdown = {
+  activityId: string;
+  activityName: string;
+  count: number;
+  nprTotal: number;
+};
+
+type TxBucketTotal = {
+  count: number;
+  nprTotal: number;
+  activityBreakdown: TxActivityBreakdown[];
+};
+
+type TxSummaryResponse = {
+  ok: true;
+  tenant: { id: string; displayName: string };
+  totals: Record<TxBucketKey, TxBucketTotal>;
+  totalClassified: number;
+  totalUnclassifiedApplicable: number;
+};
+
+// Colour swatches — same primitives used elsewhere in the demo
+// (esrm-tab.tsx WB_TAX_BG, loan-table.tsx). Duplicated here rather than
+// importing so the NSRS tab stays self-contained.
+const BUCKET_COLOR: Record<TxBucketKey, string> = {
+  green: "#22c55e",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  unclassified: "#64748b",
+};
+
+const BUCKET_META: Record<
+  TxBucketKey,
+  { label: string; sublabel: string }
+> = {
+  green: { label: "Green", sublabel: "Transformative" },
+  amber: { label: "Amber", sublabel: "Transitional" },
+  red: { label: "Red", sublabel: "Not aligned" },
+  unclassified: { label: "Unclassified", sublabel: "Rule did not resolve" },
+};
+
+function TaxonomyBreakdownSection() {
+  const [summary, setSummary] = useState<TxSummaryResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/portfolio/taxonomy-summary");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          if (!cancelled) {
+            setError(body?.error ?? `Request failed (${res.status})`);
+          }
+          return;
+        }
+        const body = (await res.json()) as TxSummaryResponse;
+        if (!cancelled) setSummary(body);
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <p className="text-sm text-slate-500">Loading taxonomy breakdown…</p>
+    );
+  }
+  if (error || !summary) {
+    return (
+      <p className="text-sm text-rose-300">
+        Could not load taxonomy breakdown{error ? `: ${error}` : ""}.
+      </p>
+    );
+  }
+
+  const buckets: TxBucketKey[] = ["green", "amber", "red", "unclassified"];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {buckets.map((key) => {
+          const t = summary.totals[key];
+          const meta = BUCKET_META[key];
+          const color = BUCKET_COLOR[key];
+          return (
+            <div
+              key={key}
+              className="rounded-lg border bg-panel/40 p-4"
+              style={{ borderColor: `${color}55` }}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: color }}
+                  aria-hidden
+                />
+                <div className="text-sm font-semibold text-white">
+                  {meta.label}
+                </div>
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-slate-500">
+                  {meta.sublabel}
+                </span>
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-white">
+                {t.count.toLocaleString()}
+              </div>
+              <div className="mt-1 text-xs text-slate-400">
+                {t.count === 1 ? "loan" : "loans"} · {formatNpr(t.nprTotal)}
+              </div>
+              {t.activityBreakdown.length > 0 && (
+                <ul className="mt-3 space-y-0.5 text-[11px] text-slate-500">
+                  {t.activityBreakdown.slice(0, 3).map((a) => (
+                    <li key={a.activityId} className="flex justify-between gap-2">
+                      <span className="truncate" title={a.activityName}>
+                        {a.activityName}
+                      </span>
+                      <span className="whitespace-nowrap text-slate-400">
+                        {a.count} · {formatNpr(a.nprTotal)}
+                      </span>
+                    </li>
+                  ))}
+                  {t.activityBreakdown.length > 3 && (
+                    <li className="text-slate-600">
+                      +{t.activityBreakdown.length - 3} more
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-slate-400">
+        <span className="font-semibold text-amber-300">Amber (transitional):</span>{" "}
+        transitional financing counts toward the bank&rsquo;s green finance target
+        on separate terms per NRB — see the NRB GFT October 2024 Ch. 5 for the
+        reporting treatment.
+      </p>
+
+      <div className="rounded-lg border border-line bg-panel/30 px-4 py-3 text-xs text-slate-300">
+        <span className="font-semibold text-white">
+          {summary.totalUnclassifiedApplicable.toLocaleString()}
+        </span>{" "}
+        {summary.totalUnclassifiedApplicable === 1 ? "loan" : "loans"} in
+        taxonomy-eligible sectors{" "}
+        {summary.totalUnclassifiedApplicable === 1 ? "is" : "are"} not yet
+        classified.{" "}
+        <a
+          href="#esrm"
+          className="text-accent underline decoration-dotted underline-offset-2 hover:text-accent"
+        >
+          Open the ESRM tab
+        </a>{" "}
+        to assign and classify.
       </div>
     </div>
   );
