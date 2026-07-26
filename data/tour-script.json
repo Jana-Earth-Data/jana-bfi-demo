@@ -1,91 +1,101 @@
 {
-  "version": "1.0",
-  "totalDurationSecondsApprox": 195,
+  "version": "2.0",
+  "totalDurationSecondsApprox": 260,
   "voice": "onyx",
   "model": "tts-1-hd",
   "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "Regenerate audio by running: python3 scripts/generate-tour-audio.py --force (with tts.key present, gitignored). Individual step regeneration: python3 scripts/generate-tour-audio.py --step <id>.",
   "steps": [
     {
       "id": "intro",
-      "tab": "loans",
-      "target": "[data-tour='loan-table']",
-      "calloutTitle": "First Bank of Nepal, financed emissions",
-      "calloutText": "A simulated 80,000-loan portfolio for a hypothetical Class A commercial bank, with real facility emissions from Climate TRACE and EDGAR underneath.",
-      "narration": "Welcome. What you are looking at is a financed-emissions dashboard for First Bank of Nepal. The loan book on this tab is a simulated portfolio of 80,000 loans for a hypothetical Class A commercial bank. The numbers underneath every record are real, drawn from Climate TRACE satellite verification and EDGAR national inventories through Jana Earth Data. Over the next three minutes I will walk you through how a bank uses this to meet all three of Nepal Rastra Bank's environmental regulations through a single data platform.",
+      "tab": "mywork",
+      "target": "[data-tour='my-work-queue']",
+      "calloutTitle": "Laxmi Sunrise Bank · NRB compliance workbench",
+      "calloutText": "Every officer sees their assigned loans with both ESRM and Green Finance Taxonomy status in one place. Full audit trail underneath.",
+      "narration": "Welcome. What you are looking at is the compliance workbench built for Laxmi Sunrise Bank. Sujata Adhikari is a loan officer. Her queue shows every loan Laxmi has assigned to her, with both regulatory obligations visible on one row — the Nepal Rastra Bank ESRM screening from the 2018 directive, and the Green Finance Taxonomy classification from the October 2024 directive. Over the next four minutes I'll walk you through how one officer completes both flows on a single loan, how the escalation surfaces to the manager, and how the whole book rolls up into an annual disclosure filing.",
       "audioFile": "/audio/tour-01-intro.mp3"
     },
     {
-      "id": "three-tabs",
-      "tab": "taxonomy",
-      "target": "[data-tour='tab-strip']",
-      "calloutTitle": "Three regulatory tiers, one dashboard",
-      "calloutText": "ESRM screens new loans · Taxonomy classifies the book · NSRS produces annual disclosures.",
-      "narration": "The three tabs across the top map directly onto NRB's regulatory stack. ESRM, from the 2018 directive, is the credit decision layer — every new commercial loan gets screened for environmental risk before approval. Taxonomy, from October 2024, classifies your entire book as green, amber, or red. And NSRS, coming in 2026 and 27, requires public disclosure of financed emissions under the PCAF methodology. Most banks are stuck on all three because they don't have facility-level emissions data. Jana provides that data layer.",
-      "audioFile": "/audio/tour-02-three-tabs.mp3"
+      "id": "loan-card",
+      "tab": "mywork",
+      "target": "[data-tour='loan-card-primary']",
+      "calloutTitle": "One loan, two regulatory flows",
+      "calloutText": "ESDD checklist status · Taxonomy classification · both visible before Sujata clicks in.",
+      "narration": "Each card in the queue represents one loan. Sujata can see at a glance where each regulatory flow stands — the ESDD checklist progress or risk chip, and the taxonomy classification color if the sector is eligible. For a cement borrower the taxonomy is expected; for a services loan it hides itself. The two independent action buttons let her pick which flow to work on next — the platform doesn't force an order.",
+      "audioFile": "/audio/tour-02-loan-card.mp3"
     },
     {
-      "id": "taxonomy-funnel",
-      "tab": "taxonomy",
-      "target": "[data-tour='funnel']",
-      "calloutTitle": "Small by count. Large by value. All the regulatory risk.",
-      "calloutText": "Of 80,000 loans, about 10,000 are non-retail business loans in scope for NRB regulation. Around 1,000 of those are commercial and corporate exposures with facility-tier data, behind 120 unique borrowers.",
-      "narration": "Here is the picture that matters. Of First Bank's 80,000 loans, about 10,000 are non-retail business loans that fall under NRB regulation. The retail majority, home mortgages and personal loans, sits outside the scope of the Green Finance Taxonomy and ESRM. Of those 10,000 in-scope loans, around 1,000 are large commercial and corporate exposures where facility-level emissions data attaches. Behind those 1,000 loans sit roughly 120 unique borrowers with verified satellite emissions, spanning cement, hydropower, hotels, logistics, waste utilities, and large industrial. By count, that is a small slice. By outstanding value, it is the slice that carries almost all of the environmental risk a regulator examines.",
-      "audioFile": "/audio/tour-03-funnel.mp3"
+      "id": "esdd-wizard",
+      "tab": "mywork",
+      "target": "[data-tour='loan-card-primary']",
+      "calloutTitle": "Verbatim NRB ESRM Annex 5",
+      "calloutText": "11 core questions plus sector-specific supplements. Answer letter and free-text remarks captured with officer attribution and timestamp.",
+      "narration": "When Sujata opens the ESDD checklist, she gets the NRB ESRM Annex 5 questions transcribed verbatim from the 2018 directive. Eleven core questions across general risk, environmental health and safety, and social risks. For sectors NRB names specifically — hydropower, cement, brick, textiles, steel, chemicals, agriculture — the wizard adds a sector supplement with additional questions. Every answer is auto-saved as she records it, so she can walk away and come back. Every save is attributed to her officer identity and timestamped for the audit trail.",
+      "audioFile": "/audio/tour-03-esdd-wizard.mp3"
     },
     {
-      "id": "switch-to-esrm",
+      "id": "escalation",
+      "tab": "esrm",
+      "target": "[data-tour='escalation-banner']",
+      "calloutTitle": "Automatic escalation on any high-risk answer",
+      "calloutText": "Per NRB guidance, any 'c' answer triggers credit-committee escalation with the driving questions surfaced inline.",
+      "narration": "The scoring engine implements the NRB escalation rules automatically. Any question answered with option 'c' — meaning a concern with no mitigation plan — flags the loan for credit committee review. The manager view shows the escalation banner at the top with the specific driving questions listed. No manual triage, no lost escalations. The bank's compliance manager can see every escalated loan across the whole book with one glance.",
+      "audioFile": "/audio/tour-04-escalation.mp3"
+    },
+    {
+      "id": "manager-view",
       "tab": "esrm",
       "target": "[data-tour='application-queue']",
-      "calloutTitle": "Tier 1: Screen new loans before approval",
-      "calloutText": "Every commercial loan application gets an environmental risk assessment using real facility data, not borrower self-reporting. The assessment goes to the bank's credit committee; aggregates flow to NRB quarterly.",
-      "narration": "Let's start with a new credit application. This is what a compliance officer at First Bank sees when a commercial loan comes across their desk. Real applications, real borrowers. Each one needs an environmental risk assessment in the loan file before the credit committee approves it. The bank then reports the aggregated results to Nepal Rastra Bank every quarter. Without Jana, that assessment is a manual research project per borrower. With Jana, it is a single API call.",
-      "audioFile": "/audio/tour-04-esrm-queue.mp3"
+      "calloutTitle": "Manager view — the whole book with owner + progress",
+      "calloutText": "Assign loans to officers, filter by ownership, see ESDD progress and risk classification on every row.",
+      "narration": "The ESRM tab is the compliance manager's view. Every loan under review is here, with the assigned officer, the ESDD checklist progress, and the risk classification if a screening has been saved. The manager can filter by ownership, reassign loans, and surface the loans that need attention. All from a queue that reads live from the same Supabase capture layer the officers write to.",
+      "audioFile": "/audio/tour-05-manager-view.mp3"
     },
     {
-      "id": "borrower-detail",
+      "id": "taxonomy",
       "tab": "esrm",
       "target": "[data-tour='screening-workbench']",
       "selectBorrowerNameContains": "Hongshi",
-      "calloutTitle": "Hongshi Shivam Cement: verified facility data",
-      "calloutText": "Real Climate TRACE 2024 emissions: roughly 922,000 tonnes CO₂e. About 4.9% of Nepal's national CO₂.",
-      "narration": "Let's drill into one borrower. Hongshi Shivam Cement, a Chinese-Nepali joint venture and the country's largest cement plant. The numbers you see here are not estimates. The facility coordinates come from the Global Cement Tracker. The 922,000 tonnes of CO₂ figure comes from Climate TRACE satellite verification for 2024. The national-share metric, about 4.9 percent, comes from EDGAR's Nepal CO₂ inventory. A single facility, attributable to a single loan, contributing nearly five percent of an entire country's carbon emissions. That is the kind of exposure a credit committee needs to see before they approve a large working capital line.",
-      "audioFile": "/audio/tour-05-borrower-detail.mp3"
+      "calloutTitle": "Green Finance Taxonomy — Green, Amber, Red plus DNSH",
+      "calloutText": "10 activities encoded from NRB October 2024. Central DNSH library so shared checks propagate across activities.",
+      "narration": "The taxonomy classification wizard walks the officer through picking the applicable activity — small hydro, cement with waste-heat recovery, green buildings, and so on. Each activity carries its criteria plus a set of shared Do No Significant Harm checks pulled from a central library. Environmental flow, resettlement, biodiversity offset, seismic assessment. Define a check once, use it in every activity that needs it. The classifier returns Green, Amber, or Red with the DNSH failures called out separately. Cement with waste-heat recovery is classified Amber — transitional financing — because cement remains a hard-to-abate sector under NRB's own methodology.",
+      "audioFile": "/audio/tour-06-taxonomy.mp3"
     },
     {
-      "id": "map-view",
+      "id": "compliance-drawer",
       "tab": "esrm",
-      "target": "[data-tour='facility-map']",
-      "calloutTitle": "Geolocated, satellite-verified",
-      "calloutText": "Coordinates match the GCCT registry. Verified by Climate TRACE assets. Auditable down to the dot.",
-      "narration": "This is the facility on a map. Coordinates from the Global Cement and Concrete Tracker, emissions from Climate TRACE's satellite data product, ownership from the Global Energy Monitor entity registry. Every number on this screen is sourced, citable, and reproducible. When NRB examines this loan three years from now, the bank can show exactly where the data came from.",
-      "audioFile": "/audio/tour-06-map.mp3"
+      "target": "[data-tour='compliance-stripe']",
+      "calloutTitle": "One drawer, two frameworks, live status",
+      "calloutText": "NRB compliance status per loan: ESDD progress + Taxonomy classification + escalation, sourced from Supabase.",
+      "narration": "The compliance stripe on every loan surfaces both flows at once. ESDD checklist progress with the risk chip if a screening has been saved. Taxonomy classification color with the activity name and rationale. Escalation flags surfaced inline. The full per-question breakdown is one click away. This is what a Laxmi compliance officer needs to make a credit decision without hunting through separate systems.",
+      "audioFile": "/audio/tour-07-compliance-drawer.mp3"
     },
     {
-      "id": "switch-to-nsrs",
+      "id": "nsrs-taxonomy",
       "tab": "nsrs",
-      "target": "[data-tour='nsrs-headline']",
-      "calloutTitle": "Tier 3 — Annual NSRS disclosure",
-      "calloutText": "PCAF-compliant Scope 3 Category 15 financed emissions, ready for the annual report.",
-      "narration": "Fast-forward to the end of the year. First Bank needs to file its annual sustainability report under NSRS — Nepal's IFRS S2-aligned disclosure framework. This is the dashboard the CFO and CRO see. Total financed emissions across the book, with the most recent fully-reported year, and a multi-year trend. The number on the page is what goes into the annual report, with full PCAF methodology attribution underneath.",
-      "audioFile": "/audio/tour-07-nsrs.mp3"
+      "target": "[data-tour='taxonomy-breakdown']",
+      "calloutTitle": "NSRS disclosure — Green / Amber / Red / Unclassified",
+      "calloutText": "Portfolio roll-up split by taxonomy color. Transitional financing bucket separated per NRB reporting treatment.",
+      "narration": "Every taxonomy classification captured by the officers rolls up automatically into the annual disclosure view. Loans in Green, Amber, and Red buckets counted separately with the outstanding NPR totals. The Amber transitional bucket is broken out on its own terms per NRB's October 2024 reporting treatment — transitional financing counts toward the bank's green finance target under a separate rule than fully-aligned Green. And loans in taxonomy-eligible sectors that haven't been classified yet are flagged so nothing slips through the annual disclosure.",
+      "audioFile": "/audio/tour-08-nsrs-taxonomy.mp3"
     },
     {
-      "id": "data-quality",
+      "id": "export",
       "tab": "nsrs",
-      "target": "[data-tour='data-quality']",
-      "calloutTitle": "PCAF data quality — the technical moat",
-      "calloutText": "Without Jana: Score 5 across the board. With Jana: Score 2 on the slice that matters.",
-      "narration": "And here's the technical differentiator. PCAF requires every bank to disclose a data quality score from 1 to 5, with 1 being best. Without facility-level data, a bank defaults to Score 5 — revenue-based estimates using national averages. With Jana, the highest-emission slice of the portfolio moves to Score 2 — satellite-verified facility data plus public financial filings. NRB examiners and IFRS S2 auditors both look at this score. Jana moves the needle on the loans that matter.",
-      "audioFile": "/audio/tour-08-data-quality.mp3"
+      "target": "[data-tour='regulatory-exports']",
+      "calloutTitle": "Bank-branded regulatory export",
+      "calloutText": "Excel and PDF in NRB submission format, carrying Laxmi Sunrise branding. JSON for downstream systems.",
+      "narration": "At any point, the bank can export the full classification report in either Excel or PDF for regulatory filing, or JSON for the bank's own downstream systems. Both formats carry Laxmi Sunrise's branding — the bank's logo, primary color, and display name — because the document is being filed by Laxmi, not by Jana. The submission itself is one click from the disclosure view.",
+      "audioFile": "/audio/tour-09-export.mp3"
     },
     {
       "id": "closing",
-      "tab": "taxonomy",
+      "tab": "mywork",
       "target": "[data-tour='header']",
-      "calloutTitle": "One API. Three regulations. Full attribution.",
-      "calloutText": "Real Climate TRACE. Real EDGAR. Real GCCT. Climbing the PCAF score on the slice that carries the risk.",
-      "narration": "What you've just seen is one integration that handles all three of NRB's regulatory layers — credit screening, portfolio classification, and annual disclosure — using independent, satellite-verified data sources. The demo book in front of you is synthetic, but every emissions number is real. Jana provides the data infrastructure that makes compliance feasible. Thanks for watching.",
-      "audioFile": "/audio/tour-09-closing.mp3"
+      "calloutTitle": "One platform. Three NRB regulations. Verbatim capture.",
+      "calloutText": "ESRM Annex 5 · Green Finance Taxonomy · NSRS disclosure. Real facility data underneath.",
+      "narration": "What you have just seen is one platform that handles all three of Nepal Rastra Bank's environmental regulations. Verbatim ESRM Annex 5 capture from the 2018 directive. Green Finance Taxonomy classification from October 2024 with central DNSH checks. And NSRS-ready portfolio disclosures for 2026 and 2027. Every capture is officer-attributed and timestamped. Every taxonomy assessment carries its NRB citation. And underneath the workflow, the emissions numbers come from Climate TRACE satellite verification and EDGAR national inventories, so the bank can defend every number to the regulator. Thanks for watching.",
+      "audioFile": "/audio/tour-10-closing.mp3"
     }
   ]
 }

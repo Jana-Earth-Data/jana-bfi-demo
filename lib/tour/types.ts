@@ -1,6 +1,6 @@
 /** Types for the auto-pilot guided tour. */
 
-export type TourTabId = "esrm" | "taxonomy" | "loans" | "nsrs";
+export type TourTabId = "mywork" | "esrm" | "taxonomy" | "loans" | "nsrs";
 
 export type TourStep = {
   id: string;

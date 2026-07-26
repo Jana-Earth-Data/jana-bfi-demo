@@ -102,12 +102,14 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
       </div>
 
       {/* Regulatory exports — bank-branded downloads (JSON / xlsx / PDF) */}
-      <Panel
-        title="Regulatory exports"
-        subtitle="Portfolio-level NRB Green Finance Taxonomy classification report"
-      >
-        <NrbTaxonomyExportButton />
-      </Panel>
+      <div data-tour="regulatory-exports">
+        <Panel
+          title="Regulatory exports"
+          subtitle="Portfolio-level NRB Green Finance Taxonomy classification report"
+        >
+          <NrbTaxonomyExportButton />
+        </Panel>
+      </div>
 
       {/* Charts row 1: multi-year trend + data quality */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -169,12 +171,14 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
       </Panel>
 
       {/* Taxonomy portfolio breakdown — reads latest saved assessments */}
-      <Panel
-        title="Taxonomy portfolio breakdown"
-        subtitle="Latest saved NRB Green Finance Taxonomy classification per loan"
-      >
-        <TaxonomyBreakdownSection />
-      </Panel>
+      <div data-tour="taxonomy-breakdown">
+        <Panel
+          title="Taxonomy portfolio breakdown"
+          subtitle="Latest saved NRB Green Finance Taxonomy classification per loan"
+        >
+          <TaxonomyBreakdownSection />
+        </Panel>
+      </div>
 
       {/* Top contributors — detail table at the bottom of the page */}
       <Panel

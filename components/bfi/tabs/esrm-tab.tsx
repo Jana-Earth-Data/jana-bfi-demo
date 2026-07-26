@@ -362,7 +362,10 @@ function ManagerSummary({
   return (
     <div className="flex flex-col gap-3">
       {escalatedCount > 0 && (
-        <div className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4">
+        <div
+          className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4"
+          data-tour="escalation-banner"
+        >
           <div className="flex items-baseline justify-between">
             <div className="text-sm font-semibold text-amber-100">
               {escalatedCount} loan{escalatedCount === 1 ? "" : "s"} escalated to credit committee
@@ -666,7 +669,10 @@ function WorkbenchComplianceStripe({
   }, [loanId, total]);
 
   return (
-    <div className="mt-3 rounded-lg border border-line bg-panelAlt p-3">
+    <div
+      className="mt-3 rounded-lg border border-line bg-panelAlt p-3"
+      data-tour="compliance-stripe"
+    >
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
         Compliance status
       </div>

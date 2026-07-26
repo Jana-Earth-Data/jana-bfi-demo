@@ -48,7 +48,7 @@ export function MyWorkTab({ data }: { data: DashboardSsrData }) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4" data-tour="my-work-queue">
       <OfficerWorkQueue currentOfficer={officer} />
     </div>
   );

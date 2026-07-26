@@ -190,8 +190,12 @@ function QueueSection({
         <div className="text-sm text-slate-500">{emptyLabel}</div>
       ) : (
         <div className="flex flex-col gap-2">
-          {rows.map((row) => (
-            <LoanCardRow key={row.loanId} card={row} />
+          {rows.map((row, idx) => (
+            <LoanCardRow
+              key={row.loanId}
+              card={row}
+              tourAttr={idx === 0 ? "loan-card-primary" : undefined}
+            />
           ))}
         </div>
       )}
@@ -199,7 +203,13 @@ function QueueSection({
   );
 }
 
-function LoanCardRow({ card }: { card: LoanCard }) {
+function LoanCardRow({
+  card,
+  tourAttr,
+}: {
+  card: LoanCard;
+  tourAttr?: string;
+}) {
   // Priority determines which CTA is styled as primary (filled brand
   // color); the other is a plain link. Officer can always click either.
   //   1. Escalated → ESDD (officer reviews the escalation trigger)
@@ -227,7 +237,10 @@ function LoanCardRow({ card }: { card: LoanCard }) {
   const taxLabel = taxDone ? "Review taxonomy" : "Classify taxonomy";
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3">
+    <div
+      className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3"
+      data-tour={tourAttr}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-2">
           <span className="text-sm font-semibold text-white">
