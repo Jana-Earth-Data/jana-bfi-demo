@@ -3,67 +3,55 @@
  *
  * The source doc is 153 pages and structures the taxonomy by economic
  * sector (Agriculture, Renewable Energy, Buildings, Transport, Water,
- * Industry) with per-activity Green (Transformative) / Amber (Transitional)
- * / Red classification and Do No Significant Harm (DNSH) checks.
+ * Industry) with per-activity Green (Transformative) / Amber
+ * (Transitional) / Red classification and Do No Significant Harm (DNSH)
+ * checks.
  *
- * This file encodes 8 representative activities covering the Nepal cases
- * most banks will underwrite: hydropower (small + medium), utility-scale
- * solar, cement (with and without WHR), green commercial buildings,
- * organic agriculture, electric vehicles, and irrigation. Each activity
- * has:
- *   - id            : stable identifier used on captured rows
- *   - name          : human-readable name shown in the wizard
- *   - nrbCitation   : section reference into the source document
- *   - sectorLabel   : NRB economic sector heading
- *   - applicableTo  : Borrower.nrbSector patterns this activity fits
- *   - criteria      : yes/no or numeric questions the officer answers
- *   - classify      : pure function that turns criterion answers into a
- *                     color + rationale + citation
+ * This file encodes 10 representative activities covering the Nepal
+ * cases most banks will underwrite: hydropower (small / medium / large),
+ * utility-scale solar, cement with WHR, green commercial buildings,
+ * organic agriculture, EVs, fossil-generation (auto-red), and
+ * irrigation efficiency. Each activity has:
+ *   - id             : stable identifier used on captured rows
+ *   - name           : human-readable name shown in the wizard
+ *   - nrbCitation    : section reference into the source document
+ *   - sectorLabel    : NRB economic sector heading
+ *   - applicableTo   : Borrower.nrbSector patterns this activity fits
+ *   - dnshCheckIds   : DNSH checks from lib/regulatory/taxonomy/dnsh.ts
+ *                       that apply to the activity (shared library)
+ *   - activityCriteria: activity-specific questions (permits, capacity,
+ *                       efficiency thresholds, etc.) — NOT DNSH
+ *   - criteria       : the full list the wizard asks (activityCriteria
+ *                       + resolved DNSH criteria), computed automatically
+ *   - classify       : pure function that turns criterion answers into a
+ *                       color + rationale + citation, using evaluateDnsh
+ *                       for shared checks and inline logic for the rest
  *
- * The classifier per activity is the entire decision tree for that
- * activity. Keeping it as a plain TypeScript function (rather than a rule
- * DSL) keeps the file readable and lets compliance reviewers verify the
- * logic by reading the code.
+ * DNSH refactor (Phase 6a): before this refactor each classifier hand-
+ * copied its own DNSH questions. See lib/regulatory/taxonomy/dnsh.ts for
+ * the motivation and the shared library.
  *
  * Follow-up compliance session: refine the criterion wording, add the
- * remaining ~15 activities (Wind, small hydro under 1 MW, bagasse
+ * remaining ~15 activities (wind, small hydro under 1 MW, bagasse
  * cogeneration, textiles with ETP, waste-to-energy, etc.), and encode
- * verbatim NRB criterion language.
+ * verbatim NRB criterion language. See design_docs/COMPLIANCE_SESSION_HANDOFF.md.
  */
 
-export type TaxonomyColor = "green" | "amber" | "red" | "unclassified";
+import type {
+  TaxonomyActivity,
+  TaxonomyClassification,
+  TaxonomyColor,
+  TaxonomyCriterion,
+} from "./types";
+import { evaluateDnsh, getDnshCriteria } from "./dnsh";
 
-export type TaxonomyCriterion =
-  | {
-      id: string;
-      type: "yes_no";
-      prompt: string;
-      helpText?: string;
-    }
-  | {
-      id: string;
-      type: "numeric";
-      prompt: string;
-      unit: string;
-      helpText?: string;
-    };
-
-export type TaxonomyClassification = {
-  color: TaxonomyColor;
-  rationale: string;
-  citation: string;
-  /** Optional DNSH failure detail if the activity would otherwise be green/amber. */
-  dnshFailures?: string[];
-};
-
-export type TaxonomyActivity = {
-  id: string;
-  name: string;
-  sectorLabel: string;
-  nrbCitation: string;
-  applicableTo: string[]; // substrings matched against borrower.nrbSector
-  criteria: TaxonomyCriterion[];
-  classify: (answers: Record<string, unknown>) => TaxonomyClassification;
+// Re-export shared types so existing consumers (which import from
+// activities.ts) don't need to update their imports.
+export type {
+  TaxonomyActivity,
+  TaxonomyClassification,
+  TaxonomyColor,
+  TaxonomyCriterion,
 };
 
 // Small helpers used by the individual classifiers.
@@ -74,20 +62,56 @@ const num = (a: Record<string, unknown>, id: string): number | null => {
 };
 
 // ---------------------------------------------------------------------------
+// defineActivity() — builds a TaxonomyActivity from a spec that keeps
+// activity-specific criteria separate from DNSH check ids. The resolved
+// `criteria` list combines both in stable order so the wizard asks them
+// all.
+// ---------------------------------------------------------------------------
+
+type ActivitySpec = {
+  id: string;
+  name: string;
+  sectorLabel: string;
+  nrbCitation: string;
+  applicableTo: string[];
+  /** Activity-specific criteria (permits, capacity, efficiency thresholds). */
+  activityCriteria: TaxonomyCriterion[];
+  /** DNSH check ids from the central library that apply to this activity. */
+  dnshCheckIds: string[];
+  classify: (answers: Record<string, unknown>) => TaxonomyClassification;
+};
+
+function defineActivity(spec: ActivitySpec): TaxonomyActivity {
+  return {
+    id: spec.id,
+    name: spec.name,
+    sectorLabel: spec.sectorLabel,
+    nrbCitation: spec.nrbCitation,
+    applicableTo: spec.applicableTo,
+    dnshCheckIds: spec.dnshCheckIds,
+    criteria: [
+      ...spec.activityCriteria,
+      ...getDnshCriteria(spec.dnshCheckIds),
+    ],
+    classify: spec.classify,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Activity catalog
 // ---------------------------------------------------------------------------
 
 export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
   // -------------------------------------------------------------------------
-  // Renewable Energy — Hydropower
+  // Renewable Energy — Hydropower (small, up to 25 MW)
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "hydro-small",
     name: "Hydropower — small (up to 25 MW)",
     sectorLabel: "Renewable Energy",
     nrbCitation: "NRB GFT 2024, Ch. 2 / Annex 1 Renewable Energy",
     applicableTo: ["hydropower", "renewable"],
-    criteria: [
+    activityCriteria: [
       {
         id: "installed_capacity_mw",
         type: "numeric",
@@ -102,26 +126,15 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         prompt:
           "Does the plant hold a current Initial Environmental Examination (IEE) or Environmental Impact Assessment (EIA) approval?",
       },
-      {
-        id: "downstream_flow_maintained",
-        type: "yes_no",
-        prompt:
-          "Is the environmental release / downstream flow maintained per licence conditions?",
-        helpText:
-          "DNSH — significant harm to water bodies is disqualifying. NRB requires at least the licence-mandated environmental release.",
-      },
-      {
-        id: "resettlement_completed",
-        type: "yes_no",
-        prompt:
-          "Have all resettlement and community compensation obligations been discharged?",
-      },
     ],
+    dnshCheckIds: ["environmental_flow", "resettlement_discharged"],
     classify: (a) => {
       const mw = num(a, "installed_capacity_mw");
       const iee = yn(a, "iee_or_eia_current");
-      const flow = yn(a, "downstream_flow_maintained");
-      const reset = yn(a, "resettlement_completed");
+      const dnsh = evaluateDnsh(
+        ["environmental_flow", "resettlement_discharged"],
+        a,
+      );
       if (mw !== null && mw > 25) {
         return {
           color: "unclassified",
@@ -130,12 +143,6 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
         };
       }
-      const dnshFailures: string[] = [];
-      if (!flow) dnshFailures.push("Environmental downstream flow not maintained");
-      if (!reset)
-        dnshFailures.push(
-          "Resettlement and community compensation obligations outstanding",
-        );
       if (!iee) {
         return {
           color: "red",
@@ -144,34 +151,33 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
         };
       }
-      if (dnshFailures.length > 0) {
+      if (!dnsh.passed) {
         return {
           color: "amber",
           rationale:
             "Small hydro is a green-eligible activity but the DNSH checks below are not fully passed. Approve as amber (transitional) with conditions on the flagged items.",
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy · DNSH",
-          dnshFailures,
+          dnshFailures: dnsh.failures,
         };
       }
       return {
         color: "green",
-        rationale:
-          `Small hydropower plant (${mw ?? "capacity not entered"} MW) with current IEE/EIA approval, maintained environmental flow, and cleared resettlement obligations. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
+        rationale: `Small hydropower plant (${mw ?? "capacity not entered"} MW) with current IEE/EIA approval, maintained environmental flow, and cleared resettlement obligations. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
         citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Renewable Energy — Hydropower (medium, 25 to 100 MW)
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "hydro-medium",
     name: "Hydropower — medium (25 to 100 MW)",
     sectorLabel: "Renewable Energy",
     nrbCitation: "NRB GFT 2024, Ch. 2 / Annex 1 Renewable Energy",
     applicableTo: ["hydropower", "renewable"],
-    criteria: [
+    activityCriteria: [
       {
         id: "installed_capacity_mw",
         type: "numeric",
@@ -188,35 +194,19 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         helpText:
           "Medium hydro requires a full EIA under Nepal's Environment Protection Rules — an IEE alone is not sufficient.",
       },
-      {
-        id: "downstream_flow_maintained",
-        type: "yes_no",
-        prompt:
-          "Is the environmental release / downstream flow maintained per licence conditions?",
-        helpText:
-          "DNSH — the environmental flow requirement scales up with capacity. Verify the metered release matches the licence percentage.",
-      },
-      {
-        id: "resettlement_completed",
-        type: "yes_no",
-        prompt:
-          "Have all resettlement and community compensation obligations been discharged?",
-      },
-      {
-        id: "biodiversity_offset_active",
-        type: "yes_no",
-        prompt:
-          "Where the EIA required a biodiversity offset or fish passage, is it built and operational?",
-        helpText:
-          "Medium hydro projects on Nepal's mid-hill rivers typically trigger fish-passage or offset conditions. Missing these is a DNSH failure.",
-      },
+    ],
+    dnshCheckIds: [
+      "environmental_flow",
+      "resettlement_discharged",
+      "biodiversity_offset",
     ],
     classify: (a) => {
       const mw = num(a, "installed_capacity_mw");
       const eia = yn(a, "iee_or_eia_current");
-      const flow = yn(a, "downstream_flow_maintained");
-      const reset = yn(a, "resettlement_completed");
-      const bio = yn(a, "biodiversity_offset_active");
+      const dnsh = evaluateDnsh(
+        ["environmental_flow", "resettlement_discharged", "biodiversity_offset"],
+        a,
+      );
       if (mw !== null && (mw <= 25 || mw > 100)) {
         return {
           color: "unclassified",
@@ -235,44 +225,33 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
         };
       }
-      const dnshFailures: string[] = [];
-      if (!flow) dnshFailures.push("Environmental downstream flow not maintained");
-      if (!reset)
-        dnshFailures.push(
-          "Resettlement and community compensation obligations outstanding",
-        );
-      if (!bio)
-        dnshFailures.push(
-          "Required biodiversity offset or fish-passage measure not operational",
-        );
-      if (dnshFailures.length > 0) {
+      if (!dnsh.passed) {
         return {
           color: "amber",
           rationale:
             "Medium hydro is a green-eligible activity but the DNSH checks below are not fully passed. Approve as amber (transitional) with conditions on the flagged items.",
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy · DNSH",
-          dnshFailures,
+          dnshFailures: dnsh.failures,
         };
       }
       return {
         color: "green",
-        rationale:
-          `Medium hydropower plant (${mw ?? "capacity not entered"} MW) with current EIA approval, maintained environmental flow, cleared resettlement obligations, and biodiversity mitigation operational. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
+        rationale: `Medium hydropower plant (${mw ?? "capacity not entered"} MW) with current EIA approval, maintained environmental flow, cleared resettlement obligations, and biodiversity mitigation operational. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
         citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Renewable Energy — Hydropower (large, over 100 MW)
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "hydro-large",
     name: "Hydropower — large (over 100 MW)",
     sectorLabel: "Renewable Energy",
     nrbCitation: "NRB GFT 2024, Ch. 2 / Annex 1 Renewable Energy",
     applicableTo: ["hydropower", "renewable"],
-    criteria: [
+    activityCriteria: [
       {
         id: "installed_capacity_mw",
         type: "numeric",
@@ -289,38 +268,25 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         helpText:
           "Large hydro is expected to demonstrate consideration of cumulative basin-level impacts, not just project-level EIA.",
       },
-      {
-        id: "downstream_flow_maintained",
-        type: "yes_no",
-        prompt:
-          "Is the environmental release / downstream flow maintained per licence conditions, with metering shared with the regulator?",
-      },
-      {
-        id: "resettlement_completed",
-        type: "yes_no",
-        prompt:
-          "Have all resettlement and community compensation obligations been discharged, including any local shareholding / benefit-sharing agreements?",
-      },
-      {
-        id: "cumulative_impact_addressed",
-        type: "yes_no",
-        prompt:
-          "Have cumulative impacts on the river system (sediment, migratory fish, downstream users) been addressed per the EIA / SEA recommendations?",
-      },
-      {
-        id: "seismic_landslide_updated",
-        type: "yes_no",
-        prompt:
-          "Have seismic and landslide hazard assessments been updated post-2015 (or since last major event) and design updated accordingly?",
-      },
+    ],
+    dnshCheckIds: [
+      "environmental_flow",
+      "resettlement_discharged",
+      "cumulative_basin_impact",
+      "seismic_assessment",
     ],
     classify: (a) => {
       const mw = num(a, "installed_capacity_mw");
       const eia = yn(a, "eia_and_sea_current");
-      const flow = yn(a, "downstream_flow_maintained");
-      const reset = yn(a, "resettlement_completed");
-      const cumulative = yn(a, "cumulative_impact_addressed");
-      const seismic = yn(a, "seismic_landslide_updated");
+      const dnsh = evaluateDnsh(
+        [
+          "environmental_flow",
+          "resettlement_discharged",
+          "cumulative_basin_impact",
+          "seismic_assessment",
+        ],
+        a,
+      );
       if (mw !== null && mw <= 100) {
         return {
           color: "unclassified",
@@ -337,57 +303,38 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
         };
       }
-      const dnshFailures: string[] = [];
-      if (!flow) dnshFailures.push("Environmental downstream flow not maintained");
-      if (!reset)
-        dnshFailures.push(
-          "Resettlement / benefit-sharing obligations outstanding",
-        );
-      if (!cumulative)
-        dnshFailures.push("Cumulative basin-level impacts not addressed");
-      if (!seismic)
-        dnshFailures.push(
-          "Seismic / landslide hazard assessment not updated post-2015",
-        );
-      if (dnshFailures.length > 0) {
+      if (!dnsh.passed) {
         return {
           color: "amber",
           rationale:
             "Large hydro is a green-eligible activity but the DNSH checks below are not fully passed. Approve as amber (transitional) with conditions on the flagged items. For large hydro, an escalation to credit committee is recommended regardless of the count of unmet DNSH items.",
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy · DNSH",
-          dnshFailures,
+          dnshFailures: dnsh.failures,
         };
       }
       return {
         color: "green",
-        rationale:
-          `Large hydropower plant (${mw ?? "capacity not entered"} MW) with current EIA/SEA approval, maintained environmental flow, cleared resettlement / benefit-sharing obligations, addressed cumulative basin impacts, and updated seismic assessment. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
+        rationale: `Large hydropower plant (${mw ?? "capacity not entered"} MW) with current EIA/SEA approval, maintained environmental flow, cleared resettlement / benefit-sharing obligations, addressed cumulative basin impacts, and updated seismic assessment. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.`,
         citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Renewable Energy — Solar (utility scale)
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "solar-utility",
     name: "Solar — utility-scale generation",
     sectorLabel: "Renewable Energy",
     nrbCitation: "NRB GFT 2024, Ch. 2 Renewable Energy",
     applicableTo: ["solar", "renewable"],
-    criteria: [
+    activityCriteria: [
       {
         id: "installed_capacity_mw",
         type: "numeric",
         unit: "MW",
         prompt: "Installed capacity (MW)",
-      },
-      {
-        id: "land_use_conflict",
-        type: "yes_no",
-        prompt:
-          "Does the site avoid protected areas, prime agricultural land, and areas with community land conflict?",
       },
       {
         id: "grid_interconnection_approved",
@@ -396,15 +343,17 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           "Has grid interconnection been approved by the Nepal Electricity Authority (NEA)?",
       },
     ],
+    dnshCheckIds: ["land_use_conflict"],
     classify: (a) => {
-      const landOk = yn(a, "land_use_conflict");
       const gridOk = yn(a, "grid_interconnection_approved");
-      if (!landOk) {
+      const dnsh = evaluateDnsh(["land_use_conflict"], a);
+      if (!dnsh.passed) {
         return {
           color: "red",
           rationale:
             "Land-use conflict or siting on a protected area / prime agricultural land disqualifies the activity per DNSH.",
           citation: "NRB GFT 2024, Ch. 2 Renewable Energy · DNSH",
+          dnshFailures: dnsh.failures,
         };
       }
       if (!gridOk) {
@@ -422,18 +371,18 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Industry — Cement with Waste Heat Recovery
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "cement-whr",
     name: "Cement plant — with Waste Heat Recovery",
     sectorLabel: "Industry",
     nrbCitation: "NRB GFT 2024, Ch. 2 Industry — Cement",
     applicableTo: ["cement", "manufacturing"],
-    criteria: [
+    activityCriteria: [
       {
         id: "whr_operational",
         type: "yes_no",
@@ -454,18 +403,13 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         helpText:
           "NRB treats co-processing of biomass or refuse-derived fuel as a transitional decarbonisation lever.",
       },
-      {
-        id: "quarry_rehab_plan",
-        type: "yes_no",
-        prompt:
-          "Does the operator have and follow an approved quarry rehabilitation plan?",
-      },
     ],
+    dnshCheckIds: ["quarry_rehabilitation"],
     classify: (a) => {
       const whr = yn(a, "whr_operational");
       const pmOk = yn(a, "kiln_pm_within_limits");
       const altFuelPct = num(a, "alternative_fuel_share_pct") ?? 0;
-      const quarry = yn(a, "quarry_rehab_plan");
+      const dnsh = evaluateDnsh(["quarry_rehabilitation"], a);
       if (!pmOk) {
         return {
           color: "red",
@@ -482,15 +426,12 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           citation: "NRB GFT 2024, Ch. 2 Industry — Cement",
         };
       }
-      const dnshFailures: string[] = [];
-      if (!quarry) dnshFailures.push("Approved quarry rehabilitation plan missing");
       if (altFuelPct >= 15) {
         return {
           color: "amber",
-          rationale:
-            `Cement plant with operational WHR, kiln emissions compliant, and ${altFuelPct}% alternative fuel share. Classified as Amber (transitional) — cement remains a hard-to-abate sector so full Green requires further alternative-fuel substitution.`,
+          rationale: `Cement plant with operational WHR, kiln emissions compliant, and ${altFuelPct}% alternative fuel share. Classified as Amber (transitional) — cement remains a hard-to-abate sector so full Green requires further alternative-fuel substitution.`,
           citation: "NRB GFT 2024, Ch. 2 Industry — Cement",
-          dnshFailures: dnshFailures.length ? dnshFailures : undefined,
+          dnshFailures: dnsh.passed ? undefined : dnsh.failures,
         };
       }
       return {
@@ -498,21 +439,21 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         rationale:
           "Cement plant with WHR and compliant emissions but low alternative-fuel share. Classified as Amber (transitional). Increasing biomass / RDF co-processing above 15% is the pathway toward stronger alignment.",
         citation: "NRB GFT 2024, Ch. 2 Industry — Cement",
-        dnshFailures: dnshFailures.length ? dnshFailures : undefined,
+        dnshFailures: dnsh.passed ? undefined : dnsh.failures,
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Buildings — Green commercial
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "green-buildings",
     name: "Commercial buildings — green retrofit or new construction",
     sectorLabel: "Buildings",
     nrbCitation: "NRB GFT 2024, Ch. 2 Buildings",
     applicableTo: ["real estate", "construction", "building"],
-    criteria: [
+    activityCriteria: [
       {
         id: "certification",
         type: "yes_no",
@@ -533,6 +474,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         prompt: "Projected water savings vs. baseline (%)",
       },
     ],
+    dnshCheckIds: [],
     classify: (a) => {
       const cert = yn(a, "certification");
       const energyPct = num(a, "energy_saving_pct") ?? 0;
@@ -540,8 +482,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
       if (cert && energyPct >= 20) {
         return {
           color: "green",
-          rationale:
-            `Certified green building with ${energyPct}% energy savings and ${waterPct}% water savings. Fully aligns with the NRB Green Finance Taxonomy under Buildings.`,
+          rationale: `Certified green building with ${energyPct}% energy savings and ${waterPct}% water savings. Fully aligns with the NRB Green Finance Taxonomy under Buildings.`,
           citation: "NRB GFT 2024, Ch. 2 Buildings",
         };
       }
@@ -560,18 +501,18 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         citation: "NRB GFT 2024, Ch. 2 Buildings",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Agriculture — organic / climate-smart
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "organic-agri",
     name: "Organic / climate-smart agriculture",
     sectorLabel: "Agriculture and Food Security",
     nrbCitation: "NRB GFT 2024, Ch. 2 Annex 1 §1 Agriculture",
     applicableTo: ["agriculture"],
-    criteria: [
+    activityCriteria: [
       {
         id: "organic_certified",
         type: "yes_no",
@@ -590,6 +531,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           "Does the operation avoid synthetic pesticides and inorganic fertilizers?",
       },
     ],
+    dnshCheckIds: [],
     classify: (a) => {
       const cert = yn(a, "organic_certified");
       const solar = yn(a, "solar_irrigation");
@@ -617,18 +559,18 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         citation: "NRB GFT 2024, Ch. 2 Annex 1 §1",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Transport — Electric vehicles
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "ev-transport",
     name: "Electric vehicles and charging infrastructure",
     sectorLabel: "Transport",
     nrbCitation: "NRB GFT 2024, Ch. 2 Transport",
     applicableTo: ["transport", "vehicle", "automotive"],
-    criteria: [
+    activityCriteria: [
       {
         id: "battery_electric",
         type: "yes_no",
@@ -642,6 +584,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           "Does the financing include or come alongside dedicated charging infrastructure?",
       },
     ],
+    dnshCheckIds: [],
     classify: (a) => {
       const bev = yn(a, "battery_electric");
       const charging = yn(a, "charging_infrastructure");
@@ -650,7 +593,9 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           color: "green",
           rationale:
             "Battery-electric vehicle. Aligns fully with the NRB Green Finance Taxonomy under Transport." +
-            (charging ? " Bundled charging infrastructure strengthens the alignment." : ""),
+            (charging
+              ? " Bundled charging infrastructure strengthens the alignment."
+              : ""),
           citation: "NRB GFT 2024, Ch. 2 Transport",
         };
       }
@@ -661,42 +606,43 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         citation: "NRB GFT 2024, Ch. 2 Transport",
       };
     },
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Coal / fossil-fired generation — automatically Red
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "fossil-generation",
     name: "Fossil-fuel-fired power generation",
     sectorLabel: "Energy",
     nrbCitation: "NRB GFT 2024, Ch. 2 Exclusions",
     applicableTo: ["coal", "diesel", "fossil"],
-    criteria: [
+    activityCriteria: [
       {
         id: "confirms_fossil",
         type: "yes_no",
         prompt: "Confirm the primary generation source is coal, oil, or gas.",
       },
     ],
+    dnshCheckIds: [],
     classify: () => ({
       color: "red",
       rationale:
         "Fossil-fuel-fired power generation is explicitly excluded from the NRB Green Finance Taxonomy. Automatic Red classification.",
       citation: "NRB GFT 2024, Ch. 2 Exclusions",
     }),
-  },
+  }),
 
   // -------------------------------------------------------------------------
   // Water — irrigation efficiency
   // -------------------------------------------------------------------------
-  {
+  defineActivity({
     id: "irrigation-efficiency",
     name: "High-efficiency irrigation systems",
     sectorLabel: "Water and Wastewater",
     nrbCitation: "NRB GFT 2024, Ch. 2 §1.15 Irrigation",
     applicableTo: ["irrigation", "agriculture"],
-    criteria: [
+    activityCriteria: [
       {
         id: "drip_or_sprinkler",
         type: "yes_no",
@@ -710,6 +656,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
           "Does the system incorporate rainwater harvesting or aquifer recharge?",
       },
     ],
+    dnshCheckIds: [],
     classify: (a) => {
       const drip = yn(a, "drip_or_sprinkler");
       const rain = yn(a, "rainwater_harvest");
@@ -736,7 +683,7 @@ export const TAXONOMY_ACTIVITIES: TaxonomyActivity[] = [
         citation: "NRB GFT 2024, Ch. 2 §1.15",
       };
     },
-  },
+  }),
 ];
 
 // ---------------------------------------------------------------------------
