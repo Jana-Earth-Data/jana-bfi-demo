@@ -24,3 +24,16 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Keyboard-visible focus ring. Uses the current tenant's brand primary
+   colour so it matches whichever bank is theming the page. Mouse focus
+   (via :focus without :focus-visible) stays invisible to avoid the
+   click-outline noise. */
+:focus-visible {
+  outline: 2px solid var(--brand-primary, #ff8a1e);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
