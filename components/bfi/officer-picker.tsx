@@ -22,7 +22,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Officer } from "@/lib/tenants";
 
 const ROLE_LABEL: Record<Officer["role"], string> = {
@@ -40,6 +40,7 @@ export function OfficerPicker({
   currentOfficer: Officer | null;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -48,6 +49,31 @@ export function OfficerPicker({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Auto-open when the wizard bounced an unsigned visitor back here.
+  // The SSR gates on /esdd/[loanId] and /taxonomy/[loanId] append
+  // ?openOfficerPicker=1&returnTo=<path> — we honour both here.
+  useEffect(() => {
+    if (searchParams?.get("openOfficerPicker") === "1") {
+      setOpen(true);
+      // Stash returnTo in sessionStorage BEFORE cleaning the URL, so
+      // selectOfficer() can hop back after the officer is set.
+      const returnTo = searchParams.get("returnTo");
+      if (
+        returnTo &&
+        returnTo.startsWith("/") &&
+        typeof window !== "undefined"
+      ) {
+        window.sessionStorage.setItem("jana_return_to", returnTo);
+      }
+      // Clean the query params so a refresh doesn't re-open the modal.
+      // Preserve the URL hash (tab id).
+      if (typeof window !== "undefined") {
+        const hash = window.location.hash;
+        window.history.replaceState(null, "", `/${hash}`);
+      }
+    }
+  }, [searchParams]);
 
   async function selectOfficer(officerId: string) {
     setBusyId(officerId);
@@ -62,7 +88,23 @@ export function OfficerPicker({
         return;
       }
       setOpen(false);
-      router.refresh();
+      // If we were bounced from a wizard, hop back to that wizard now
+      // that an officer is signed in. searchParams may already be
+      // cleaned (see useEffect above), so fall back to sessionStorage
+      // as a belt-and-braces for the return path.
+      const returnTo =
+        searchParams?.get("returnTo") ??
+        (typeof window !== "undefined"
+          ? window.sessionStorage.getItem("jana_return_to")
+          : null);
+      if (returnTo && typeof returnTo === "string" && returnTo.startsWith("/")) {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem("jana_return_to");
+        }
+        router.push(returnTo);
+      } else {
+        router.refresh();
+      }
     } finally {
       setBusyId(null);
     }
