@@ -702,17 +702,6 @@ export async function buildTaxonomyPdf(
       font: helv,
       color: black,
     });
-    cursorY -= 11 + 4;
-    page.drawText(
-      `Tenant: ${branding.displayName}${branding.shortName ? ` (${branding.shortName})` : ""}`,
-      {
-        x: MARGIN_X,
-        y: cursorY - 11,
-        size: 11,
-        font: helv,
-        color: black,
-      },
-    );
     cursorY -= 11 + 24;
 
     cursorY = drawParagraph(
