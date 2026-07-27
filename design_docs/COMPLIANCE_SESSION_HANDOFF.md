@@ -285,6 +285,44 @@ When the full pass is complete, expect:
 
 ---
 
+## 6.1 NRBSIS Green Finance Statement — filing-format export
+
+The current `/api/reports/nrb-taxonomy` export produces a bank-branded
+PDF and xlsx that show every classified loan with rationale, citation,
+and DNSH detail, plus a portfolio-scope summary. That is genuinely
+useful for the bank's internal file and for auditor review.
+
+It is NOT the exact format that NRB accepts in its Supervisory
+Information System (NRBSIS). NRBSIS uses XBRL electronic filing —
+schema files with named elements, not a free-form PDF — and NRB issued
+circulars to Class A / B / C / IDB banks starting mid-July 2023
+requiring compliance data through that portal.
+
+To make our export "filing-ready" we need the exact NRBSIS Green
+Finance Statement schema. It is not on the open web (bank-facing
+regulatory instrument), but the bank's compliance office has access to
+it via their supervisory portal login. Ask the compliance lead:
+
+- The NRBSIS Green Finance Statement submission template
+  (Excel or XBRL taxonomy files)
+- The circular that specifies cadence, deadlines, and any lookup
+  code lists
+
+Once we have those, building a matching exporter is roughly a half day.
+The current classification report already carries the underlying data;
+we just need to shape it to the target schema.
+
+Alternatives if the compliance office is slow:
+
+- The NRB Green Finance Taxonomy 2024 PDF (Oct 2024) contains
+  reporting annexes inline. Someone on the Jana side should read the
+  annex section end-to-end and note whether the sector-wise
+  loans-and-advances table structure can be assembled from the public
+  document alone.
+- IRIS RegTech Solutions (Nepal) sells an NRB-SIS XBRL reporting
+  product; they know the schema and could confirm whether it can be
+  licensed for our use or replicated.
+
 ## 7. Contact points
 
 - Jana engineering (for code / migration questions): via the shared
