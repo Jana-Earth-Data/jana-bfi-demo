@@ -191,41 +191,23 @@ export function buildTaxonomyReport(
     assessedLoanIds.add(loanId);
   }
 
-  // Pass 2: every OTHER commercial loan in the portfolio, filled in as
-  // Unclassified so the export always shows the full book — not just
-  // the assessed slice. Without this, a fresh tenant's export is empty
-  // and the demo has nothing to show. Uses the demo's synthesised
-  // nrbTaxonomy field for the color hint so the summary picture stays
-  // realistic even before officers have classified anything.
+  // Pass 2: every OTHER in-scope loan in the portfolio contributes to
+  // the Unclassified bucket in the SUMMARY totals. The NSRS annual
+  // filing covers the full commercial + SME + corporate book, not
+  // just the loans currently under review — retail loans (personal,
+  // mortgage, education, vehicle) are the only category legitimately
+  // out of scope for the taxonomy.
+  //
+  // These loans do NOT get added to the per-loan detail list — a
+  // typical bank has tens of thousands of in-scope loans and the PDF
+  // detail pages would balloon into thousands of rows. Detail rows
+  // remain reserved for loans with saved officer assessments (the
+  // captured slice). The summary counts show how much of the book
+  // has been captured versus how much is still pending.
   for (const loan of demoData.loans) {
     if (assessedLoanIds.has(loan.id)) continue;
-    // Focus on the non-retail, under-review slice — the loans that
-    // ACTUALLY need to appear in the NRB filing. Retail loans stay out
-    // of scope.
-    if (loan.status !== "under-review") continue;
-    const borrower = borrowerById.get(loan.borrowerId);
-    const synthColor: NrbTaxonomyColor =
-      loan.nrbTaxonomy === "green" ||
-      loan.nrbTaxonomy === "amber" ||
-      loan.nrbTaxonomy === "red"
-        ? loan.nrbTaxonomy
-        : "unclassified";
-    loans.push({
-      loanId: loan.id,
-      borrowerName: borrower?.name ?? "(unknown borrower)",
-      sector: borrower?.nrbSector ?? "",
-      outstandingNpr: loan.outstandingNpr,
-      activityId: null,
-      activityName: null,
-      color: "unclassified",
-      rationale:
-        "Not yet classified by an officer. Portfolio-synthesised colour hint: " +
-        synthColor +
-        ". Run the Taxonomy classification wizard to record a citable determination.",
-      citation: "Pending officer classification",
-      capturedAt: null,
-      dnshFailures: [],
-    });
+    if (!loan.category) continue;
+    if (loan.category.startsWith("retail-")) continue;
     portfolio.unclassified.count += 1;
     portfolio.unclassified.nprTotal += loan.outstandingNpr;
   }

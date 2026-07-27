@@ -162,6 +162,20 @@ export async function GET() {
     }
   }
 
+  // Roll the full in-scope book into the Unclassified bucket for the
+  // NSRS annual disclosure — the filing needs to reflect every SME,
+  // commercial, and corporate loan the bank holds, not just the
+  // slice currently under review or already captured. Retail loans
+  // (personal, mortgage, education, vehicle) sit outside taxonomy
+  // scope per NRB's October 2024 rules.
+  for (const loan of data.loans) {
+    if (latestByLoan.has(loan.id)) continue;
+    if (!loan.category) continue;
+    if (loan.category.startsWith("retail-")) continue;
+    totals.unclassified.count += 1;
+    totals.unclassified.nprTotal += loan.outstandingNpr;
+  }
+
   // Materialise the activity breakdown arrays, largest exposure first.
   // Unclassified stays as an empty array per the response contract — a
   // loan with no assessment doesn't have an activity to attribute to.
