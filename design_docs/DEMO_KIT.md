@@ -43,19 +43,37 @@ curl -X POST http://localhost:3001/api/admin/reset \
 - If empty for the tenant: POST /api/admin/seed-officers with the same
   admin token. See the endpoint's source for the exact request shape.
 
-### Step 3 — Regenerate audio tour if the script changed
-The tour audio files under `public/audio/tour-*.mp3` are pre-generated
-from `data/tour-script.json`. If you changed the script:
+### Step 3 — Regenerate audio for tours that changed
+
+Tour scripts live under `data/tour-scripts/<tenantId>/<tourName>.json`.
+Audio files live under `public/audio/<tenantId>/<tourName>/tour-*.mp3`.
+
+If you changed any script, regenerate the affected tour(s):
 
 ```
-python3 scripts/generate-tour-audio.py --force
+# Regenerate all three Laxmi tours (dashboard, loan-officer, manager)
+python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --all-tours --force
+
+# Or just one tour
+python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour dashboard --force
+
+# Or just one step in one tour
+python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour loan-officer --step closing
+
+# Or every tour for every tenant (rare — onboarding pass)
+python3 scripts/generate-tour-audio.py --all-tenants --all-tours --force
 ```
 
 Requires `tts.key` (OpenAI API key) at the repo root — gitignored.
-Individual step regeneration: `python3 scripts/generate-tour-audio.py
---step <id>` where `<id>` is one of `intro`, `loan-card`, `esdd-wizard`,
-`escalation`, `manager-view`, `taxonomy`, `compliance-drawer`,
-`nsrs-taxonomy`, `export`, `closing`.
+Cost is roughly $0.15-0.25 per tour with `tts-1-hd`. Steps in each
+Laxmi tour: dashboard 9, loan-officer 10, manager 7.
+
+**Onboarding a new tenant:**
+1. Add it to `lib/tenants/registry.ts`.
+2. Copy `data/tour-scripts/laxmi_sunrise/` to `data/tour-scripts/<newTenantId>/`.
+3. Edit the bank / officer name strings in the three JSON files.
+4. Update `lib/tour/registry.ts` to import the three new files.
+5. `python3 scripts/generate-tour-audio.py --tenant <id> --all-tours --force`
 
 ### Step 4 — Browser prep (2 minutes)
 - Open Chrome in an incognito window (no extensions, no cached auth)
