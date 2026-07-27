@@ -119,6 +119,16 @@ export function EsddWizard({
               rationale: body.latest.computed_rationale,
               drivingQuestionIds: [],
             });
+            // Advance to the Review step so the sidebar highlight
+            // matches the ScreeningResult that ReviewStep will render.
+            // Sector-supplemented sectors have a Section 4 supplement,
+            // pushing Review to index 5 (0-based). Otherwise Review is
+            // at index 4.
+            const supplementSlug = sectorSlugFor(borrower.nrbSector);
+            const supplement = supplementSlug
+              ? ANNEX5_SECTOR_SUPPLEMENTS[supplementSlug]
+              : undefined;
+            setStep(supplement && supplement.length > 0 ? 5 : 4);
           }
         }
       } finally {

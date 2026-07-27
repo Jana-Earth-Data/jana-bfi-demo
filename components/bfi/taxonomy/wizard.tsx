@@ -140,6 +140,11 @@ export function TaxonomyWizard({
             role: "loan_officer",
           },
         });
+        // Also advance the wizard step to Review so the sidebar
+        // indicator matches the visible ResultCard. Without this the
+        // left rail highlights step 1 (Loan basics) while the pane
+        // shows the saved classification — visually inconsistent.
+        setStep(3);
       } finally {
         if (!cancelled) setLoading(false);
       }
