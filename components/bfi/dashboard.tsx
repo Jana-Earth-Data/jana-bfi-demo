@@ -8,9 +8,7 @@ import { NsrsTab } from "@/components/bfi/tabs/nsrs-tab";
 import { EsrmTab } from "@/components/bfi/tabs/esrm-tab";
 import { LoansTab } from "@/components/bfi/tabs/loans-tab";
 import { MyWorkTab } from "@/components/bfi/tabs/my-work-tab";
-import { TourProvider, useTour } from "@/lib/tour/tour-context";
-import { TourOverlay } from "@/components/bfi/tour/tour-overlay";
-import { TourControls } from "@/components/bfi/tour/tour-controls";
+import { useTour } from "@/lib/tour/tour-context";
 import {
   BfiDemoMeta,
   Borrower,
@@ -240,13 +238,12 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
 }
 
 export function Dashboard({ data }: { data: DashboardSsrData }) {
+  // TourProvider + TourOverlay + TourControls now mount at layout level
+  // via components/bfi/tour/tour-shell.tsx so tour state survives when
+  // a step navigates into a wizard route.
   return (
     <AuthProvider>
-      <TourProvider>
-        <DashboardInner data={data} />
-        <TourOverlay />
-        <TourControls />
-      </TourProvider>
+      <DashboardInner data={data} />
     </AuthProvider>
   );
 }

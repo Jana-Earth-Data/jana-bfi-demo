@@ -74,25 +74,57 @@ export function TourOverlay() {
   const { status, step, currentIndex, totalSteps } = useTour();
   const [rect, setRect] = useState<Rect | null>(null);
 
-  // Update on step change, resize, and scroll. Re-measure after a beat to
-  // catch tab-content fade-ins.
+  // Update on step change, resize, and scroll. Uses a MutationObserver so
+  // late-mounting targets (e.g. loan cards rendered after an API fetch,
+  // wizard content rendered after a route change) are picked up as soon
+  // as they appear rather than waiting for a fixed retry that might miss.
   useLayoutEffect(() => {
     if (!step) {
       setRect(null);
       return;
     }
     const measure = () => setRect(targetRect(step.target));
+
+    // Initial + a couple of prompt retries for the common case where the
+    // element mounts within a beat of the step change.
     measure();
     const t1 = window.setTimeout(measure, 80);
     const t2 = window.setTimeout(measure, 250);
-    const t3 = window.setTimeout(measure, 600);
+
+    // Observe DOM changes for late-mounting targets. Bounded by a 4s
+    // timeout so we don't keep listening forever on a step whose target
+    // never appears (see targetOptional handling in tour-context.tsx).
+    let observer: MutationObserver | null = null;
+    if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+      observer = new MutationObserver(() => {
+        const r = targetRect(step.target);
+        if (r) {
+          setRect(r);
+          observer?.disconnect();
+          observer = null;
+        }
+      });
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "data-tour"],
+      });
+    }
+    const disconnect = window.setTimeout(() => {
+      observer?.disconnect();
+      observer = null;
+    }, 4000);
+
     const handler = () => measure();
     window.addEventListener("resize", handler);
     window.addEventListener("scroll", handler, true);
+
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
-      window.clearTimeout(t3);
+      window.clearTimeout(disconnect);
+      observer?.disconnect();
       window.removeEventListener("resize", handler);
       window.removeEventListener("scroll", handler, true);
     };
@@ -158,16 +190,23 @@ export function TourOverlay() {
       aria-live="polite"
       aria-atomic="true"
     >
-      <svg
-        className="absolute inset-0 h-full w-full"
-        width={vw}
-        height={vh}
-        aria-hidden
-      >
-        <defs>
-          <mask id="tour-spotlight-mask">
-            <rect x="0" y="0" width={vw} height={vh} fill="white" />
-            {rect && (
+      {/*
+        Only render the dim + spotlight SVG when we HAVE a rect. When the
+        target is missing, showing a fully-dimmed screen with only a
+        centred callout hides the underlying UI — the user has no idea
+        what's happening. Better to skip the overlay entirely and let
+        the callout hover over the still-visible page.
+      */}
+      {rect && (
+        <svg
+          className="absolute inset-0 h-full w-full"
+          width={vw}
+          height={vh}
+          aria-hidden
+        >
+          <defs>
+            <mask id="tour-spotlight-mask">
+              <rect x="0" y="0" width={vw} height={vh} fill="white" />
               <rect
                 x={rect.left}
                 y={rect.top}
@@ -177,18 +216,16 @@ export function TourOverlay() {
                 ry="14"
                 fill="black"
               />
-            )}
-          </mask>
-        </defs>
-        <rect
-          x="0"
-          y="0"
-          width={vw}
-          height={vh}
-          fill="rgba(2, 6, 23, 0.78)"
-          mask="url(#tour-spotlight-mask)"
-        />
-        {rect && (
+            </mask>
+          </defs>
+          <rect
+            x="0"
+            y="0"
+            width={vw}
+            height={vh}
+            fill="rgba(2, 6, 23, 0.78)"
+            mask="url(#tour-spotlight-mask)"
+          />
           <rect
             x={rect.left}
             y={rect.top}
@@ -201,8 +238,8 @@ export function TourOverlay() {
             strokeWidth="2"
             style={{ filter: "drop-shadow(0 0 12px rgba(125, 211, 252, 0.6))" }}
           />
-        )}
-      </svg>
+        </svg>
+      )}
 
       {/* Callout — pointer events enabled */}
       <aside

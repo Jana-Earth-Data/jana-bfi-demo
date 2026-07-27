@@ -5,10 +5,18 @@ import { LoginButton } from "@/components/bfi/login-button";
 import { OfficerPicker } from "@/components/bfi/officer-picker";
 import { Badge } from "@/components/bfi/shared/primitives";
 import { useTour } from "@/lib/tour/tour-context";
+import { availableTours } from "@/lib/tour/registry";
+import type { TourName } from "@/lib/tour/types";
 import { BfiDemoMeta } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+const TOUR_LABELS: Record<TourName, string> = {
+  dashboard: "Dashboard",
+  "loan-officer": "Loan officer",
+  manager: "Manager",
+};
 
 export function DashboardHeader({
   meta,
@@ -22,7 +30,6 @@ export function DashboardHeader({
   currentOfficer: Officer | null;
 }) {
   const { logout, accessToken } = useAuth();
-  const tour = useTour();
   const router = useRouter();
   const [switching, setSwitching] = useState(false);
 
@@ -88,24 +95,7 @@ export function DashboardHeader({
           <Badge className="border-line bg-panel text-slate-300">
             Powered by Jana
           </Badge>
-          <button
-            onClick={tour.start}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition"
-            style={{
-              borderColor: "var(--brand-primary)",
-              backgroundColor: "var(--brand-primary-soft)",
-              color: "var(--brand-primary)",
-              borderWidth: "1px",
-              borderStyle: "solid",
-            }}
-            aria-label="Play guided tour"
-            title="Play a 3-minute narrated walkthrough"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            Play guided tour
-          </button>
+          <TourSelector />
           <OfficerPicker
             officers={officers}
             currentOfficer={currentOfficer}
@@ -130,5 +120,63 @@ export function DashboardHeader({
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * TourSelector — small three-button group for picking which tour to play.
+ * Only shows tours that have a script registered for the current tenant
+ * (see lib/tour/registry.ts). When only one tour exists it collapses to
+ * a single "Play tour" button.
+ *
+ * We resolve the tenant from the tour context (which received it from the
+ * server-side layout) rather than plumbing it through header props.
+ */
+function TourSelector() {
+  const { startTour, status, stop } = useTour();
+  // Read tenantId from a data attribute on <html> set by the layout —
+  // avoids a second server round-trip. The layout sets it via <html
+  // data-tenant-id={t?.id ?? ""}> so this component can pick it up.
+  const tenantId =
+    typeof document !== "undefined"
+      ? document.documentElement.dataset.tenantId ?? "default"
+      : "default";
+  const tours = availableTours(tenantId);
+  if (tours.length === 0) return null;
+
+  // When a tour is playing / paused / ended, show a "Stop tour" button
+  // instead of the selector to give the operator a clean exit path.
+  if (status !== "idle") {
+    return (
+      <button
+        onClick={stop}
+        className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
+        title="End the current tour"
+      >
+        End tour
+      </button>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1 rounded-md border p-0.5" style={{ borderColor: "var(--brand-primary)" }}>
+      <span
+        className="px-2 text-[10px] font-semibold uppercase tracking-wide"
+        style={{ color: "var(--brand-primary)" }}
+      >
+        Tour
+      </span>
+      {tours.map((name) => (
+        <button
+          key={name}
+          onClick={() => startTour(name)}
+          className="rounded px-2 py-0.5 text-xs font-medium transition hover:bg-white/5"
+          style={{ color: "var(--brand-primary)" }}
+          title={`Play the ${TOUR_LABELS[name]} tour`}
+        >
+          {TOUR_LABELS[name]}
+        </button>
+      ))}
+    </div>
   );
 }

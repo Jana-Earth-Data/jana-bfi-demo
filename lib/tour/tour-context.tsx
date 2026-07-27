@@ -1,14 +1,23 @@
 "use client";
 
 /**
- * Tour state machine.
+ * Tour state machine (v2 — multi-tour, route-aware, MutationObserver-driven).
  *
- * Holds: current step index, play/pause state, audio element ref.
- * Exposes: start, stop, play, pause, next, prev, skipTo(idx), getCurrentStep.
+ * Holds: current tour name, current step index, play/pause state, audio
+ * element ref. Exposes: startTour(name), stop, play, pause, next, prev,
+ * goTo(idx). Auto-advances when the active audio element fires `ended`.
  *
- * Auto-advances when the active audio element fires its `ended` event.
- * Pauses automatically if the user clicks outside the spotlight (handled
- * by tour-overlay.tsx via a backdrop click), but the user can resume.
+ * v2 changes from the first implementation:
+ *   - The active tour is selected at runtime via startTour(name). The
+ *     script is looked up from lib/tour/registry.ts against the current
+ *     tenant id (passed in via prop, resolved server-side in layout).
+ *   - Steps may declare navigateTo — the tour will router.push()
+ *     to that path before spotlighting (used to enter wizard routes).
+ *   - Steps may declare targetOptional — if the target element does not
+ *     appear within a bounded wait, the tour auto-advances instead of
+ *     showing a centred callout on a fully-dimmed screen.
+ *   - The provider lives at layout level so state survives navigation
+ *     into wizard routes (see components/bfi/tour/tour-shell.tsx).
  */
 
 import {
@@ -21,21 +30,22 @@ import {
   useRef,
   useState,
 } from "react";
-import tourScript from "@/data/tour-script.json";
-import type { TourScript, TourStep } from "./types";
-
-const script = tourScript as TourScript;
+import { usePathname, useRouter } from "next/navigation";
+import { getTourScript } from "./registry";
+import type { TourName, TourScript, TourStep } from "./types";
+import type { TenantId } from "@/lib/tenants";
 
 type TourStatus = "idle" | "playing" | "paused" | "ended";
 
 type TourContextValue = {
   status: TourStatus;
+  currentTour: TourName | null;
   currentIndex: number;
   totalSteps: number;
   step: TourStep | null;
   /** Hint for the dashboard so it can switch tabs without listening here. */
   desiredTab: TourStep["tab"] | null;
-  start: () => void;
+  startTour: (name: TourName) => void;
   stop: () => void;
   play: () => void;
   pause: () => void;
@@ -48,16 +58,34 @@ type TourContextValue = {
 
 const TourContext = createContext<TourContextValue | null>(null);
 
-export function TourProvider({ children }: { children: ReactNode }) {
+export function TourProvider({
+  tenantId,
+  children,
+}: {
+  tenantId: TenantId | string | null;
+  children: ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [status, setStatus] = useState<TourStatus>("idle");
+  const [currentTour, setCurrentTour] = useState<TourName | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const totalSteps = script.steps.length;
-  const step = status === "idle" ? null : script.steps[currentIndex] ?? null;
+  const script: TourScript | null = useMemo(() => {
+    if (!tenantId || !currentTour) return null;
+    return getTourScript(tenantId, currentTour);
+  }, [tenantId, currentTour]);
+
+  const totalSteps = script?.steps.length ?? 0;
+  const step = status === "idle" || !script
+    ? null
+    : script.steps[currentIndex] ?? null;
   const desiredTab = step?.tab ?? null;
 
-  // Stop/cleanup audio on every step change
+  // ------------------------------------------------------------------
+  // Audio playback
+  // ------------------------------------------------------------------
   const cleanupAudio = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -67,8 +95,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const playStep = useCallback(
+  const playAudioForStep = useCallback(
     (index: number) => {
+      if (!script) return;
       cleanupAudio();
       const s = script.steps[index];
       if (!s) return;
@@ -76,7 +105,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
       audio.preload = "auto";
       audioRef.current = audio;
       audio.addEventListener("ended", () => {
-        // Auto-advance unless we're at the last step
         if (index < script.steps.length - 1) {
           setCurrentIndex(index + 1);
         } else {
@@ -84,7 +112,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
         }
       });
       audio.addEventListener("error", () => {
-        // Audio missing — surface as ended so the tour still progresses
         console.warn(`Tour audio missing or failed: ${s.audioFile}`);
         if (index < script.steps.length - 1) {
           setCurrentIndex(index + 1);
@@ -96,43 +123,99 @@ export function TourProvider({ children }: { children: ReactNode }) {
         console.warn(`Audio play() blocked or failed: ${err.message}`);
       });
     },
-    [cleanupAudio]
+    [script, cleanupAudio],
   );
 
-  // Drive the audio element from state. Two distinct cases:
-  //   (a) status is "playing" AND we either have no audio loaded OR the
-  //       loaded audio is for a different step → load fresh
-  //   (b) status is "playing" AND the loaded audio matches the current step
-  //       → resume it
-  //   (c) status is "paused" → pause whatever is loaded, but DO NOT cleanup
-  //       (otherwise the next play / prev / next has nothing to resume)
   useEffect(() => {
+    if (!script) return;
     if (status === "playing") {
       const expectedSrc = script.steps[currentIndex]?.audioFile;
       if (!expectedSrc) return;
       const currentSrc = audioRef.current?.src ?? "";
       if (audioRef.current && currentSrc.endsWith(expectedSrc)) {
-        // Same step audio already loaded — just resume.
         void audioRef.current.play().catch((err) => {
           console.warn(`Audio resume failed: ${(err as Error).message}`);
         });
       } else {
-        // Different step (or nothing loaded) — fresh load.
-        playStep(currentIndex);
+        playAudioForStep(currentIndex);
       }
     } else if (status === "paused") {
       audioRef.current?.pause();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, status]);
+  }, [currentIndex, status, script]);
 
-  // Cleanup the audio element only on unmount, not on every state change.
   useEffect(() => {
     return cleanupAudio;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const start = useCallback(() => {
+  // ------------------------------------------------------------------
+  // Route navigation for wizard steps
+  // ------------------------------------------------------------------
+  //
+  // When a step declares navigateTo, we router.push there. The tour
+  // provider is mounted at layout level so state survives the route
+  // change. When the step ends and the next step has no navigateTo
+  // (or a different one), we handle transitions naturally as each
+  // step's effect runs.
+  useEffect(() => {
+    if (!step) return;
+    if (!step.navigateTo) {
+      // If we're on a wizard route but the next step wants us back on
+      // the dashboard, bounce home.
+      if (pathname && pathname !== "/") {
+        router.push("/");
+      }
+      return;
+    }
+    if (pathname !== step.navigateTo) {
+      router.push(step.navigateTo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step?.id, step?.navigateTo]);
+
+  // ------------------------------------------------------------------
+  // Optional-target auto-advance
+  // ------------------------------------------------------------------
+  //
+  // For steps flagged targetOptional, wait up to 2s for the target to
+  // appear. If it doesn't, skip to the next step. Prevents the "dark
+  // screen with a centred callout" failure mode when a conditional UI
+  // element (e.g. escalation banner) isn't present in the current demo
+  // state.
+  useEffect(() => {
+    if (!step?.targetOptional) return;
+    let cancelled = false;
+    const start = performance.now();
+    const check = () => {
+      if (cancelled) return;
+      if (typeof document === "undefined") return;
+      const found = document.querySelector(step.target);
+      if (found) return; // target appeared — normal spotlight will pick up
+      if (performance.now() - start > 2000) {
+        // Advance
+        if (currentIndex < totalSteps - 1) {
+          setCurrentIndex(currentIndex + 1);
+        } else {
+          setStatus("ended");
+        }
+        return;
+      }
+      window.setTimeout(check, 150);
+    };
+    window.setTimeout(check, 300);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step?.id]);
+
+  // ------------------------------------------------------------------
+  // Public API
+  // ------------------------------------------------------------------
+  const startTour = useCallback((name: TourName) => {
+    setCurrentTour(name);
     setCurrentIndex(0);
     setStatus("playing");
   }, []);
@@ -141,15 +224,22 @@ export function TourProvider({ children }: { children: ReactNode }) {
     cleanupAudio();
     setStatus("idle");
     setCurrentIndex(0);
-  }, [cleanupAudio]);
+    setCurrentTour(null);
+    // If a tour left us on a wizard route, bounce home so the user isn't
+    // stranded there.
+    if (pathname && pathname !== "/") {
+      router.push("/");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleanupAudio, pathname]);
 
   const play = useCallback(() => {
+    if (!script) return;
     if (status === "ended" || status === "idle") {
       setCurrentIndex(0);
     }
-    // The effect on [currentIndex, status] handles resume vs reload.
     setStatus("playing");
-  }, [status]);
+  }, [status, script]);
 
   const pause = useCallback(() => {
     if (status === "playing") {
@@ -166,7 +256,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const next = useCallback(() => {
     if (currentIndex < totalSteps - 1) {
       setCurrentIndex(currentIndex + 1);
-      setStatus("playing"); // navigation implies resume on the new step
+      setStatus("playing");
     } else {
       setStatus("ended");
     }
@@ -175,15 +265,19 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const prev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setStatus("playing"); // navigation implies resume on the new step
+      setStatus("playing");
     }
   }, [currentIndex]);
 
-  const goTo = useCallback((index: number) => {
-    const clamped = Math.max(0, Math.min(totalSteps - 1, index));
-    setCurrentIndex(clamped);
-    setStatus("playing");
-  }, [totalSteps]);
+  const goTo = useCallback(
+    (index: number) => {
+      if (!totalSteps) return;
+      const clamped = Math.max(0, Math.min(totalSteps - 1, index));
+      setCurrentIndex(clamped);
+      setStatus("playing");
+    },
+    [totalSteps],
+  );
 
   const restart = useCallback(() => {
     setCurrentIndex(0);
@@ -193,11 +287,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const value = useMemo<TourContextValue>(
     () => ({
       status,
+      currentTour,
       currentIndex,
       totalSteps,
       step,
       desiredTab,
-      start,
+      startTour,
       stop,
       play,
       pause,
@@ -209,11 +304,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
     }),
     [
       status,
+      currentTour,
       currentIndex,
       totalSteps,
       step,
       desiredTab,
-      start,
+      startTour,
       stop,
       play,
       pause,
@@ -222,7 +318,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       prev,
       goTo,
       restart,
-    ]
+    ],
   );
 
   return <TourContext.Provider value={value}>{children}</TourContext.Provider>;
