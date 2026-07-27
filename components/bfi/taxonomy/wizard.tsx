@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Borrower, Loan } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
 import {
@@ -80,7 +80,20 @@ export function TaxonomyWizard({
   suggestedActivityIds: string[];
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<WizardStep>(0);
+  const searchParams = useSearchParams();
+  // Guided-tour hook: when the URL carries ?tourStep=N the wizard
+  // renders that step and suppresses the auto-jump-to-Review that
+  // normally shows a saved assessment on mount. The loan-officer tour
+  // walks the wizard through each step; taxonomy step range is 0-3.
+  const tourStep = (() => {
+    const raw = searchParams?.get("tourStep");
+    if (raw === null || raw === undefined) return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > 3) return null;
+    return n as WizardStep;
+  })();
+  const isTourDriven = tourStep !== null;
+  const [step, setStep] = useState<WizardStep>(tourStep ?? 0);
   const [activityId, setActivityId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [saved, setSaved] = useState<SavedAssessment | null>(null);
@@ -144,7 +157,9 @@ export function TaxonomyWizard({
         // indicator matches the visible ResultCard. Without this the
         // left rail highlights step 1 (Loan basics) while the pane
         // shows the saved classification — visually inconsistent.
-        setStep(3);
+        // Suppressed under tour control so the tour can walk the wizard
+        // through each step without the loading effect stealing focus.
+        if (!isTourDriven) setStep(3);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -153,6 +168,12 @@ export function TaxonomyWizard({
       cancelled = true;
     };
   }, [loan.id]);
+
+  // Sync wizard step to the tour URL param so the tour can drive
+  // through each step by pushing distinct URLs.
+  useEffect(() => {
+    if (tourStep !== null) setStep(tourStep);
+  }, [tourStep]);
 
   const activity = activityId ? findActivityById(activityId) : null;
 
@@ -225,7 +246,7 @@ export function TaxonomyWizard({
             <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
               Loading prior assessments…
             </div>
-          ) : saved ? (
+          ) : saved && !isTourDriven ? (
             <ResultCard
               saved={saved}
               onEdit={() => {

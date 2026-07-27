@@ -30,7 +30,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getTourScript } from "./registry";
 import type { TourName, TourScript, TourStep } from "./types";
 import type { TenantId } from "@/lib/tenants";
@@ -67,6 +67,16 @@ export function TourProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const routerSearchParams = useSearchParams();
+  // Full path + query for navigateTo comparison. Distinguishes
+  // /esdd/L-0079959?tourStep=0 from /esdd/L-0079959?tourStep=1 so
+  // tour steps that share a route but change a query param actually
+  // navigate rather than being treated as "already there".
+  const fullPath =
+    (pathname ?? "") +
+    (routerSearchParams && routerSearchParams.toString()
+      ? `?${routerSearchParams.toString()}`
+      : "");
   const [status, setStatus] = useState<TourStatus>("idle");
   const [currentTour, setCurrentTour] = useState<TourName | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -169,7 +179,9 @@ export function TourProvider({
       }
       return;
     }
-    if (pathname !== step.navigateTo) {
+    // Compare full path+query so tours that switch between
+    // /esdd/L-0079959?tourStep=0 and ?tourStep=1 actually navigate.
+    if (fullPath !== step.navigateTo) {
       router.push(step.navigateTo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

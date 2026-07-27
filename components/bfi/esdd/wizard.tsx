@@ -20,7 +20,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Borrower, Loan } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
 import {
@@ -77,7 +77,20 @@ export function EsddWizard({
   borrower: Borrower;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<WizardStep>(0);
+  const searchParams = useSearchParams();
+  // Guided-tour hook: when the URL carries ?tourStep=N, the wizard
+  // renders that specific step and skips the auto-jump-to-Review
+  // behavior that normally kicks in when a saved screening exists.
+  // The loan-officer tour uses this to walk through every wizard step.
+  const tourStep = (() => {
+    const raw = searchParams?.get("tourStep");
+    if (raw === null || raw === undefined) return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > 5) return null;
+    return n as WizardStep;
+  })();
+  const isTourDriven = tourStep !== null;
+  const [step, setStep] = useState<WizardStep>(tourStep ?? 0);
   const [responses, setResponses] = useState<Record<string, StoredResponse>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
   const [loading, setLoading] = useState(true);
@@ -124,11 +137,17 @@ export function EsddWizard({
             // Sector-supplemented sectors have a Section 4 supplement,
             // pushing Review to index 5 (0-based). Otherwise Review is
             // at index 4.
-            const supplementSlug = sectorSlugFor(borrower.nrbSector);
-            const supplement = supplementSlug
-              ? ANNEX5_SECTOR_SUPPLEMENTS[supplementSlug]
-              : undefined;
-            setStep(supplement && supplement.length > 0 ? 5 : 4);
+            // Suppress this auto-jump when a tour is driving specific
+            // steps via ?tourStep=N — the tour narration walks through
+            // every step and does not want the wizard to short-circuit
+            // to the Review pane.
+            if (!isTourDriven) {
+              const supplementSlug = sectorSlugFor(borrower.nrbSector);
+              const supplement = supplementSlug
+                ? ANNEX5_SECTOR_SUPPLEMENTS[supplementSlug]
+                : undefined;
+              setStep(supplement && supplement.length > 0 ? 5 : 4);
+            }
           }
         }
       } finally {
@@ -139,6 +158,13 @@ export function EsddWizard({
       cancelled = true;
     };
   }, [loan.id]);
+
+  // Sync the wizard step to the URL when the tour advances tourStep.
+  // Without this, the wizard would stay on whatever step the officer
+  // was last on while the tour narration talks about a different step.
+  useEffect(() => {
+    if (tourStep !== null) setStep(tourStep);
+  }, [tourStep]);
 
   async function recordAnswer(
     question: EsddQuestion,
