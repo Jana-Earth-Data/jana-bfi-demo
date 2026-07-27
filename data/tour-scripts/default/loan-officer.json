@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "totalDurationSecondsApprox": 60,
+  "voice": "onyx",
+  "model": "tts-1-hd",
+  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "TEMPLATE — copy this file into data/tour-scripts/<newTenantId>/loan-officer.json when onboarding a new bank, replace the bank name and officer name strings, then regenerate audio: python3 scripts/generate-tour-audio.py --tenant <id> --tour loan-officer --force. See data/tour-scripts/laxmi_sunrise/loan-officer.json for a fully-fleshed 10-step Laxmi Sunrise example that includes wizard navigation.",
+  "steps": [
+    {
+      "id": "intro",
+      "tab": "mywork",
+      "target": "[data-tour='my-work-queue']",
+      "calloutTitle": "Loan officer tour — template",
+      "calloutText": "This is a placeholder. Copy laxmi_sunrise/loan-officer.json for a fully-fleshed tour example.",
+      "narration": "This is a placeholder loan officer tour for the default tenant. When onboarding a new bank, copy the Laxmi Sunrise loan officer script as a starting point and edit the bank and officer names.",
+      "audioFile": "/audio/default/loan-officer/tour-01-intro.mp3"
+    }
+  ]
+}

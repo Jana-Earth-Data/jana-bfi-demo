@@ -196,7 +196,7 @@ export function TaxonomyWizard({
   }
 
   return (
-    <div className="min-h-screen bg-surface text-slate-100">
+    <div className="min-h-screen bg-surface text-slate-100" data-tour="taxonomy-wizard">
       <TopBar
         tenantName={tenantName}
         officer={officer}

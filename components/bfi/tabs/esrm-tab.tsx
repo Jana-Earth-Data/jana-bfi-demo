@@ -989,7 +989,10 @@ function ScreeningWorkbench({
               </div>
             </div>
             {/* Manager assignment control */}
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-panelAlt px-3 py-2">
+            <div
+              className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-panelAlt px-3 py-2"
+              data-tour="assignment-control"
+            >
               <div className="text-xs">
                 <div className="text-slate-500">Owner</div>
                 <div className="text-slate-200">

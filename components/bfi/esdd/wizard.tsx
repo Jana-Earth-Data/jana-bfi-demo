@@ -208,7 +208,7 @@ export function EsddWizard({
     setStep(hasSectorSupplement ? 4 : 3);
 
   return (
-    <div className="min-h-screen bg-surface text-slate-100">
+    <div className="min-h-screen bg-surface text-slate-100" data-tour="esdd-wizard">
       <TopBar
         tenantName={tenantName}
         officer={officer}
