@@ -46,9 +46,21 @@ type BucketTotal = {
   activityBreakdown: ActivityBreakdown[];
 };
 
+type PortfolioScope = {
+  totalLoans: number;
+  totalOutstandingNpr: number;
+  retailLoans: number;
+  retailOutstandingNpr: number;
+  inScopeLoans: number;
+  inScopeOutstandingNpr: number;
+  classifiedLoans: number;
+  classifiedOutstandingNpr: number;
+};
+
 type TaxonomySummaryResponse = {
   ok: true;
   tenant: { id: string; displayName: string };
+  scope: PortfolioScope;
   totals: Record<BucketKey, BucketTotal>;
   totalClassified: number;
   totalUnclassifiedApplicable: number;
@@ -162,18 +174,38 @@ export async function GET() {
     }
   }
 
-  // Roll the full in-scope book into the Unclassified bucket for the
-  // NSRS annual disclosure — the filing needs to reflect every SME,
-  // commercial, and corporate loan the bank holds, not just the
-  // slice currently under review or already captured. Retail loans
-  // (personal, mortgage, education, vehicle) sit outside taxonomy
-  // scope per NRB's October 2024 rules.
+  // Sweep the book: roll every in-scope loan without a saved
+  // assessment into the Unclassified bucket, and compute the
+  // portfolio-scope hierarchy. Retail loans (personal, mortgage,
+  // education, vehicle) sit outside taxonomy scope per NRB Oct 2024.
+  const scope: PortfolioScope = {
+    totalLoans: 0,
+    totalOutstandingNpr: 0,
+    retailLoans: 0,
+    retailOutstandingNpr: 0,
+    inScopeLoans: 0,
+    inScopeOutstandingNpr: 0,
+    classifiedLoans: 0,
+    classifiedOutstandingNpr: 0,
+  };
   for (const loan of data.loans) {
-    if (latestByLoan.has(loan.id)) continue;
-    if (!loan.category) continue;
-    if (loan.category.startsWith("retail-")) continue;
-    totals.unclassified.count += 1;
-    totals.unclassified.nprTotal += loan.outstandingNpr;
+    scope.totalLoans += 1;
+    scope.totalOutstandingNpr += loan.outstandingNpr;
+    const isRetail = loan.category?.startsWith("retail-") ?? false;
+    if (isRetail) {
+      scope.retailLoans += 1;
+      scope.retailOutstandingNpr += loan.outstandingNpr;
+      continue;
+    }
+    scope.inScopeLoans += 1;
+    scope.inScopeOutstandingNpr += loan.outstandingNpr;
+    if (latestByLoan.has(loan.id)) {
+      scope.classifiedLoans += 1;
+      scope.classifiedOutstandingNpr += loan.outstandingNpr;
+    } else {
+      totals.unclassified.count += 1;
+      totals.unclassified.nprTotal += loan.outstandingNpr;
+    }
   }
 
   // Materialise the activity breakdown arrays, largest exposure first.
@@ -210,6 +242,7 @@ export async function GET() {
   const body: TaxonomySummaryResponse = {
     ok: true,
     tenant: { id: tenant.id, displayName: tenant.branding.displayName },
+    scope,
     totals,
     totalClassified,
     totalUnclassifiedApplicable,

@@ -53,12 +53,30 @@ export type TaxonomyReportLoan = {
   dnshFailures: string[];
 };
 
+/**
+ * Portfolio scope hierarchy shown at the top of the summary page so the
+ * reader understands what the classification totals cover. NRB Green
+ * Finance Taxonomy applies to SME + commercial + corporate loans;
+ * retail (personal / mortgage / education / vehicle) sits out of scope.
+ */
+export type PortfolioScope = {
+  totalLoans: number;
+  totalOutstandingNpr: number;
+  retailLoans: number;
+  retailOutstandingNpr: number;
+  inScopeLoans: number;
+  inScopeOutstandingNpr: number;
+  classifiedLoans: number;
+  classifiedOutstandingNpr: number;
+};
+
 export type TaxonomyReport = {
   tenant: {
     id: string;
     displayName: string;
   };
   generatedAt: string;
+  scope: PortfolioScope;
   portfolio: Record<NrbTaxonomyColor, TaxonomyReportBucket>;
   loans: TaxonomyReportLoan[];
 };
@@ -204,12 +222,34 @@ export function buildTaxonomyReport(
   // remain reserved for loans with saved officer assessments (the
   // captured slice). The summary counts show how much of the book
   // has been captured versus how much is still pending.
+  const scope: PortfolioScope = {
+    totalLoans: 0,
+    totalOutstandingNpr: 0,
+    retailLoans: 0,
+    retailOutstandingNpr: 0,
+    inScopeLoans: 0,
+    inScopeOutstandingNpr: 0,
+    classifiedLoans: 0,
+    classifiedOutstandingNpr: 0,
+  };
   for (const loan of demoData.loans) {
-    if (assessedLoanIds.has(loan.id)) continue;
-    if (!loan.category) continue;
-    if (loan.category.startsWith("retail-")) continue;
-    portfolio.unclassified.count += 1;
-    portfolio.unclassified.nprTotal += loan.outstandingNpr;
+    scope.totalLoans += 1;
+    scope.totalOutstandingNpr += loan.outstandingNpr;
+    const isRetail = loan.category?.startsWith("retail-") ?? false;
+    if (isRetail) {
+      scope.retailLoans += 1;
+      scope.retailOutstandingNpr += loan.outstandingNpr;
+      continue;
+    }
+    scope.inScopeLoans += 1;
+    scope.inScopeOutstandingNpr += loan.outstandingNpr;
+    if (assessedLoanIds.has(loan.id)) {
+      scope.classifiedLoans += 1;
+      scope.classifiedOutstandingNpr += loan.outstandingNpr;
+    } else {
+      portfolio.unclassified.count += 1;
+      portfolio.unclassified.nprTotal += loan.outstandingNpr;
+    }
   }
 
   // Stable ordering: green first, then amber, red, unclassified; within a
@@ -232,6 +272,7 @@ export function buildTaxonomyReport(
       displayName: tenant.branding.displayName,
     },
     generatedAt: new Date().toISOString(),
+    scope,
     portfolio,
     loans,
   };
@@ -338,13 +379,27 @@ export async function buildTaxonomyXlsx(
   // -------------------------------------------------------------------------
   const s2 = wb.addWorksheet("Portfolio summary");
   s2.columns = [
-    { header: "Bucket", key: "bucket", width: 22 },
+    { header: "Bucket", key: "bucket", width: 44 },
     { header: "Loan count", key: "count", width: 14 },
     { header: "Outstanding (NPR)", key: "npr", width: 24 },
-    { header: "Share of assessed exposure", key: "share", width: 26 },
+    { header: "Share of in-scope exposure", key: "share", width: 26 },
   ];
 
-  const totalNpr = COLORS.reduce((s, c) => s + report.portfolio[c].nprTotal, 0);
+  // Portfolio scope hierarchy at the top so the reader understands what
+  // the classification bucket totals below are covering. NRB Green
+  // Finance Taxonomy applies to SME + commercial + corporate loans;
+  // retail sits out of scope.
+  const sc = report.scope;
+  s2.addRow({ bucket: "Total loans in the book", count: sc.totalLoans, npr: sc.totalOutstandingNpr, share: null });
+  s2.addRow({ bucket: "  Out of scope — retail", count: sc.retailLoans, npr: sc.retailOutstandingNpr, share: null });
+  s2.addRow({ bucket: "  In scope — SME, commercial, corporate", count: sc.inScopeLoans, npr: sc.inScopeOutstandingNpr, share: null });
+  s2.addRow({ bucket: "    Classified in this report", count: sc.classifiedLoans, npr: sc.classifiedOutstandingNpr, share: null });
+  s2.addRow({ bucket: "    Not yet classified", count: sc.inScopeLoans - sc.classifiedLoans, npr: sc.inScopeOutstandingNpr - sc.classifiedOutstandingNpr, share: null });
+  s2.addRow({});
+
+  s2.addRow({ bucket: "Classification breakdown (in-scope loans)", count: null, npr: null, share: null });
+
+  const totalNpr = COLORS.reduce((accum, c) => accum + report.portfolio[c].nprTotal, 0);
   for (const c of COLORS) {
     const b = report.portfolio[c];
     s2.addRow({
@@ -355,8 +410,8 @@ export async function buildTaxonomyXlsx(
     });
   }
   s2.addRow({
-    bucket: "Total (assessed)",
-    count: COLORS.reduce((s, c) => s + report.portfolio[c].count, 0),
+    bucket: "Total (in-scope)",
+    count: COLORS.reduce((accum, c) => accum + report.portfolio[c].count, 0),
     npr: totalNpr,
     share: totalNpr > 0 ? 1 : 0,
   });
@@ -702,8 +757,106 @@ export async function buildTaxonomyPdf(
     });
     y -= 24;
 
+    // Portfolio-at-a-glance scope hierarchy. Establishes what the
+    // classification totals below are covering. NRB Green Finance
+    // Taxonomy applies to SME + commercial + corporate loans; retail
+    // sits out of scope per NRB Oct 2024.
+    const s = report.scope;
+    page.drawText("Portfolio at a glance", {
+      x: MARGIN_X,
+      y: y - 12,
+      size: 12,
+      font: helvBold,
+      color: black,
+    });
+    y -= 18;
+
+    const scopeRows: Array<{ label: string; count: number; npr: number; hint?: string }> = [
+      {
+        label: "Total loans in the book",
+        count: s.totalLoans,
+        npr: s.totalOutstandingNpr,
+      },
+      {
+        label: "Out of scope — retail (personal, mortgage, education, vehicle)",
+        count: s.retailLoans,
+        npr: s.retailOutstandingNpr,
+        hint: "Not subject to NRB Green Finance Taxonomy",
+      },
+      {
+        label: "In scope — SME, commercial, corporate",
+        count: s.inScopeLoans,
+        npr: s.inScopeOutstandingNpr,
+        hint: "Subject to NRB Green Finance Taxonomy classification",
+      },
+      {
+        label: "  · Classified in this report",
+        count: s.classifiedLoans,
+        npr: s.classifiedOutstandingNpr,
+      },
+      {
+        label: "  · Not yet classified",
+        count: s.inScopeLoans - s.classifiedLoans,
+        npr: s.inScopeOutstandingNpr - s.classifiedOutstandingNpr,
+      },
+    ];
+    const scopeCol = { label: MARGIN_X, count: 340, npr: 420 };
+    for (const row of scopeRows) {
+      page.drawText(row.label, {
+        x: scopeCol.label,
+        y: y - 10,
+        size: 10,
+        font: helv,
+        color: black,
+      });
+      page.drawText(row.count.toLocaleString(), {
+        x: scopeCol.count,
+        y: y - 10,
+        size: 10,
+        font: helv,
+        color: black,
+      });
+      page.drawText(fmtNpr(row.npr), {
+        x: scopeCol.npr,
+        y: y - 10,
+        size: 10,
+        font: helv,
+        color: black,
+      });
+      y -= 14;
+      if (row.hint) {
+        page.drawText(row.hint, {
+          x: scopeCol.label + 14,
+          y: y - 8,
+          size: 8,
+          font: helv,
+          color: gray,
+        });
+        y -= 12;
+      }
+    }
+    y -= 8;
+
+    page.drawRectangle({
+      x: MARGIN_X,
+      y: y,
+      width: CONTENT_W,
+      height: 0.5,
+      color: lightGray,
+    });
+    y -= 20;
+
+    page.drawText("Classification breakdown (in-scope loans)", {
+      x: MARGIN_X,
+      y: y - 12,
+      size: 12,
+      font: helvBold,
+      color: black,
+    });
+    y -= 22;
+
     const totalNpr = COLORS.reduce(
-      (s, c) => s + report.portfolio[c].nprTotal,
+      (accum, c) => accum + report.portfolio[c].nprTotal,
       0,
     );
 
