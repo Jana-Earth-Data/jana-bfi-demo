@@ -109,20 +109,17 @@ export async function GET(request: NextRequest) {
         { status: 500 },
       );
     }
-    // Serve the underlying ArrayBuffer view of the Node Buffer so
-    // Next.js returns a pure binary body without any charset injection.
-    const body = new Uint8Array(
-      buffer.buffer,
-      buffer.byteOffset,
-      buffer.byteLength,
-    );
+    // Copy into a fresh Uint8Array so we never accidentally send a
+    // view over a shared slab allocator (Node's Buffer sometimes lives
+    // inside a larger internal ArrayBuffer). Uint8Array.from copies.
+    const body = Uint8Array.from(buffer);
     return new NextResponse(body as BodyInit, {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${stub}-nrb-taxonomy-${dateStamp}.xlsx"`,
-        "Content-Length": String(buffer.byteLength),
+        "Content-Length": String(body.byteLength),
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },
@@ -139,17 +136,31 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-  const pdfBody = new Uint8Array(
-    pdfBuffer.buffer,
-    pdfBuffer.byteOffset,
-    pdfBuffer.byteLength,
-  );
+  // Sanity-check the PDF bytes before we send them. If the buffer
+  // doesn't start with "%PDF-", the builder produced garbage
+  // (typically pdfkit font loading failed silently in the runtime).
+  // Better to fail loud than to hand Adobe an unreadable file.
+  if (
+    pdfBuffer.length < 5 ||
+    pdfBuffer.toString("ascii", 0, 5) !== "%PDF-"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "PDF builder produced a non-PDF payload (missing %PDF- header). This usually means pdfkit's font loader failed in the runtime.",
+        firstBytesHex: pdfBuffer.slice(0, 16).toString("hex"),
+        bufferLength: pdfBuffer.length,
+      },
+      { status: 500 },
+    );
+  }
+  const pdfBody = Uint8Array.from(pdfBuffer);
   return new NextResponse(pdfBody as BodyInit, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${stub}-nrb-taxonomy-${dateStamp}.pdf"`,
-      "Content-Length": String(pdfBuffer.byteLength),
+      "Content-Length": String(pdfBody.byteLength),
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
     },
