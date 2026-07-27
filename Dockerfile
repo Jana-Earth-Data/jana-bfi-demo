@@ -31,12 +31,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# pdfkit loads its AFM font files via runtime require.resolve() which
-# Next.js's output tracer cannot see statically. Without these bytes
-# the PDF export route silently produces a malformed file that Adobe
-# Acrobat rejects. Copy the pdfkit data + js directories explicitly.
+# pdfkit resolves its AFM font files via __dirname-relative lookups
+# at call time. When Next.js bundles pdfkit into the compiled route,
+# "__dirname" ends up pointing at the ROUTE'S directory in the
+# standalone output — i.e. .next/server/app/api/reports/nrb-taxonomy/ —
+# and pdfkit looks for ./data/Helvetica.afm there. Copy the AFM files
+# to exactly that spot. Any other API route that ships pdfkit would
+# need the same treatment.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit/js/data ./.next/server/app/api/reports/nrb-taxonomy/data
+# Also keep a copy at the node_modules path in case some code path
+# (e.g. importing pdfkit outside the traced bundle) still expects it.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit/js/data ./node_modules/pdfkit/js/data
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit/js/data ./.next/standalone/node_modules/pdfkit/js/data
 
 # Defensive: ensure public assets are world-readable regardless of host perms.
 RUN chmod -R a+rX ./public
