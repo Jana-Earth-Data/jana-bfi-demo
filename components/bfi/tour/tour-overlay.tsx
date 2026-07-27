@@ -36,38 +36,59 @@ function targetRect(selector: string): Rect | null {
 }
 
 function calloutPosition(rect: Rect | null) {
-  if (!rect) return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+  // When there is no target, park the callout in the top-right corner
+  // instead of dead-centering it (which historically felt like an
+  // "everything is broken" state).
+  if (!rect) {
+    if (typeof window === "undefined") {
+      return { top: "24px", right: "24px" };
+    }
+    return {
+      top: "24px",
+      left: `${Math.max(24, window.innerWidth - 380 - 24)}px`,
+    };
+  }
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const calloutWidth = 380;
+  const calloutHeight = 220; // estimated
   const calloutGap = 16;
 
-  // Try right side first
+  // Try right side (spotlight on left, callout on right)
   if (rect.left + rect.width + calloutGap + calloutWidth < vw - 24) {
     return {
-      top: `${Math.min(vh - 220, Math.max(24, rect.top))}px`,
+      top: `${Math.min(vh - calloutHeight - 24, Math.max(24, rect.top))}px`,
       left: `${rect.left + rect.width + calloutGap}px`,
     };
   }
   // Try left side
   if (rect.left - calloutGap - calloutWidth > 24) {
     return {
-      top: `${Math.min(vh - 220, Math.max(24, rect.top))}px`,
+      top: `${Math.min(vh - calloutHeight - 24, Math.max(24, rect.top))}px`,
       left: `${rect.left - calloutGap - calloutWidth}px`,
     };
   }
-  // Below
-  if (rect.top + rect.height + calloutGap + 200 < vh) {
+  // Try below the target
+  if (rect.top + rect.height + calloutGap + calloutHeight < vh - 24) {
     return {
       top: `${rect.top + rect.height + calloutGap}px`,
       left: `${Math.min(vw - calloutWidth - 24, Math.max(24, rect.left))}px`,
     };
   }
-  // Above
-  return {
-    top: `${Math.max(24, rect.top - calloutGap - 200)}px`,
-    left: `${Math.min(vw - calloutWidth - 24, Math.max(24, rect.left))}px`,
-  };
+  // Try above the target
+  if (rect.top - calloutGap - calloutHeight > 24) {
+    return {
+      top: `${Math.max(24, rect.top - calloutGap - calloutHeight)}px`,
+      left: `${Math.min(vw - calloutWidth - 24, Math.max(24, rect.left))}px`,
+    };
+  }
+  // Nothing fits without overlap — pin the callout to the top-right
+  // corner (or top-left if the spotlight itself is on the right). This
+  // way the callout still displays but the spotlight remains visible.
+  const pinRight = rect.left + rect.width / 2 < vw / 2;
+  return pinRight
+    ? { top: "24px", left: `${Math.max(24, vw - calloutWidth - 24)}px` }
+    : { top: "24px", left: "24px" };
 }
 
 export function TourOverlay() {

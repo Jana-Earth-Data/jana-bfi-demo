@@ -89,7 +89,30 @@ Laxmi tour: dashboard 9, loan-officer 10, manager 7.
 - Kill any browser popups (permissions, translation prompts, "leave
   site?" dialogs)
 
-### Step 5 — Prime the demo data
+### Step 5 — Prime the demo data (recommended: one-line seeder)
+
+**Fastest path** — hit the seed endpoint. It wipes and re-populates
+the same demo state every time:
+
+```
+curl -X POST "http://localhost:3001/api/admin/seed-demo-data?token=$SEED_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"tenantId":"laxmi_sunrise"}'
+```
+
+This primes:
+- Hongshi-Shivam Cement (L-0079959) — full ESDD with two 'c' answers
+  (Section 3.2 labour, 3.3 community H&S) so the manager view's
+  escalation banner has real driving-question pills. Also assigned to
+  the tenant's ESG officer and given an Amber taxonomy classification
+  (cement with WHR, transitional).
+- Himal Power Limited (L-0080028) — Green taxonomy classification
+  (small hydro, all DNSH checks passing).
+
+Response includes counts of rows written per table for verification.
+
+**Alternative — manual walkthrough** (if you want to demo the wizard
+flow live during setup):
 For the demo to tell a full story you need at least one loan with a
 completed ESDD screening, one loan with an escalation, and one loan
 with a taxonomy classification. Cheapest path:

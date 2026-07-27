@@ -11,8 +11,8 @@
       "tab": "loans",
       "target": "[data-tour='loan-table']",
       "calloutTitle": "Laxmi Sunrise Bank · financed emissions dashboard",
-      "calloutText": "Simulated 80,000-loan portfolio scaled to Laxmi's book, with real facility emissions from Climate TRACE and EDGAR underneath.",
-      "narration": "Welcome. What you are looking at is the financed-emissions dashboard for Laxmi Sunrise Bank. The loan book on this tab is a simulated portfolio of 80,000 loans scaled to Laxmi's actual size. The numbers underneath every record are real, drawn from Climate TRACE satellite verification and EDGAR national inventories through Jana Earth Data. Over the next three and a half minutes I will walk you through how a bank uses this to meet all three of Nepal Rastra Bank's environmental regulations through a single data platform.",
+      "calloutText": "Illustrative 80,000-loan portfolio with real facility emissions from Climate TRACE and EDGAR underneath.",
+      "narration": "Welcome. What you are looking at is the financed-emissions dashboard for Laxmi Sunrise Bank. The loan book on this tab is an illustrative 80,000-loan portfolio used to walk through the platform. The numbers underneath every record are real, drawn from Climate TRACE satellite verification and EDGAR national inventories through Jana Earth Data. Over the next three and a half minutes I will walk you through how a bank uses this platform to meet all three of Nepal Rastra Bank's environmental regulations through a single data platform.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-01-intro.mp3"
     },
     {
@@ -21,7 +21,7 @@
       "target": "[data-tour='tab-strip']",
       "calloutTitle": "Three regulatory tiers, one dashboard",
       "calloutText": "ESRM screens new loans · Taxonomy classifies the book · NSRS produces annual disclosures.",
-      "narration": "The tabs across the top map directly onto NRB's regulatory stack. ESRM from the 2018 directive is the credit decision layer — every new commercial loan gets screened for environmental risk before approval. Taxonomy from October 2024 classifies the entire book as green, amber, or red. And NSRS, coming in 2026 and 2027, requires public disclosure of financed emissions under the PCAF methodology. Most banks are stuck on all three because they don't have facility-level emissions data. Jana provides that data layer.",
+      "narration": "The tabs across the top map directly onto NRB's regulatory stack. ESRM from the 2018 directive is the credit decision layer. every new commercial loan gets screened for environmental risk before approval. Taxonomy from October 2024 classifies the entire book as green, amber, or red. And NSRS, coming in 2026 and 2027, requires public disclosure of financed emissions under the PCAF methodology. Most banks are stuck on all three because they don't have facility-level emissions data. Jana provides that data layer.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-02-three-tabs.mp3"
     },
     {
@@ -29,8 +29,8 @@
       "tab": "taxonomy",
       "target": "[data-tour='funnel']",
       "calloutTitle": "Small by count. Large by value. All the regulatory risk.",
-      "calloutText": "Of Laxmi's 80,000 loans, roughly 10,000 are non-retail. About 1,000 are commercial exposures with facility-tier data, behind about 120 unique borrowers.",
-      "narration": "Here is the picture that matters. Of Laxmi's 80,000 loans, roughly 10,000 are non-retail business loans that fall under NRB regulation. The retail majority, home mortgages and personal loans, sits outside the scope of the Green Finance Taxonomy and ESRM. Of those 10,000 in-scope loans, roughly 1,000 are large commercial and corporate exposures where facility-level emissions data attaches. Behind those 1,000 loans sit roughly 120 unique borrowers with verified satellite emissions, spanning cement, hydropower, hotels, logistics, waste utilities, and large industrial. By count, that is a small slice. By outstanding value, it is the slice that carries almost all of the environmental risk a regulator examines.",
+      "calloutText": "About 1,000 commercial exposures in this illustrative book have facility-tier data, behind roughly 120 unique borrowers spanning cement, hydropower, industry, and logistics.",
+      "narration": "Here is the picture that matters for any bank. In this illustrative 80,000-loan book, roughly 10,000 loans are non-retail business exposures that fall under NRB regulation. Of those 10,000 in-scope loans, roughly 1,000 are large commercial and corporate exposures where facility-level emissions data attaches. Behind those 1,000 loans sit roughly 120 unique borrowers with verified satellite emissions, spanning cement, hydropower, hotels, logistics, waste utilities, and large industrial. By count that is a small slice. By outstanding value it is the slice that carries almost all of the environmental risk a regulator examines. Every commercial bank in Nepal has a version of this picture. The mix varies by institution.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-03-funnel.mp3"
     },
     {
@@ -67,7 +67,7 @@
       "target": "[data-tour='nsrs-headline']",
       "calloutTitle": "Tier 3 — annual NSRS disclosure",
       "calloutText": "PCAF-compliant Scope 3 Category 15 financed emissions, ready for the annual report.",
-      "narration": "Fast-forward to the end of the year. Laxmi needs to file its annual sustainability report under NSRS — Nepal's IFRS S2-aligned disclosure framework. This is the dashboard the CFO and CRO see. Total financed emissions across the book, with the most recent fully-reported year, and a multi-year trend. The number on the page is what goes into the annual report, with full PCAF methodology attribution underneath.",
+      "narration": "Fast-forward to the end of the year. Laxmi needs to file its annual sustainability report under NSRS. Nepal's IFRS S2-aligned disclosure framework. This is the dashboard the CFO and CRO see. Total financed emissions across the book, with the most recent fully-reported year, and a multi-year trend. The number on the page is what goes into the annual report, with full PCAF methodology attribution underneath.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-07-nsrs.mp3"
     },
     {
@@ -76,7 +76,7 @@
       "target": "[data-tour='data-quality']",
       "calloutTitle": "PCAF data quality — the technical moat",
       "calloutText": "Without Jana: Score 5 across the board. With Jana: Score 2 on the slice that matters.",
-      "narration": "And here is the technical differentiator. PCAF requires every bank to disclose a data quality score from 1 to 5, with 1 being best. Without facility-level data, a bank defaults to Score 5 — revenue-based estimates using national averages. With Jana, the highest-emission slice of the portfolio moves to Score 2 — satellite-verified facility data plus public financial filings. NRB examiners and IFRS S2 auditors both look at this score. Jana moves the needle on the loans that matter.",
+      "narration": "And here is the technical differentiator. PCAF requires every bank to disclose a data quality score from 1 to 5, with 1 being best. Without facility-level data, a bank defaults to Score 5. revenue-based estimates using national averages. With Jana, the highest-emission slice of the portfolio moves to Score 2. satellite-verified facility data plus public financial filings. NRB examiners and IFRS S2 auditors both look at this score. Jana moves the needle on the loans that matter.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-08-data-quality.mp3"
     },
     {
@@ -85,7 +85,7 @@
       "target": "[data-tour='header']",
       "calloutTitle": "One platform · three regulations · full attribution",
       "calloutText": "Real Climate TRACE. Real EDGAR. Real GCCT. Climbing the PCAF score on the slice that carries the risk.",
-      "narration": "What you have just seen is one integration that handles all three of NRB's regulatory layers for Laxmi Sunrise Bank — credit screening, portfolio classification, and annual disclosure — using independent, satellite-verified data sources. The demo book in front of you is synthetic, but every emissions number is real. Jana provides the data infrastructure that makes compliance feasible. For a closer look at how a loan officer or a compliance manager uses this day to day, pick the Loan officer or Manager tour from the header. Thanks for watching.",
+      "narration": "What you have just seen is one integration that handles all three of NRB's regulatory layers for Laxmi Sunrise Bank. credit screening, portfolio classification, and annual disclosure. using independent, satellite-verified data sources. The demo book in front of you is synthetic, but every emissions number is real. Jana provides the data infrastructure that makes compliance feasible. For a closer look at how a loan officer or a compliance manager uses this day to day, pick the Loan officer or Manager tour from the header. Thanks for watching.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-09-closing.mp3"
     }
   ]

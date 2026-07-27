@@ -98,26 +98,60 @@ export async function GET(request: NextRequest) {
   const dateStamp = report.generatedAt.split("T")[0];
 
   if (format === "xlsx") {
-    const buffer = await buildTaxonomyXlsx(report, branding);
-    return new NextResponse(new Uint8Array(buffer), {
+    let buffer: Buffer;
+    try {
+      buffer = await buildTaxonomyXlsx(report, branding);
+    } catch (err) {
+      return NextResponse.json(
+        {
+          error: `xlsx build failed: ${(err as Error).message}`,
+        },
+        { status: 500 },
+      );
+    }
+    // Serve the underlying ArrayBuffer view of the Node Buffer so
+    // Next.js returns a pure binary body without any charset injection.
+    const body = new Uint8Array(
+      buffer.buffer,
+      buffer.byteOffset,
+      buffer.byteLength,
+    );
+    return new NextResponse(body as BodyInit, {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${stub}-nrb-taxonomy-${dateStamp}.xlsx"`,
+        "Content-Length": String(buffer.byteLength),
         "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   }
 
   // format === "pdf"
-  const buffer = await buildTaxonomyPdf(report, branding);
-  return new NextResponse(new Uint8Array(buffer), {
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await buildTaxonomyPdf(report, branding);
+  } catch (err) {
+    return NextResponse.json(
+      { error: `pdf build failed: ${(err as Error).message}` },
+      { status: 500 },
+    );
+  }
+  const pdfBody = new Uint8Array(
+    pdfBuffer.buffer,
+    pdfBuffer.byteOffset,
+    pdfBuffer.byteLength,
+  );
+  return new NextResponse(pdfBody as BodyInit, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${stub}-nrb-taxonomy-${dateStamp}.pdf"`,
+      "Content-Length": String(pdfBuffer.byteLength),
       "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

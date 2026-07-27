@@ -16,11 +16,20 @@ import { useState } from "react";
 
 type ExportFormat = "json" | "xlsx" | "pdf";
 
-const FORMATS: Array<{ id: ExportFormat; label: string; hint: string }> = [
-  { id: "json", label: "JSON", hint: "Structured data (per-loan)" },
-  { id: "xlsx", label: "Excel", hint: "Bank-branded spreadsheet" },
-  { id: "pdf", label: "PDF", hint: "Bank-branded filing document" },
+const FORMATS: Array<{
+  id: ExportFormat;
+  label: string;
+  hint: string;
+  extension: string;
+}> = [
+  { id: "json", label: "JSON", hint: "Structured data (per-loan)", extension: "json" },
+  { id: "xlsx", label: "Excel", hint: "Bank-branded spreadsheet", extension: "xlsx" },
+  { id: "pdf", label: "PDF", hint: "Bank-branded filing document", extension: "pdf" },
 ];
+
+function todayStamp(): string {
+  return new Date().toISOString().split("T")[0];
+}
 
 export function NrbTaxonomyExportButton() {
   // State only used to blip a visual "downloading" pulse on the clicked
@@ -43,7 +52,7 @@ export function NrbTaxonomyExportButton() {
           <a
             key={f.id}
             href={`/api/reports/nrb-taxonomy?format=${f.id}`}
-            download
+            download={`nrb-taxonomy-${todayStamp()}.${f.extension}`}
             onClick={() => {
               setPending(f.id);
               // Reset after the browser has had time to start the download.

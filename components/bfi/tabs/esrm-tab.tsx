@@ -70,6 +70,46 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
   const [version, setVersion] = useState(0);
   const bumpVersion = () => setVersion((v) => v + 1);
 
+  /**
+   * Optimistic assignment update — the AssignmentControl calls this the
+   * instant the POST returns so the workbench flips to the new owner
+   * name immediately. The subsequent version bump kicks off a full
+   * refetch that reconciles any drift.
+   */
+  const handleAssignmentChange = (
+    loanId: string,
+    assignment: { officerId: string; officerName: string } | null,
+  ) => {
+    setManagerRows((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(loanId);
+      // If the loan doesn't have a manager-row yet, synthesise a minimal
+      // one so the workbench header can flip the owner display
+      // immediately. The version bump refetches the full row shortly.
+      if (!existing) {
+        next.set(loanId, {
+          loanId,
+          ownerOfficerId: assignment?.officerId ?? null,
+          ownerOfficerName: assignment?.officerName ?? null,
+          answered: 0,
+          total: 0,
+          riskClass: null,
+          escalated: false,
+          screeningAt: null,
+          lastEsddActivityAt: null,
+        });
+      } else {
+        next.set(loanId, {
+          ...existing,
+          ownerOfficerId: assignment?.officerId ?? null,
+          ownerOfficerName: assignment?.officerName ?? null,
+        });
+      }
+      return next;
+    });
+    bumpVersion();
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -216,7 +256,7 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
               managerRow={managerRows.get(selectedRow.loan.id) ?? null}
               officers={data.officers}
               currentOfficer={data.currentOfficer}
-              onAssignmentChanged={bumpVersion}
+              onAssignmentChanged={handleAssignmentChange}
             />
           ) : (
             <Panel title="Screening workbench">
@@ -799,7 +839,7 @@ function AssignmentControl({
   loanId: string;
   currentOwnerId: string | null;
   officers: Officer[];
-  onChange: () => void;
+  onChange: (assignment: { officerId: string; officerName: string } | null) => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -817,7 +857,15 @@ function AssignmentControl({
         setErr(body.error ?? `Server returned ${res.status}`);
         return;
       }
-      onChange();
+      // Optimistically report the assignment result up so the parent can
+      // update its managerRows Map immediately — otherwise the workbench
+      // header keeps showing "Unassigned" until the async refetch races
+      // through, which reads incorrectly to the user as a broken save.
+      if (officerId && body.officerName) {
+        onChange({ officerId, officerName: body.officerName });
+      } else {
+        onChange(null);
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -866,7 +914,10 @@ function ScreeningWorkbench({
   managerRow: ManagerRow | null;
   officers: Officer[];
   currentOfficer: Officer | null;
-  onAssignmentChanged: () => void;
+  onAssignmentChanged: (
+    loanId: string,
+    assignment: { officerId: string; officerName: string } | null,
+  ) => void;
 }) {
   const { loan, borrower, attribution } = row;
   const screening = useMemo(
@@ -1009,7 +1060,9 @@ function ScreeningWorkbench({
                 loanId={loan.id}
                 currentOwnerId={managerRow?.ownerOfficerId ?? null}
                 officers={officers}
-                onChange={onAssignmentChanged}
+                onChange={(assignment) =>
+                  onAssignmentChanged(loan.id, assignment)
+                }
               />
             </div>
 

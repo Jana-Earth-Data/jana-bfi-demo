@@ -22,7 +22,7 @@
       "targetOptional": true,
       "calloutTitle": "Escalation banner — surfaced automatically",
       "calloutText": "Any loan with a 'c' answer in NRB ESRM Annex 5 appears here with the driving questions listed inline.",
-      "narration": "When any of the officers records a 'c' answer on the NRB ESRM Annex 5 checklist, the loan appears in this escalation banner automatically. The manager clicks a pill to jump into the borrower's screening — no separate escalation queue to maintain, no manual triage step. If the banner is not visible in your demo, no loans have hit the escalation trigger yet.",
+      "narration": "When any of the officers records a 'c' answer on the NRB ESRM Annex 5 checklist, the loan appears in this escalation banner automatically. The manager clicks a pill to jump into the borrower's screening. There is no separate escalation queue to maintain, and no manual triage step. If the banner is not visible in the current demo state, no loans have hit the escalation trigger yet.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-02-escalation.mp3"
     },
     {
@@ -32,7 +32,7 @@
       "selectBorrowerNameContains": "Hongshi",
       "calloutTitle": "Compliance status stripe on every loan",
       "calloutText": "ESDD chip · Taxonomy chip · escalation callout with driving questions — all inline on the workbench.",
-      "narration": "The workbench for any single loan shows the compliance state front and centre. ESDD chip on the left with the risk class if a screening has been saved. Taxonomy chip on the right with the classification color and the activity name. If the loan escalated, the driving questions are listed inline so the manager knows exactly what triggered it — no need to open a separate per-question drawer.",
+      "narration": "The workbench for any single loan shows the compliance state front and centre. ESDD chip on the left with the risk class if a screening has been saved. Taxonomy chip on the right with the classification color and the activity name. If the loan escalated, the driving questions are listed inline so the manager knows exactly what triggered it. no need to open a separate per-question drawer.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-03-compliance-stripe.mp3"
     },
     {
@@ -50,7 +50,7 @@
       "target": "[data-tour='taxonomy-breakdown']",
       "calloutTitle": "Portfolio roll-up — Green / Amber / Red / Unclassified",
       "calloutText": "Every taxonomy classification the officers save rolls up automatically. Amber transitional bucket separated per NRB reporting treatment.",
-      "narration": "Every taxonomy classification the officers save rolls up automatically into the annual NSRS disclosure view. Four buckets — Green, Amber, Red, Unclassified — with outstanding rupee totals and per-activity breakdown. The Amber transitional bucket is separated on its own terms per NRB's October 2024 reporting treatment. Loans in taxonomy-eligible sectors that haven't been classified yet are flagged so nothing slips through the annual filing.",
+      "narration": "Every taxonomy classification the officers save rolls up automatically into the annual NSRS disclosure view. Four buckets. Green, Amber, Red, Unclassified. with outstanding rupee totals and per-activity breakdown. The Amber transitional bucket is separated on its own terms per NRB's October 2024 reporting treatment. Loans in taxonomy-eligible sectors that haven't been classified yet are flagged so nothing slips through the annual filing.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-05-nsrs-taxonomy.mp3"
     },
     {
@@ -68,7 +68,7 @@
       "target": "[data-tour='application-queue']",
       "calloutTitle": "Whole book · every loan · one view",
       "calloutText": "Officer captures roll up. Escalations surface. Portfolio-level filing is one click.",
-      "narration": "That is the manager workflow at Laxmi. Every loan, every officer's captures, every escalation, every taxonomy classification — visible in a single view, rolled up to the portfolio filing without a spreadsheet or a batch job in sight. Thanks for watching.",
+      "narration": "That is the manager workflow at Laxmi. Every loan, every officer's captures, every escalation, every taxonomy classification. visible in a single view, rolled up to the portfolio filing without a spreadsheet or a batch job in sight. Thanks for watching.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-07-closing.mp3"
     }
   ]
