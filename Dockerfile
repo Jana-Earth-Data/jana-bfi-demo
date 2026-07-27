@@ -30,6 +30,14 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# pdfkit loads its AFM font files via runtime require.resolve() which
+# Next.js's output tracer cannot see statically. Without these bytes
+# the PDF export route silently produces a malformed file that Adobe
+# Acrobat rejects. Copy the pdfkit data + js directories explicitly.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit/js/data ./node_modules/pdfkit/js/data
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit/js/data ./.next/standalone/node_modules/pdfkit/js/data
+
 # Defensive: ensure public assets are world-readable regardless of host perms.
 RUN chmod -R a+rX ./public
 
