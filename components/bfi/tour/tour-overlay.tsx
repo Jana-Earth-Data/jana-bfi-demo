@@ -54,13 +54,19 @@ function calloutPosition(rect: Rect | null) {
   const calloutHeight = 220; // estimated
   const calloutGap = 16;
 
-  // For a spotlight that spans most of the viewport width (banner-style
-  // targets like the escalation banner, KPI strip, or full-width panels),
-  // placing the callout above/below just moves the obstruction from one
-  // meaningful area to another. Pin to the top-right corner instead so
-  // the callout hovers over blank chrome, not over content the reader
-  // needs to see next.
-  const targetIsWide = rect.width > vw * 0.6;
+  // For a spotlight that spans a large fraction of the viewport width
+  // (banner-style targets like the escalation banner, KPI strip, or
+  // wide loan cards with action buttons on the right edge), placing
+  // the callout above/below just moves the obstruction from one
+  // meaningful area to another AND placing it to the right of a
+  // near-full-width target ends up overlapping the target's own
+  // right-side content (e.g. the CTA column on a loan card).
+  //
+  // Pin to the top-right corner instead so the callout hovers over
+  // blank chrome, not over content the reader needs to see next. The
+  // 50% threshold catches typical loan-card widths (65-75% of vw) as
+  // well as true full-width banners.
+  const targetIsWide = rect.width > vw * 0.5;
   if (targetIsWide) {
     return {
       top: "24px",
