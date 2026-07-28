@@ -153,28 +153,47 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
-  // 3. Assignments — determines the "awaiting" set.
+  // 3. Assignments — pull ALL assignments for this tenant so we know
+  //    which loans have an owner (any officer) versus which are
+  //    unassigned and free to pick up.
   // ------------------------------------------------------------------
-  const { data: myAssigns } = await supabase
+  const { data: allAssigns } = await supabase
     .from("bfi_loan_assignments")
-    .select("loan_id")
-    .eq("bank_id", tenant.id)
-    .eq("officer_id", officer.id);
-  const assignedLoanIds = new Set((myAssigns ?? []).map((a) => a.loan_id));
+    .select("loan_id, officer_id")
+    .eq("bank_id", tenant.id);
+  const assignedLoanIds = new Set<string>();
+  const myAssignedLoanIds = new Set<string>();
+  for (const a of allAssigns ?? []) {
+    assignedLoanIds.add(a.loan_id);
+    if (a.officer_id === officer.id) myAssignedLoanIds.add(a.loan_id);
+  }
 
   // ------------------------------------------------------------------
-  // 4. Determine the candidate loan set for this officer:
-  //    - Every loan they've touched (from byLoan)
-  //    - Every loan currently assigned to them
-  //    - Fallback: top-N under-review loans if no assignments and no touches
+  // 4. Determine the candidate loan set for this officer. Three
+  //    complementary sources — a loan appearing in any of them
+  //    belongs on this officer's queue:
+  //
+  //    (a) Every loan they've personally touched
+  //        (their attribution + prior work)
+  //    (b) Every loan currently assigned to them
+  //        (their explicit ownership)
+  //    (c) Every under-review loan that is NOT assigned to anyone
+  //        (available to pick up — otherwise unassigned work is
+  //        invisible after the first assignment lands)
+  //
+  //    (c) is the fix for "Sujata's queue emptied out after seed
+  //    assigned her one loan" — without it, the moment any officer
+  //    gets even one assignment their view of the free pool
+  //    disappears.
   // ------------------------------------------------------------------
   const candidateLoanIds = new Set<string>();
   for (const id of byLoan.keys()) candidateLoanIds.add(id);
-  for (const id of assignedLoanIds) candidateLoanIds.add(id);
-
-  if (candidateLoanIds.size === 0) {
-    const applications = applicationQueue(data, AWAITING_SLICE);
-    for (const app of applications) candidateLoanIds.add(app.loan.id);
+  for (const id of myAssignedLoanIds) candidateLoanIds.add(id);
+  const underReview = applicationQueue(data, AWAITING_SLICE * 4);
+  for (const app of underReview) {
+    if (!assignedLoanIds.has(app.loan.id)) {
+      candidateLoanIds.add(app.loan.id);
+    }
   }
 
   // ------------------------------------------------------------------

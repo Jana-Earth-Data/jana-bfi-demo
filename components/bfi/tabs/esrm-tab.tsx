@@ -193,7 +193,25 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         managerRows={managerRows}
         escalatedCount={escalatedCount}
         apps={apps}
-        onSelectLoan={setSelectedLoanId}
+        onSelectLoan={(loanId) => {
+          setSelectedLoanId(loanId);
+          // Scroll the workbench into view — the escalation banner
+          // sits above the fold; without this the pill click looks
+          // like it did nothing on desktop.
+          if (typeof document !== "undefined") {
+            requestAnimationFrame(() => {
+              const el = document.querySelector(
+                "[data-tour='screening-workbench']",
+              );
+              if (el) {
+                (el as HTMLElement).scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }
+            });
+          }
+        }}
       />
 
       {/* KPIs */}
