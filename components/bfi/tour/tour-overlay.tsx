@@ -54,6 +54,20 @@ function calloutPosition(rect: Rect | null) {
   const calloutHeight = 220; // estimated
   const calloutGap = 16;
 
+  // For a spotlight that spans most of the viewport width (banner-style
+  // targets like the escalation banner, KPI strip, or full-width panels),
+  // placing the callout above/below just moves the obstruction from one
+  // meaningful area to another. Pin to the top-right corner instead so
+  // the callout hovers over blank chrome, not over content the reader
+  // needs to see next.
+  const targetIsWide = rect.width > vw * 0.6;
+  if (targetIsWide) {
+    return {
+      top: "24px",
+      left: `${Math.max(24, vw - calloutWidth - 24)}px`,
+    };
+  }
+
   // Try right side (spotlight on left, callout on right)
   if (rect.left + rect.width + calloutGap + calloutWidth < vw - 24) {
     return {
