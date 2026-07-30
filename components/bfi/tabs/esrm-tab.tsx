@@ -36,6 +36,8 @@ import {
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
+import { ClimateRiskPanel } from "@/components/bfi/esrm/climate-risk-panel";
+import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 
 const NRB_REGULATORY_LINK =
   "https://www.nrb.org.np/contents/uploads/2018/05/Environment-Social-Risk-Management-Guidelines-2018.pdf";
@@ -312,6 +314,12 @@ function ApplicationsList({
           const isSel = r.loan.id === selectedLoanId;
           const m = managerRows.get(r.loan.id);
           const pct = m && m.total > 0 ? m.answered / m.total : 0;
+          // NRB ESRM 2022 §4.3 — small badge when the borrower is above
+          // 25k tCO2e/yr without a documented reduction target.
+          const climateFlag = inferEmissionsFlag(r.borrower);
+          const climateBadge =
+            climateFlag.exceedsReportingThreshold &&
+            !climateFlag.reductionTargetOnFile;
           return (
             <li key={r.loan.id}>
               <button
@@ -327,6 +335,14 @@ function ApplicationsList({
                     {r.loan.id}
                   </span>
                   <div className="flex items-center gap-1.5">
+                    {climateBadge && (
+                      <span
+                        title="Borrower above 25,000 tCO₂e / yr with no reduction target on file (NRB ESRM 2022 §4.3)"
+                        className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[9px] font-bold text-rose-200"
+                      >
+                        25k↑
+                      </span>
+                    )}
                     {m?.escalated && (
                       <span
                         title="Escalation flag set by ESRM screening"
@@ -1086,6 +1102,13 @@ function ScreeningWorkbench({
                 whole reason the manager cares about the escalation. */}
             <WorkbenchComplianceStripe loanId={loan.id} borrower={borrower} />
 
+            {/* Climate risk (NGFS categorisation + 25k tCO2e threshold flag)
+                from the 2022 NRB ESRM Guideline §4.1 / §4.3. Deterministic
+                inference from sector + facility emissions; the panel also
+                refreshes from /api/climate/borrower/[borrowerId] to overlay
+                any persisted officer override. */}
+            <ClimateRiskPanel borrower={borrower} />
+
             <div className="mt-3">
               <StatRow
                 label="Loan request"
@@ -1173,10 +1196,13 @@ function ScreeningWorkbench({
               </div>
               <div className="text-xs text-slate-500">
                 {borrower.facilities.length} matched{" "}
-                {borrower.facilities.length === 1 ? "facility" : "facilities"} ·
-                {" "}{borrower.facilities.length > 0
-                  ? "PCAF Score 3 (Option 2b)"
-                  : "Score 4 (benchmark)"}
+                {borrower.facilities.length === 1 ? "facility" : "facilities"}
+                {attribution.pcafOption && (
+                  <>
+                    {" · "}PCAF Score {attribution.dataQualityScore} (Option{" "}
+                    {attribution.pcafOption})
+                  </>
+                )}
               </div>
             </div>
 
@@ -1347,8 +1373,21 @@ function ScreeningWorkbench({
               className={`mt-1 text-2xl font-semibold ${qualityScoreColors[attribution.dataQualityScore]}`}
             >
               {attribution.dataQualityScore}
+              {attribution.pcafOption && (
+                <span className="ml-2 text-xs font-normal uppercase tracking-wide text-slate-400">
+                  Option {attribution.pcafOption}
+                </span>
+              )}
             </div>
             <div className="text-xs text-slate-500">{attribution.qualityNote}</div>
+            {attribution.pcafCitation && (
+              <div
+                className="mt-2 border-t border-line/60 pt-2 text-[10px] text-slate-500"
+                title={attribution.pcafCitation}
+              >
+                {attribution.pcafCitation}
+              </div>
+            )}
           </div>
         </div>
       </Panel>

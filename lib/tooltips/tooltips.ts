@@ -23,6 +23,13 @@ export const TOOLTIPS: Record<string, TooltipContent> = {
   // ---------------------------------------------------------------------------
   // PCAF scores (one tooltip per score so a banker can hover on any number)
   // ---------------------------------------------------------------------------
+  "pcaf-score-1": {
+    title: "PCAF Score 1",
+    body:
+      "Option 1a — the borrower publishes GHG-Protocol-conformant Scope 1/2/3 emissions AND the report is third-party verified.\n\nHighest data quality tier. In the Nepal market this is vanishingly rare today; a handful of NEPSE-listed publicly-listed borrowers with ISO-14064 assurance qualify. When the underlying data doesn't exist, we fall back to Score 2 / 3.",
+    source:
+      "PCAF Global GHG Accounting and Reporting Standard, Part A (3rd ed. 2025), §5.2 / §5.3 — Option 1a",
+  },
   "pcaf-score-2": {
     title: "PCAF Score 2",
     body:

@@ -151,7 +151,7 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
         <div data-tour="data-quality">
         <Panel
           title="Data quality distribution"
-          subtitle="PCAF score by NPR outstanding"
+          subtitle="Per-loan PCAF score (PCAF Part A 3rd Edition §5.2/§5.3) — computed from data availability, not hardcoded"
         >
           <DataQualityBars distribution={s.dataQualityDistribution ?? []} />
           <div className="mt-3 space-y-1">
