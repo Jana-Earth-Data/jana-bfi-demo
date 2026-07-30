@@ -28,10 +28,12 @@ import {
   ANNEX5_GENERAL_RISK,
   ANNEX5_SOCIAL_RISK,
   ESDD_LOAN_CATEGORY_LABEL,
+  ESDD_LOAN_CATEGORY_ORDER,
   type EsddAnswer,
   type EsddLoanCategory,
   type EsddQuestion,
 } from "@/lib/regulatory/esdd/annex5-questions";
+import { deriveEsddLoanCategory } from "@/lib/regulatory/esdd/loan-category-derive";
 import { formatNpr } from "@/components/bfi/ui";
 import Link from "next/link";
 import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
@@ -479,11 +481,14 @@ function BasicInfoStep({
   borrower: Borrower;
   onContinue: () => void;
 }) {
-  // Loan Category is required per Circular 22 Excel B13. The value drives
-  // Circular 22 §5 applicability triage and will trigger the Annex 5b
-  // Project Finance Screening Questionnaire when the officer selects
-  // "Project Finance" (Annex 5b work planned separately).
-  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">("");
+  // Loan Category is required per Circular 22 Excel B13 (dropdown
+  // `Tempor!A1:A4`). Prefilled from the loan + borrower record so the
+  // officer typically just confirms and moves on. The value drives
+  // Circular 22 §5 applicability triage and the Annex 5b PF screening
+  // gate on Project Finance loans.
+  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">(
+    () => deriveEsddLoanCategory(loan, borrower),
+  );
 
   const canContinue = loanCategory !== "";
 
@@ -524,20 +529,17 @@ function BasicInfoStep({
             <option value="" disabled>
               Select loan category…
             </option>
-            <option value="small">
-              {ESDD_LOAN_CATEGORY_LABEL["small"]}
-            </option>
-            <option value="bwc-term">
-              {ESDD_LOAN_CATEGORY_LABEL["bwc-term"]}
-            </option>
-            <option value="project-finance">
-              {ESDD_LOAN_CATEGORY_LABEL["project-finance"]}
-            </option>
+            {ESDD_LOAN_CATEGORY_ORDER.map((cat) => (
+              <option key={cat} value={cat}>
+                {ESDD_LOAN_CATEGORY_LABEL[cat]}
+              </option>
+            ))}
           </select>
           <p className="mt-1 text-[11px] text-slate-500">
-            Drives Circular 22 §5 applicability triage. Selecting Project
-            Finance will trigger the Annex 5b Project Finance Screening
-            Questionnaire (planned separately).
+            Verbatim from Circular 22 Excel <code>Tempor!A1:A4</code>.
+            Prefilled from the loan record; the officer can override.
+            Selecting Project Finance triggers the Annex 5b PF Screening
+            Questionnaire.
           </p>
         </div>
       </div>

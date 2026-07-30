@@ -53,12 +53,22 @@ export type EsddQuestion = {
  * Basic Information block — captured before any question is answered.
  * Fields match NRB's opening table on the Annex 5 checklist.
  *
- * `loanCategory` sourced from Circular 22 Excel cell B13 (dropdown from
- * `Tempor!A1:A4`). It drives Circular 22 §5 applicability triage and,
- * in a follow-up, whether the Annex 5b Project Finance Screening
- * Questionnaire is required.
+ * `loanCategory` sourced from Circular 22 Excel `Tempor!A1:A4` verbatim
+ * (the dropdown source for cell `ESDD Checklist!B13`). Four values.
+ * The B13 header text abbreviates "Small loan in [non-]critical sector"
+ * to just "Small", but the dropdown itself distinguishes the two —
+ * critical-sector small loans are treated differently under Circular 22
+ * §5 (the applicability triage sends them to the full checklist rather
+ * than the fast-path). Any of {smallNonCritical, smallCritical,
+ * bwcTerm} paths use the sector-agnostic Annex 5 checklist; the
+ * projectFinance path additionally requires the Annex 5b Project
+ * Finance Screening Questionnaire.
  */
-export type EsddLoanCategory = "small" | "bwc-term" | "project-finance";
+export type EsddLoanCategory =
+  | "small-non-critical"
+  | "small-critical"
+  | "bwc-term"
+  | "project-finance";
 
 export type EsddBasicInfo = {
   date: string;                    // ISO
@@ -74,12 +84,21 @@ export type EsddBasicInfo = {
   loanCategory: EsddLoanCategory;
 };
 
-// Human-readable labels for the loan-category dropdown (Circular 22 Excel B13).
+// Verbatim labels from Circular 22 Excel `Tempor!A1:A4`.
 export const ESDD_LOAN_CATEGORY_LABEL: Record<EsddLoanCategory, string> = {
-  "small": "Small (small business loan)",
-  "bwc-term": "BWC-Term (Business Working Capital / Term Loan)",
+  "small-non-critical": "Small loan in non-critical sector",
+  "small-critical": "Small loan in critical sector",
+  "bwc-term": "Business Working Capital / Term Loan",
   "project-finance": "Project Finance",
 };
+
+// Canonical order matches Circular 22 Excel `Tempor!A1:A4`.
+export const ESDD_LOAN_CATEGORY_ORDER: EsddLoanCategory[] = [
+  "small-non-critical",
+  "small-critical",
+  "bwc-term",
+  "project-finance",
+];
 
 // ---------------------------------------------------------------------------
 // Section 1 — General Risk
