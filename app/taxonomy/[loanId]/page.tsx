@@ -12,12 +12,14 @@
 
 import { notFound, redirect } from "next/navigation";
 import { TaxonomyWizard } from "@/components/bfi/taxonomy/wizard";
+import { TaxonomyGateScreen } from "@/components/bfi/taxonomy/gate-screen";
 import { TenantThemeProvider } from "@/components/bfi/tenant-theme";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { getBorrowerDetail } from "@/lib/data/portfolio-query";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { suggestActivitiesForSector } from "@/lib/regulatory/taxonomy/applicability";
+import { checkEsrmBeforeTaxonomyGate } from "@/lib/regulatory/taxonomy/gate";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,23 @@ export default async function TaxonomyWizardPage({
   if (!loan) notFound();
   const detail = getBorrowerDetail(data, loan.borrowerId);
   if (!detail.borrower) notFound();
+
+  // NRB GFT 2024 §3.2.2 — ESRM Steps 1+2 required before Taxonomy
+  // classification. Gate the wizard on a saved screening for this
+  // loan; otherwise render the gate screen with a jump-to-ESRM CTA.
+  const gate = await checkEsrmBeforeTaxonomyGate(tenant.id, loan.id);
+  if (!gate.allowed) {
+    return (
+      <TenantThemeProvider tenant={tenant}>
+        <TaxonomyGateScreen
+          tenantName={tenant.branding.displayName}
+          loan={loan}
+          borrower={detail.borrower}
+          reason={gate.reason}
+        />
+      </TenantThemeProvider>
+    );
+  }
 
   const suggestedActivityIds = suggestActivitiesForSector(
     detail.borrower.nrbSector,
