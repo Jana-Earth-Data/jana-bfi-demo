@@ -33,6 +33,8 @@ import {
   type EsddQuestion,
 } from "@/lib/regulatory/esdd/annex5-questions";
 import { formatNpr } from "@/components/bfi/ui";
+import Link from "next/link";
+import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
 
 // Steps: 0 basics, 1 general, 2 ehs, 3 social, 4 review.
 // Circular 22 has no sector supplement — the wizard reduces to 5 steps.
@@ -831,6 +833,7 @@ function ReviewStep({
 
   return (
     <div className="flex flex-col gap-4">
+      <PfScreeningCallout loan={loan} />
       <div className="rounded-2xl border border-line bg-panel p-6">
         <h2 className="text-lg font-semibold text-white">
           {isRerun ? "Re-run screening" : "Review and save"}
@@ -922,6 +925,7 @@ function ScreeningResult({
   };
   return (
     <div className="flex flex-col gap-4">
+      <PfScreeningCallout loan={loan} />
       {screening.escalationFlag && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
           <div className="font-semibold">Escalated to credit committee</div>
@@ -1012,6 +1016,43 @@ function ScreeningResult({
             Back to dashboard
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Project Finance callout — surfaces on the ESDD Review step for loans
+ * categorised as Project Finance, pointing the officer at the Annex 5b
+ * Project Finance Screening Questionnaire wizard. NRB ESRM 2022 requires
+ * both the sector-agnostic Annex 5 flow AND the Annex 5b screening for a
+ * PF loan to be considered complete.
+ */
+function PfScreeningCallout({ loan }: { loan: Loan }) {
+  if (!isProjectFinanceLoan(loan)) return null;
+  return (
+    <div
+      data-tour="esdd-pf-callout"
+      className="rounded-2xl border border-sky-500/40 bg-sky-500/10 p-4 text-sm text-sky-100"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="font-semibold">
+            This loan is Project Finance — additional NRB screening required
+          </div>
+          <div className="mt-1 text-xs text-sky-100/80">
+            NRB ESRM 2022 Annex 5b requires an IFC Performance-Standards-based
+            Project Finance screening (~85 Yes/No items across PS1–PS8) in
+            addition to this ESDD checklist. This loan will not be
+            ready-for-review until the PF screening is complete.
+          </div>
+        </div>
+        <Link
+          href={`/pf-screening/${loan.id}`}
+          className="shrink-0 rounded-md border border-sky-400/40 bg-sky-500/20 px-3 py-1.5 text-xs font-semibold text-sky-50 hover:bg-sky-500/30"
+        >
+          Open PF screening →
+        </Link>
       </div>
     </div>
   );
