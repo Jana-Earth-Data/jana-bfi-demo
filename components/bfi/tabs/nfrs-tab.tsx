@@ -25,6 +25,7 @@ import {
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
 import { NPR_PER_USD } from "@/lib/data/util";
 import { NrbTaxonomyExportButton } from "@/components/bfi/reports/nrb-taxonomy-export-button";
+import { NrbsisGreenStatementButton } from "@/components/bfi/reports/nrbsis-green-statement-button";
 
 export function NfrsTab({ data }: { data: DashboardSsrData }) {
   const s = data.portfolio;
@@ -101,11 +102,34 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
         />
       </div>
 
-      {/* Regulatory exports — bank-branded downloads (JSON / xlsx / PDF) */}
+      {/* NRBSIS filing — the actual annual submission to NRB SIS.
+          Visually distinct (accent-colour border + "FILED" badge) so
+          it's obvious which is the regulatory submission vs. the
+          per-loan supporting evidence below. */}
+      <div data-tour="nrbsis-green-statement">
+        <Panel
+          title="NRBSIS Green Finance Statement"
+          subtitle="Annual aggregate 17-sector Green Finance Statement per NRB Green Finance Taxonomy 2024 Annex 4b — this is the file submitted to NRBSIS."
+        >
+          <div
+            className="rounded-md border-2 border-dashed p-4"
+            style={{
+              borderColor: "var(--brand-accent)",
+              backgroundColor: "var(--brand-primary-soft)",
+            }}
+          >
+            <NrbsisGreenStatementButton />
+          </div>
+        </Panel>
+      </div>
+
+      {/* Regulatory exports — supporting evidence for the NRBSIS filing.
+          Per-loan classification detail an auditor can drill into to
+          verify each Green/Amber/Red allocation feeding Annex 4b. */}
       <div data-tour="regulatory-exports">
         <Panel
-          title="Regulatory exports"
-          subtitle="Portfolio-level NRB Green Finance Taxonomy classification report"
+          title="Regulatory exports — supporting evidence"
+          subtitle="Per-loan NRB Green Finance Taxonomy classification report backing the Annex 4b submission above"
         >
           <NrbTaxonomyExportButton />
         </Panel>
