@@ -30,8 +30,9 @@ import {
   findActivityById,
   type TaxonomyColor,
 } from "@/lib/regulatory/taxonomy/activities";
-import { ANNEX5_SECTOR_SUPPLEMENTS } from "@/lib/regulatory/esdd/annex5-questions";
-import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
+// Sector supplements were removed from annex5-questions.ts per Circular 22
+// verbatim conformance. This tab now renders only the sector-agnostic
+// 12-question checklist.
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
@@ -597,7 +598,9 @@ function shortQuestionLabel(id: string): { number: string; short: string } {
             ? "Water pollution"
             : parts[2] === "3"
               ? "Waste handling"
-              : "Energy efficiency",
+              : parts[2] === "4"
+                ? "Energy efficiency"
+                : "Climate risk / GHG",
     };
   }
   if (id.startsWith("annex5.3.")) {
@@ -613,13 +616,8 @@ function shortQuestionLabel(id: string): { number: string; short: string } {
               : "Stakeholder consultation",
     };
   }
-  // Sector supplements — look up by id via ANNEX5_SECTOR_SUPPLEMENTS.
-  for (const questions of Object.values(ANNEX5_SECTOR_SUPPLEMENTS)) {
-    const match = questions.find((q) => q.id === id);
-    if (match) {
-      return { number: match.number, short: truncate(match.prompt, 32) };
-    }
-  }
+  // Circular 22 defines only the sector-agnostic 12-question checklist —
+  // no sector supplement lookup needed.
   return { number: id, short: "" };
 }
 
@@ -651,12 +649,9 @@ function WorkbenchComplianceStripe({
   loanId: string;
   borrower: Borrower;
 }) {
-  const sectorSlug = sectorSlugFor(borrower.nrbSector);
-  const total =
-    3 +
-    4 +
-    4 +
-    (sectorSlug ? ANNEX5_SECTOR_SUPPLEMENTS[sectorSlug]?.length ?? 0 : 0);
+  // Circular 22 = 12 questions total (3 general + 5 EHS incl. 2022 Q2.5
+  // climate + 4 social + PDF-only 3.4). No sector supplements per source.
+  const total = 3 + 5 + 4;
   const taxApplicable = isTaxonomyExpected(borrower.nrbSector);
 
   const [state, setState] = useState<WbStripeState>({
@@ -1180,7 +1175,7 @@ function ScreeningWorkbench({
                 {borrower.facilities.length} matched{" "}
                 {borrower.facilities.length === 1 ? "facility" : "facilities"} ·
                 {" "}{borrower.facilities.length > 0
-                  ? "PCAF Score 2-3"
+                  ? "PCAF Score 3 (Option 2b)"
                   : "Score 4 (benchmark)"}
               </div>
             </div>
@@ -1535,26 +1530,7 @@ function buildEsddRows(borrower: Borrower): EsddRow[] {
 
 // Structured section metadata used to render live per-question progress.
 // The sections + question ids MUST match lib/regulatory/esdd/annex5-questions.ts.
-function sectorSupplementTitle(slug: string): string {
-  switch (slug) {
-    case "hydropower":
-      return "Hydropower supplement";
-    case "cement":
-      return "Cement supplement";
-    case "textiles":
-      return "Textiles supplement";
-    case "steel":
-      return "Steel supplement";
-    case "chemicals":
-      return "Chemicals supplement";
-    case "brick":
-      return "Brick supplement";
-    case "agriculture":
-      return "Agriculture supplement";
-    default:
-      return "Sector supplement";
-  }
-}
+// Circular 22 = 12 questions total, sector-agnostic. No supplements.
 
 const ANNEX5_SECTIONS: Array<{
   title: string;
@@ -1567,7 +1543,7 @@ const ANNEX5_SECTIONS: Array<{
     questions: [
       { id: "annex5.1.1", number: "1.1", prompt: "Legal issues with E&S performance" },
       { id: "annex5.1.2", number: "1.2", prompt: "Stakeholder grievances or NGO campaigns" },
-      { id: "annex5.1.3", number: "1.3", prompt: "Site near sensitive areas" },
+      { id: "annex5.1.3", number: "1.3", prompt: "Site near eco-sensitive areas" },
     ],
   },
   {
@@ -1578,6 +1554,8 @@ const ANNEX5_SECTIONS: Array<{
       { id: "annex5.2.2", number: "2.2", prompt: "Water pollution" },
       { id: "annex5.2.3", number: "2.3", prompt: "Land pollution / waste handling" },
       { id: "annex5.2.4", number: "2.4", prompt: "Energy efficiency / renewables" },
+      // 2022 NRB ESRM Guideline addition
+      { id: "annex5.2.5", number: "2.5", prompt: "Climate change risks & opportunities" },
     ],
   },
   {
@@ -1713,29 +1691,10 @@ function EsddChecklistDrawer({
     };
   }, [loanId]);
 
-  // Build the full section list for this borrower — core three + a
-  // sector-specific supplement when one exists for the borrower's NRB
-  // sector. Keeps the drawer's totals and per-section rendering in
-  // sync with the wizard's flow.
-  const borrowerSectorSlug = sectorSlugFor(borrower.nrbSector);
-  const sectorSupplement = borrowerSectorSlug
-    ? ANNEX5_SECTOR_SUPPLEMENTS[borrowerSectorSlug] ?? []
-    : [];
-  const sections = useMemo(() => {
-    if (sectorSupplement.length === 0) return ANNEX5_SECTIONS;
-    return [
-      ...ANNEX5_SECTIONS,
-      {
-        title: `Section 4 — ${sectorSupplementTitle(borrowerSectorSlug!)}`,
-        short: "Sector",
-        questions: sectorSupplement.map((q) => ({
-          id: q.id,
-          number: q.number,
-          prompt: q.prompt,
-        })),
-      },
-    ];
-  }, [sectorSupplement, borrowerSectorSlug]);
+  // Circular 22 = single sector-agnostic 12-question checklist. The
+  // borrower's sector is retained for other panels (taxonomy classification,
+  // permit lookup) but does not add ESDD questions.
+  const sections = ANNEX5_SECTIONS;
 
   const totalQuestions = sections.reduce(
     (s, sec) => s + sec.questions.length,

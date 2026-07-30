@@ -589,23 +589,20 @@ type StripeState = {
   };
 };
 
-// ESDD total is dynamic per-sector: 11 core questions + N sector
-// supplement questions. Import fullChecklist so the total matches what
-// the wizard actually asks the officer to complete.
+// ESDD total is the fixed sector-agnostic count from Circular 22 (13
+// questions). Sector supplements were removed to conform to source.
 import {
   fullChecklist as annex5FullChecklist,
 } from "@/lib/regulatory/esdd/annex5-questions";
-import { sectorSlugFor as annex5SectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 
 function NrbComplianceStripe({
   loanId,
-  nrbSector,
+  nrbSector: _nrbSector,
 }: {
   loanId: string;
   nrbSector: string;
 }) {
-  const sectorSlug = annex5SectorSlugFor(nrbSector);
-  const esddTotal = annex5FullChecklist(sectorSlug).length;
+  const esddTotal = annex5FullChecklist().length;
   const [state, setState] = useState<StripeState>({
     esdd: {
       loading: true,

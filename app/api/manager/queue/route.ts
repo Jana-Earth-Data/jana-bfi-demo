@@ -17,7 +17,6 @@ import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
-import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -148,8 +147,8 @@ export async function GET() {
   }
 
   const rows: ManagerQueueRow[] = apps.map((app) => {
-    const sectorSlug = sectorSlugFor(app.borrower.nrbSector);
-    const total = fullChecklist(sectorSlug).length;
+    // Circular 22: 12-question sector-agnostic checklist. No supplement.
+    const total = fullChecklist().length;
     const progress = answeredByLoan.get(app.loan.id);
     const screening = screeningByLoan.get(app.loan.id);
     const ownerId = ownerByLoan.get(app.loan.id) ?? null;

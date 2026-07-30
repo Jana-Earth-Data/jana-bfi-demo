@@ -31,7 +31,6 @@ import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
-import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
 
@@ -238,8 +237,8 @@ export async function GET() {
     const borrower = borrowerById.get(loan.borrowerId);
     if (!borrower) continue;
 
-    const slug = sectorSlugFor(borrower.nrbSector);
-    const total = fullChecklist(slug).length;
+    // Circular 22: 12-question sector-agnostic checklist. No supplement.
+    const total = fullChecklist().length;
     const esddAgg = byLoan.get(loanId);
     const answered = esddAgg?.distinctQuestionIds.size ?? 0;
     const screening = screeningByLoan.get(loanId);

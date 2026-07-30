@@ -24,7 +24,6 @@ import {
 import {
   ANNEX5_EHS_RISK,
   ANNEX5_GENERAL_RISK,
-  ANNEX5_SECTOR_SUPPLEMENTS,
   ANNEX5_SOCIAL_RISK,
 } from "@/lib/regulatory/esdd/annex5-questions";
 
@@ -91,17 +90,14 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// Precompute question-id → section lookup once at module load. Sector
-// supplements append to this at runtime once they're populated.
+// Precompute question-id → section lookup once at module load. Circular 22
+// defines only the 12-question sector-agnostic checklist (3 general + 5 EHS
+// + 4 social, including the 2022 addition of Q2.5 climate). Sector
+// supplements were removed because they are not part of Circular 22.
 const SECTION_BY_QUESTION_ID: Record<string, string> = {};
 for (const q of ANNEX5_GENERAL_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;
 for (const q of ANNEX5_EHS_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;
 for (const q of ANNEX5_SOCIAL_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;
-// Include every sector supplement so scoring can bucket sector-specific
-// answers into their own section rather than "unknown".
-for (const supplement of Object.values(ANNEX5_SECTOR_SUPPLEMENTS)) {
-  for (const q of supplement) SECTION_BY_QUESTION_ID[q.id] = q.section;
-}
 
 export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();

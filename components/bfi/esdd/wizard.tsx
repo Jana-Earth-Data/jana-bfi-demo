@@ -4,19 +4,19 @@
  * ESDD wizard — client component.
  *
  * Multi-step form that walks a signed-in officer through NRB ESRM Annex 5:
- *   Step 0: Basic Information (client name, sector, transaction id, etc.)
+ *   Step 0: Basic Information (client name, sector, loan category, etc.)
  *   Step 1: Section 1 — General Risk           (annex5.1.1 to 1.3)
- *   Step 2: Section 2 — Environmental Health   (annex5.2.1 to 2.4)
+ *   Step 2: Section 2 — Environmental Health   (annex5.2.1 to 2.5)
  *   Step 3: Section 3 — Social Risks           (annex5.3.1 to 3.4)
- *   Step 4: Review + submit (Phase 3 wires the final ESRM screening save)
+ *   Step 4: Review + submit (final ESRM screening save)
  *
  * Each answer POSTs to /api/esdd/responses on change so nothing is lost if
  * the officer navigates away mid-wizard. Existing responses are loaded on
  * mount so the officer can resume where they left off.
  *
- * This session ships steps 0 and 1 fully wired. Steps 2, 3, and 4 render
- * placeholders — the pattern from step 1 is copied in a follow-up session
- * (small mechanical change).
+ * Sector supplements were removed to conform to Circular 22 — the NRB
+ * source defines only the sector-agnostic 12-question checklist. See
+ * lib/regulatory/esdd/annex5-questions.ts for the provenance note.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -26,28 +26,17 @@ import type { Officer } from "@/lib/tenants";
 import {
   ANNEX5_EHS_RISK,
   ANNEX5_GENERAL_RISK,
-  ANNEX5_SECTOR_SUPPLEMENTS,
   ANNEX5_SOCIAL_RISK,
+  ESDD_LOAN_CATEGORY_LABEL,
   type EsddAnswer,
+  type EsddLoanCategory,
   type EsddQuestion,
 } from "@/lib/regulatory/esdd/annex5-questions";
-import { sectorSlugFor } from "@/lib/regulatory/esdd/sector-slug";
 import { formatNpr } from "@/components/bfi/ui";
 
-// Steps: 0 basics, 1 general, 2 ehs, 3 social, 4 sector supplement
-// (conditional), 5 review. When there is no sector supplement, the
-// wizard skips 4 and goes directly from 3 to 5.
-type WizardStep = 0 | 1 | 2 | 3 | 4 | 5;
-
-const SECTOR_TITLE: Record<string, string> = {
-  hydropower: "Hydropower supplement",
-  cement: "Cement supplement",
-  textiles: "Textiles supplement",
-  steel: "Steel supplement",
-  chemicals: "Chemicals supplement",
-  brick: "Brick supplement",
-  agriculture: "Agriculture supplement",
-};
+// Steps: 0 basics, 1 general, 2 ehs, 3 social, 4 review.
+// Circular 22 has no sector supplement — the wizard reduces to 5 steps.
+type WizardStep = 0 | 1 | 2 | 3 | 4;
 
 type StoredResponse = {
   questionId: string;
@@ -86,7 +75,7 @@ export function EsddWizard({
     const raw = searchParams?.get("tourStep");
     if (raw === null || raw === undefined) return null;
     const n = Number(raw);
-    if (!Number.isInteger(n) || n < 0 || n > 5) return null;
+    if (!Number.isInteger(n) || n < 0 || n > 4) return null;
     return n as WizardStep;
   })();
   const isTourDriven = tourStep !== null;
@@ -134,19 +123,14 @@ export function EsddWizard({
             });
             // Advance to the Review step so the sidebar highlight
             // matches the ScreeningResult that ReviewStep will render.
-            // Sector-supplemented sectors have a Section 4 supplement,
-            // pushing Review to index 5 (0-based). Otherwise Review is
-            // at index 4.
+            // With sector supplements removed, Review is always at
+            // index 4 (Basic → 3 sections → Review).
             // Suppress this auto-jump when a tour is driving specific
             // steps via ?tourStep=N — the tour narration walks through
             // every step and does not want the wizard to short-circuit
             // to the Review pane.
             if (!isTourDriven) {
-              const supplementSlug = sectorSlugFor(borrower.nrbSector);
-              const supplement = supplementSlug
-                ? ANNEX5_SECTOR_SUPPLEMENTS[supplementSlug]
-                : undefined;
-              setStep(supplement && supplement.length > 0 ? 5 : 4);
+              setStep(4);
             }
           }
         }
@@ -204,44 +188,21 @@ export function EsddWizard({
     }
   }
 
-  // Detect the borrower's sector supplement (if any) once — the wizard
-  // conditionally shows a Section 4 step for sector-specific questions.
-  const sectorSlug = sectorSlugFor(borrower.nrbSector);
-  const sectorQuestions = sectorSlug
-    ? ANNEX5_SECTOR_SUPPLEMENTS[sectorSlug] ?? []
-    : [];
-  const hasSectorSupplement = sectorQuestions.length > 0;
-
+  // Circular 22 defines a single 12-question sector-agnostic checklist —
+  // no sector supplements. Steps are fixed: Basic → 3 sections → Review.
   const steps = useMemo(
-    () =>
-      hasSectorSupplement
-        ? [
-            { title: "Basic information", subtitle: "Client, transaction, and sector" },
-            { title: "Section 1", subtitle: `General Risk (${ANNEX5_GENERAL_RISK.length} questions)` },
-            { title: "Section 2", subtitle: `Environmental Health & Safety (${ANNEX5_EHS_RISK.length} questions)` },
-            { title: "Section 3", subtitle: `Social Risks (${ANNEX5_SOCIAL_RISK.length} questions)` },
-            {
-              title: "Section 4",
-              subtitle: `${SECTOR_TITLE[sectorSlug!] ?? "Sector supplement"} (${sectorQuestions.length} questions)`,
-            },
-            { title: "Review", subtitle: "Computed risk classification and recommendation" },
-          ]
-        : [
-            { title: "Basic information", subtitle: "Client, transaction, and sector" },
-            { title: "Section 1", subtitle: `General Risk (${ANNEX5_GENERAL_RISK.length} questions)` },
-            { title: "Section 2", subtitle: `Environmental Health & Safety (${ANNEX5_EHS_RISK.length} questions)` },
-            { title: "Section 3", subtitle: `Social Risks (${ANNEX5_SOCIAL_RISK.length} questions)` },
-            { title: "Review", subtitle: "Computed risk classification and recommendation" },
-          ],
-    [hasSectorSupplement, sectorSlug, sectorQuestions.length],
+    () => [
+      { title: "Basic information", subtitle: "Client, transaction, and loan category" },
+      { title: "Section 1", subtitle: `General Risk (${ANNEX5_GENERAL_RISK.length} questions)` },
+      { title: "Section 2", subtitle: `Environmental Health & Safety (${ANNEX5_EHS_RISK.length} questions)` },
+      { title: "Section 3", subtitle: `Social Risks (${ANNEX5_SOCIAL_RISK.length} questions)` },
+      { title: "Review", subtitle: "Computed risk classification and recommendation" },
+    ],
+    [],
   );
 
-  // Navigation helpers: skip step 4 (sector) when there is no supplement,
-  // so the wizard flows 3 → 5 directly.
-  const advanceFromSocial = () =>
-    setStep(hasSectorSupplement ? 4 : 5);
-  const backFromReview = () =>
-    setStep(hasSectorSupplement ? 4 : 3);
+  const advanceFromSocial = () => setStep(4);
+  const backFromReview = () => setStep(3);
 
   return (
     <div className="min-h-screen bg-surface text-slate-100" data-tour="esdd-wizard">
@@ -294,24 +255,12 @@ export function EsddWizard({
               onBack={() => setStep(2)}
               onContinue={advanceFromSocial}
             />
-          ) : step === 4 && hasSectorSupplement ? (
-            <SectionStep
-              title={`Section 4 — ${SECTOR_TITLE[sectorSlug!] ?? "Sector supplement"}`}
-              subtitle={`NRB expects these ${SECTOR_TITLE[sectorSlug!] ? SECTOR_TITLE[sectorSlug!].replace(" supplement", "").toLowerCase() : "sector-specific"} questions in addition to the core checklist.`}
-              questions={sectorQuestions}
-              responses={responses}
-              saveStatus={saveStatus}
-              onAnswer={recordAnswer}
-              onBack={() => setStep(3)}
-              onContinue={() => setStep(5)}
-            />
           ) : (
             <ReviewStep
               loan={loan}
               borrower={borrower}
               responses={responses}
               priorScreening={priorScreening}
-              sectorQuestions={sectorQuestions}
               onBack={backFromReview}
               onExit={() => router.push("/")}
             />
@@ -528,6 +477,14 @@ function BasicInfoStep({
   borrower: Borrower;
   onContinue: () => void;
 }) {
+  // Loan Category is required per Circular 22 Excel B13. The value drives
+  // Circular 22 §5 applicability triage and will trigger the Annex 5b
+  // Project Finance Screening Questionnaire when the officer selects
+  // "Project Finance" (Annex 5b work planned separately).
+  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">("");
+
+  const canContinue = loanCategory !== "";
+
   return (
     <div className="rounded-2xl border border-line bg-panel p-6">
       <h2 className="text-lg font-semibold text-white">Basic information</h2>
@@ -544,14 +501,57 @@ function BasicInfoStep({
         <Field label="Location" value={loan.branch ?? "—"} />
         <Field label="Business line" value={loan.businessUnit ?? "—"} />
         <Field label="Product manufactured / traded" value={loan.purpose || "—"} />
+
+        {/* Loan Category — required, per Circular 22 Excel B13. */}
+        <div>
+          <label
+            htmlFor="esdd-loan-category"
+            className="text-xs uppercase tracking-wide text-slate-500"
+          >
+            Loan Category<span className="text-rose-400"> *</span>
+          </label>
+          <select
+            id="esdd-loan-category"
+            required
+            value={loanCategory}
+            onChange={(e) =>
+              setLoanCategory(e.target.value as EsddLoanCategory | "")
+            }
+            className="mt-1 w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 focus:outline-none"
+          >
+            <option value="" disabled>
+              Select loan category…
+            </option>
+            <option value="small">
+              {ESDD_LOAN_CATEGORY_LABEL["small"]}
+            </option>
+            <option value="bwc-term">
+              {ESDD_LOAN_CATEGORY_LABEL["bwc-term"]}
+            </option>
+            <option value="project-finance">
+              {ESDD_LOAN_CATEGORY_LABEL["project-finance"]}
+            </option>
+          </select>
+          <p className="mt-1 text-[11px] text-slate-500">
+            Drives Circular 22 §5 applicability triage. Selecting Project
+            Finance will trigger the Annex 5b Project Finance Screening
+            Questionnaire (planned separately).
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 flex justify-end">
         <button
           type="button"
           onClick={onContinue}
-          className="rounded-md px-4 py-2 text-sm font-semibold text-white transition"
+          disabled={!canContinue}
+          className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
           style={{ backgroundColor: "var(--brand-primary)" }}
+          title={
+            canContinue
+              ? undefined
+              : "Select a Loan Category to continue (required per Circular 22)"
+          }
         >
           Continue to Section 1 →
         </button>
@@ -764,7 +764,6 @@ function ReviewStep({
   borrower,
   responses,
   priorScreening,
-  sectorQuestions,
   onBack,
   onExit,
 }: {
@@ -772,7 +771,6 @@ function ReviewStep({
   borrower: Borrower;
   responses: Record<string, StoredResponse>;
   priorScreening: SavedScreening | null;
-  sectorQuestions: EsddQuestion[];
   onBack: () => void;
   onExit: () => void;
 }) {
@@ -780,8 +778,7 @@ function ReviewStep({
   const totalQuestions =
     ANNEX5_GENERAL_RISK.length +
     ANNEX5_EHS_RISK.length +
-    ANNEX5_SOCIAL_RISK.length +
-    sectorQuestions.length;
+    ANNEX5_SOCIAL_RISK.length;
   const [saving, setSaving] = useState(false);
   // If a prior screening exists, land on the result view rather than the
   // review form. The officer can still click "Re-run screening" to
