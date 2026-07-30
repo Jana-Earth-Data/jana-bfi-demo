@@ -38,6 +38,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Iterable
@@ -51,6 +53,22 @@ KEY_PATH = REPO_ROOT / "tts.key"
 # Known tour names. If more are added, list them here so --all-tours picks
 # them up. Kept in sync with tour-context.tsx.
 KNOWN_TOURS = ("dashboard", "loan-officer", "manager")
+
+# Transient errors we should retry. OpenAI TTS occasionally returns a
+# TLS EOF mid-handshake, a socket reset, or a 5xx. Retrying with backoff
+# clears these up ~95% of the time.
+_TRANSIENT_ERROR_MARKERS = (
+    "EOF occurred in violation of protocol",
+    "SSLEOFError",
+    "Connection reset",
+    "timed out",
+    "Bad gateway",
+    "Service Unavailable",
+    "Gateway Timeout",
+)
+
+MAX_RETRIES = 4
+RETRY_BASE_SECONDS = 2.0  # 2, 4, 8, 16 seconds
 
 
 def read_key() -> str:
@@ -68,8 +86,21 @@ def read_key() -> str:
     return key
 
 
+def _is_transient(exc: BaseException) -> bool:
+    """True when the exception looks like a transient network hiccup."""
+    if isinstance(exc, (urllib.error.URLError, TimeoutError)):
+        return True
+    msg = str(exc)
+    return any(marker in msg for marker in _TRANSIENT_ERROR_MARKERS)
+
+
 def synthesize(text: str, voice: str, model: str, api_key: str) -> bytes:
-    """Call OpenAI /v1/audio/speech and return the MP3 bytes."""
+    """Call OpenAI /v1/audio/speech and return the MP3 bytes.
+
+    Retries transient failures (TLS EOF, timeouts, 5xx) up to MAX_RETRIES
+    times with exponential backoff. Non-transient errors (auth, bad
+    request) raise immediately without retry.
+    """
     payload = json.dumps(
         {
             "model": model,
@@ -79,18 +110,36 @@ def synthesize(text: str, voice: str, model: str, api_key: str) -> bytes:
         }
     ).encode("utf-8")
 
-    req = urllib.request.Request(
-        "https://api.openai.com/v1/audio/speech",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        if resp.status != 200:
-            raise RuntimeError(f"OpenAI TTS returned status {resp.status}")
-        return resp.read()
+    last_exc: BaseException | None = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/audio/speech",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(f"OpenAI TTS returned status {resp.status}")
+                return resp.read()
+        except Exception as exc:  # noqa: BLE001 - retry logic wants any error
+            last_exc = exc
+            if not _is_transient(exc) or attempt == MAX_RETRIES:
+                raise
+            backoff = RETRY_BASE_SECONDS * (2 ** (attempt - 1))
+            print(
+                f" retry {attempt}/{MAX_RETRIES - 1} in {backoff:.0f}s ({exc.__class__.__name__})...",
+                end="",
+                flush=True,
+            )
+            time.sleep(backoff)
+
+    # Unreachable — the loop either returns or re-raises. Kept for type-checker peace.
+    assert last_exc is not None
+    raise last_exc
 
 
 def discover_tenants() -> list[str]:
@@ -120,8 +169,14 @@ def generate_one_tour(
     model_override: str | None,
     force: bool,
     only_step: str | None,
+    failures: list[str],
 ) -> tuple[int, int]:
-    """Generate audio for a single (tenant, tour). Returns (generated, skipped)."""
+    """Generate audio for a single (tenant, tour). Returns (generated, skipped).
+
+    A per-step failure is logged into `failures` and does NOT abort the
+    tour or the outer run. This lets a single flaky TLS handshake take
+    out one step without wasting the API calls that already succeeded.
+    """
     script_path = SCRIPTS_ROOT / tenant / f"{tour}.json"
     if not script_path.exists():
         print(f"  SKIP {tenant}/{tour}: script not found at {script_path}")
@@ -176,9 +231,10 @@ def generate_one_tour(
         )
         try:
             mp3 = synthesize(text, voice, model, api_key)
-        except Exception as exc:  # noqa: BLE001 - we want any failure here
+        except Exception as exc:  # noqa: BLE001 - we log and continue
             print(f" FAILED: {exc}")
-            raise
+            failures.append(f"{tenant}/{tour}#{step_id}: {exc}")
+            continue
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(mp3)
@@ -257,6 +313,7 @@ def main() -> int:
 
     total_gen = 0
     total_skip = 0
+    failures: list[str] = []
     for tenant, tour in resolve_targets(args):
         g, s = generate_one_tour(
             tenant=tenant,
@@ -266,12 +323,18 @@ def main() -> int:
             model_override=args.model,
             force=args.force,
             only_step=args.step,
+            failures=failures,
         )
         total_gen += g
         total_skip += s
 
     print()
-    print(f"Done. Generated {total_gen}, skipped {total_skip}.")
+    print(f"Done. Generated {total_gen}, skipped {total_skip}, failed {len(failures)}.")
+    if failures:
+        print("\nFailed steps (re-run with --step <id> after inspecting):")
+        for line in failures:
+            print(f"  - {line}")
+        return 1
     return 0
 
 
