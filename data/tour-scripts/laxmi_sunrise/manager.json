@@ -45,17 +45,17 @@
       "audioFile": "/audio/laxmi_sunrise/manager/tour-04-assignment.mp3"
     },
     {
-      "id": "nsrs-taxonomy",
-      "tab": "nsrs",
+      "id": "nfrs-taxonomy",
+      "tab": "nfrs",
       "target": "[data-tour='taxonomy-breakdown']",
       "calloutTitle": "Portfolio roll-up — Green / Amber / Red / Unclassified",
       "calloutText": "Every taxonomy classification the officers save rolls up automatically. Amber transitional bucket separated per NRB reporting treatment.",
-      "narration": "Every taxonomy classification the officers save rolls up automatically into the annual NSRS disclosure view. Four buckets. Green, Amber, Red, Unclassified. with outstanding rupee totals and per-activity breakdown. The Amber transitional bucket is separated on its own terms per NRB's October 2024 reporting treatment. Loans in taxonomy-eligible sectors that haven't been classified yet are flagged so nothing slips through the annual filing.",
-      "audioFile": "/audio/laxmi_sunrise/manager/tour-05-nsrs-taxonomy.mp3"
+      "narration": "Every taxonomy classification the officers save rolls up automatically into the annual NFRS disclosure view. Four buckets. Green, Amber, Red, Unclassified. with outstanding rupee totals and per-activity breakdown. The Amber transitional bucket is separated on its own terms per NRB's October 2024 reporting treatment. Loans in taxonomy-eligible sectors that haven't been classified yet are flagged so nothing slips through the annual filing.",
+      "audioFile": "/audio/laxmi_sunrise/manager/tour-05-nfrs-taxonomy.mp3"
     },
     {
       "id": "export",
-      "tab": "nsrs",
+      "tab": "nfrs",
       "target": "[data-tour='regulatory-exports']",
       "calloutTitle": "Bank-branded regulatory export",
       "calloutText": "Excel and PDF in NRB submission format, carrying Laxmi Sunrise branding. JSON for downstream systems.",

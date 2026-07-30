@@ -2,7 +2,7 @@
  * GET /api/portfolio/taxonomy-summary
  *
  * Aggregates the tenant's saved NRB Green Finance Taxonomy assessments
- * into a Green / Amber / Red / Unclassified roll-up for the NSRS
+ * into a Green / Amber / Red / Unclassified roll-up for the NFRS
  * disclosure tab. Only the latest assessment per (bank_id, loan_id) is
  * counted.
  *
@@ -100,7 +100,7 @@ export async function GET() {
 
   // Load latest assessment per (bank_id, loan_id). Supabase pagination cap
   // for a single fetch is 1000; the demo portfolios stay well under that.
-  // If a tenant ever exceeds it we can page — but the NSRS disclosure is
+  // If a tenant ever exceeds it we can page — but the NFRS disclosure is
   // never rendered from a partial roll-up, so we take the whole set.
   let latestByLoan = new Map<
     string,

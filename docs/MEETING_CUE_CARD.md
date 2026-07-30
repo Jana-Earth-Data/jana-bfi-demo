@@ -21,7 +21,7 @@ For a second-meeting demo with a Nepali bank, follow the format below. Goal: int
 - Funnel makes the "small by count, large by value, all the regulatory exposure" story visible.
 - The headline aggregates are what NRB sees on the quarterly submission.
 
-### NSRS
+### NFRS
 - Annual disclosure view: financed emissions, multi-year trend, PCAF data quality.
 - IFRS S2-aligned, presentation currency is NPR.
 - This is what would land in the annual sustainability report.
@@ -48,6 +48,6 @@ The last prompt is the bridge to the contract conversation.
 ## Quick reference if challenged on numbers
 
 - **4.9% of Nepal's national CO₂ from one cement plant (Hongshi Shivam):** the full sanity check lives behind the "Open full sanity check" link on the ESRM tab under the share-of-national-CO₂ percentage. Backup writeup: `docs/SANITY_CHECK_Hongshi_4.9_percent.md`.
-- **NSRS reporting in NPR:** per IFRS S1 paragraph 64, monetary disclosures must use the entity's presentation currency. For a Nepali bank that is NPR. PCAF Global Standard defers to the bank's reporting currency.
+- **NFRS reporting in NPR:** per IFRS S1 paragraph 64, monetary disclosures must use the entity's presentation currency. For a Nepali bank that is NPR. PCAF Global Standard defers to the bank's reporting currency.
 - **Risk assessments are filed internally, not with NRB:** NRB receives aggregates quarterly (counts of ESDD-screened loans, disbursements by risk rating, exclusion-list rejections). Individual transactions stay in the bank's loan file.
 - **"In scope" includes SMEs:** the funnel's middle stage (about 10,000 loans for the simulated bank) includes SME and commercial loans, because ESRM and the Taxonomy apply to all business-purpose lending. Retail is out of scope.

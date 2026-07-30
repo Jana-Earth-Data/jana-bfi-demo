@@ -230,7 +230,7 @@ default fill, tour Play button in the tour controls, tour progress
 indicator active/done states, Start ESDD button in the loan drawer.
 
 Surfaces still on Jana emerald (deferred): ESRM tab screening workbench,
-taxonomy tab specific chart bars, NSRS tab selected-loan highlight, loan
+taxonomy tab specific chart bars, NFRS tab selected-loan highlight, loan
 table info-tip focus rings, login button. All of these are behind a
 click or two from the landing dashboard, so not meeting-blockers.
 
@@ -465,7 +465,7 @@ fidelity per Oct 2024 doc, Section 4 (reporting):
    references "First Bank of Nepal" throughout, which sounds wrong on
    the Laxmi tenant. Options: (a) re-record per tenant, (b) rewrite
    narration to avoid the bank name.
-3. Lower-visibility brand sweep (ESRM screening workbench colors, NSRS
+3. Lower-visibility brand sweep (ESRM screening workbench colors, NFRS
    selected-row highlight, taxonomy chart accents, info-tip focus rings,
    login button).
 4. Escalation banner UX polish (Phase 3 output).

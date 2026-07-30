@@ -4,7 +4,7 @@
  * Regulatory-export button trio for the NRB Green Finance Taxonomy filing.
  *
  * Three sibling <a download> links hitting /api/reports/nrb-taxonomy in
- * JSON / xlsx / PDF. Rendered on the NSRS tab so a bank officer preparing
+ * JSON / xlsx / PDF. Rendered on the NFRS tab so a bank officer preparing
  * the regulatory submission can grab the file they need.
  *
  * Uses the tenant brand-primary CSS variable set upstream by

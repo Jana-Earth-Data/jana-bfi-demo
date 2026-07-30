@@ -182,7 +182,7 @@ export function TourOverlay() {
   //   2. After a beat (to let the new tab mount / fade in), find the target
   //      and scroll it so its TOP sits at TOP_OFFSET_PX below the viewport
   //      top. This guarantees the user sees the start of the target (the
-  //      loan table title, the borrower-detail header, the NSRS headline)
+  //      loan table title, the borrower-detail header, the NFRS headline)
   //      rather than its middle. We retry a few times because tab content
   //      sometimes fades in async.
   useEffect(() => {

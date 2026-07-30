@@ -49,7 +49,7 @@ Reviewed the current code in `repos/jana-bfi-demo`. Relevant surfaces:
 | Loan Book tab | `components/bfi/tabs/loans-tab.tsx` + `shared/loan-table.tsx` | Read-only. Supabase-backed pagination over 80,035 synthesized loans. |
 | ESRM tab | `components/bfi/tabs/esrm-tab.tsx` | Read-only. Application queue + screening workbench + ESDD checklist drawer. |
 | Green Finance Taxonomy tab | `components/bfi/tabs/taxonomy-tab.tsx` | Read-only. Aggregated view of pre-classified loans. |
-| NSRS tab | `components/bfi/tabs/nsrs-tab.tsx` | Read-only. PCAF disclosure surface. |
+| NFRS tab | `components/bfi/tabs/nfrs-tab.tsx` | Read-only. PCAF disclosure surface. |
 | Risk classification | `lib/data/screening.ts::classifyRisk` | **Heuristic only.** Sector name + emissions threshold. Not evidence-based. |
 | Taxonomy classification | `lib/data/portfolio.ts::taxonomyForLoan` | **Heuristic only.** Sector name + loan purpose string. Not NRB-criterion-based. |
 | ESDD checklist | `esrm-tab.tsx::buildEsddRows` | **Display of "who provides this data"**, not a capture surface. 11 rows (12 for hydropower). |

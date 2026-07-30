@@ -210,7 +210,7 @@ export function buildTaxonomyReport(
   }
 
   // Pass 2: every OTHER in-scope loan in the portfolio contributes to
-  // the Unclassified bucket in the SUMMARY totals. The NSRS annual
+  // the Unclassified bucket in the SUMMARY totals. The NFRS annual
   // filing covers the full commercial + SME + corporate book, not
   // just the loans currently under review — retail loans (personal,
   // mortgage, education, vehicle) are the only category legitimately

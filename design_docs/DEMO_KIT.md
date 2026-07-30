@@ -130,7 +130,7 @@ one) — pick the small hydro activity, answer the DNSH questions
 positively for a Green outcome.
 
 Once done, the manager view will show the escalation banner, the
-compliance stripe will render with real state, and the NSRS taxonomy
+compliance stripe will render with real state, and the NFRS taxonomy
 breakdown will populate with two loans in the color buckets.
 
 ### Step 6 — Verify the demo checklist
@@ -143,7 +143,7 @@ Quick tour through the pieces you'll show:
   numbers; owner assignments visible; compliance stripe renders inline
 - [ ] Loan Book: pick any loan → drawer shows the two-CTA stripe
   (ESDD + Taxonomy)
-- [ ] NSRS tab: taxonomy breakdown shows the color buckets with the
+- [ ] NFRS tab: taxonomy breakdown shows the color buckets with the
   correct counts; regulatory export button works
 - [ ] Click "Excel" in the regulatory exports — file downloads,
   opens, shows bank branding (Laxmi Sunrise logo + orange primary)
@@ -161,7 +161,7 @@ depending on pace. Section headings are the beats; italic is speaker
 prompt; **bold** is what to click or where to look.
 
 ### 1. The problem (30 seconds)
-> *"Nepal Rastra Bank has three environmental regulations. ESRM screening from 2018 requires every commercial loan to be assessed for environmental risk before approval. The Green Finance Taxonomy from October 2024 requires banks to classify their book as green, amber, or red. And starting 2026-27, NSRS requires annual financed-emissions disclosures. Most Nepali banks are stuck on all three — not because they don't want to comply, but because the data infrastructure doesn't exist yet."*
+> *"Nepal Rastra Bank has three environmental regulations. ESRM screening from 2018 requires every commercial loan to be assessed for environmental risk before approval. The Green Finance Taxonomy from October 2024 requires banks to classify their book as green, amber, or red. And starting 2026-27, NFRS requires annual financed-emissions disclosures. Most Nepali banks are stuck on all three — not because they don't want to comply, but because the data infrastructure doesn't exist yet."*
 
 ### 2. The officer view (1 minute)
 **Click My Work tab.**
@@ -203,8 +203,8 @@ prompt; **bold** is what to click or where to look.
 **Continue to Review.**
 > *"Preview shows the derivation live from her answers. Amber — transitional — because cement remains a hard-to-abate sector under NRB's own methodology. Save the classification and it's in the audit trail."*
 
-### 6. NSRS disclosure roll-up (1 minute)
-**Click NSRS tab, scroll to Taxonomy portfolio breakdown.**
+### 6. NFRS disclosure roll-up (1 minute)
+**Click NFRS tab, scroll to Taxonomy portfolio breakdown.**
 > *"Every classification the officers save rolls up into the annual disclosure automatically. Four buckets — Green, Amber, Red, Unclassified — with the outstanding NPR totals. The Amber transitional bucket is broken out on its own terms because NRB's October 2024 rules require it to be reported separately from fully-aligned Green."*
 
 **Point at the "N loans not yet classified" callout.**
@@ -218,7 +218,7 @@ prompt; **bold** is what to click or where to look.
 > *"Ready to attach to the NRB submission."*
 
 ### 8. Close (30 seconds)
-> *"So what you've just seen is one platform that handles all three of Nepal Rastra Bank's environmental regulations. Verbatim ESRM Annex 5 capture from the 2018 directive. Green Finance Taxonomy classification from October 2024 with the central DNSH library. And NSRS-ready portfolio disclosures for 2026 and 2027, exported bank-branded and ready to file. Every capture is officer-attributed and timestamped. Every taxonomy assessment carries its NRB citation. And underneath the workflow, the emissions numbers come from Climate TRACE and EDGAR — independently verifiable data sources the regulator will accept."*
+> *"So what you've just seen is one platform that handles all three of Nepal Rastra Bank's environmental regulations. Verbatim ESRM Annex 5 capture from the 2018 directive. Green Finance Taxonomy classification from October 2024 with the central DNSH library. And NFRS-ready portfolio disclosures for 2026 and 2027, exported bank-branded and ready to file. Every capture is officer-attributed and timestamped. Every taxonomy assessment carries its NRB citation. And underneath the workflow, the emissions numbers come from Climate TRACE and EDGAR — independently verifiable data sources the regulator will accept."*
 
 **Pause. Look at the questioner.**
 > *"Happy to walk through any of it in more depth."*

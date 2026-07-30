@@ -4,7 +4,7 @@
  * Models the loan officer view: loans on the left, matched Climate TRACE
  * facilities on the right, PCAF attribution calculation connecting them.
  *
- * Extended for the three-tier dashboard (ESRM / Taxonomy / NSRS) on top of
+ * Extended for the three-tier dashboard (ESRM / Taxonomy / NFRS) on top of
  * a full ~80K-loan synthesized portfolio rooted in real Nepal entities.
  */
 
@@ -81,7 +81,7 @@ export type MatchedFacility = {
   annualCo2eTonnes: number;
   /** Year of the most-recent emissions figure */
   emissionsYear: number;
-  /** Optional multi-year time series for NSRS trend disclosure */
+  /** Optional multi-year time series for NFRS trend disclosure */
   emissionsByYear?: { year: number; co2eTonnes: number }[];
   /** Geographic context */
   municipality?: string | null;

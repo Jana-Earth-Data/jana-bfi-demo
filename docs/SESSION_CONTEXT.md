@@ -8,7 +8,7 @@ Use this document to quickly brief a new Claude Cowork session on this project. 
 
 A **Next.js 15 / React 19** single-page dashboard that demonstrates Jana Earth Data's financed emissions product for Nepal's banking sector (BFIs - Banks and Financial Institutions). It shows a loan officer view of a bank's commercial/industrial loan portfolio with PCAF (Partnership for Carbon Accounting Financials) Scope 3 Category 15 attribution calculations.
 
-This is a **sales demo tool** - shown to bankers to illustrate what Jana's data can do for their ESRM, Green Taxonomy, and NSRS compliance workflows.
+This is a **sales demo tool** - shown to bankers to illustrate what Jana's data can do for their ESRM, Green Taxonomy, and NFRS compliance workflows.
 
 ---
 
@@ -208,7 +208,7 @@ This demo lives in the broader Jana sales ecosystem:
 
 ### Key business context for the demo
 
-- Nepal has 20 Class A commercial banks, all under NRB regulatory mandates (ESRM, Green Taxonomy, NSRS)
+- Nepal has 20 Class A commercial banks, all under NRB regulatory mandates (ESRM, Green Taxonomy, NFRS)
 - Banks have 80K-100K loans each but 60-70% are retail mortgages - emissions measurement applies to the commercial/industrial slice
 - Climate TRACE covers 323 facilities in Nepal (cement, brick, steel, mining) - these are the biggest emitters and biggest loan values
 - PCAF data quality: Jana moves banks from Score 5 (guesswork) to Score 2 (verified facility data) for their highest-risk exposures
@@ -218,7 +218,7 @@ This demo lives in the broader Jana sales ecosystem:
 
 1. **ESRM (2018):** Environmental and Social Risk Management - screen every commercial loan before approval
 2. **Green Finance Taxonomy (Oct 2024):** Classify lending as green/amber/red
-3. **NSRS (coming 2026-27):** Nepal Sustainability Reporting Standards aligned with IFRS S1/S2 - requires financed emissions disclosure
+3. **NFRS (coming 2026-27):** Nepal Sustainability Reporting Standards aligned with IFRS S1/S2 - requires financed emissions disclosure
 
 ---
 

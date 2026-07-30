@@ -26,7 +26,7 @@ import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
 import { NPR_PER_USD } from "@/lib/data/util";
 import { NrbTaxonomyExportButton } from "@/components/bfi/reports/nrb-taxonomy-export-button";
 
-export function NsrsTab({ data }: { data: DashboardSsrData }) {
+export function NfrsTab({ data }: { data: DashboardSsrData }) {
   const s = data.portfolio;
   const trend = s.trend ?? [];
   // YoY compares the last TWO fully-reported years. 2025 is partial through
@@ -51,7 +51,7 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
   return (
     <div className="grid gap-4">
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-tour="nsrs-headline">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-tour="nfrs-headline">
         <KpiCard
           label="Total financed emissions"
           value={formatCo2e(s.totalAttributedCo2eTonnes)}
@@ -165,7 +165,7 @@ export function NsrsTab({ data }: { data: DashboardSsrData }) {
       {/* Disclosure preview */}
       <Panel
         title="Annual report disclosure preview"
-        subtitle="IFRS S2 / NSRS-aligned excerpt"
+        subtitle="IFRS S2 / NFRS-aligned excerpt"
       >
         <DisclosurePreview data={data} />
       </Panel>
@@ -429,7 +429,7 @@ function DisclosurePreview({ data }: { data: DashboardSsrData }) {
         <p className="mt-2 text-sm text-slate-300">{data.meta.pcafMethodologyNote}</p>
         <p className="mt-3 text-xs text-slate-500">
           Reference: PCAF Global GHG Accounting and Reporting Standard (Part A,
-          Chapter 5), IFRS S2 §29, NSRS draft §17(b). Underlying facility data:
+          Chapter 5), IFRS S2 §29, NFRS draft §17(b). Underlying facility data:
           Climate TRACE Nepal facility emissions; Global Cement and Concrete
           Tracker (July 2025); Global Energy Monitor.
         </p>
@@ -472,7 +472,7 @@ type TxSummaryResponse = {
 
 // Colour swatches — same primitives used elsewhere in the demo
 // (esrm-tab.tsx WB_TAX_BG, loan-table.tsx). Duplicated here rather than
-// importing so the NSRS tab stays self-contained.
+// importing so the NFRS tab stays self-contained.
 const BUCKET_COLOR: Record<TxBucketKey, string> = {
   green: "#22c55e",
   amber: "#f59e0b",

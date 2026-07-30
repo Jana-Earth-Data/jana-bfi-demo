@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import { DashboardHeader } from "@/components/bfi/header";
 import { TaxonomyTab } from "@/components/bfi/tabs/taxonomy-tab";
-import { NsrsTab } from "@/components/bfi/tabs/nsrs-tab";
+import { NfrsTab } from "@/components/bfi/tabs/nfrs-tab";
 import { EsrmTab } from "@/components/bfi/tabs/esrm-tab";
 import { LoansTab } from "@/components/bfi/tabs/loans-tab";
 import { MyWorkTab } from "@/components/bfi/tabs/my-work-tab";
@@ -45,7 +45,7 @@ export type DashboardSsrData = {
   currentOfficer: Officer | null;
 };
 
-type TabId = "mywork" | "loans" | "esrm" | "taxonomy" | "nsrs";
+type TabId = "mywork" | "loans" | "esrm" | "taxonomy" | "nfrs";
 
 const TABS: Array<{
   id: TabId;
@@ -73,8 +73,8 @@ const TABS: Array<{
     description: "Portfolio Classification · Green / Amber / Red (Oct 2024)",
   },
   {
-    id: "nsrs",
-    label: "NSRS",
+    id: "nfrs",
+    label: "NFRS",
     description: "Disclosure · Financed emissions, PCAF (2026-27)",
   },
 ];
@@ -84,7 +84,7 @@ const VALID_TABS: ReadonlySet<TabId> = new Set([
   "loans",
   "esrm",
   "taxonomy",
-  "nsrs",
+  "nfrs",
 ]);
 
 function tabFromHash(fallback: TabId): TabId {
@@ -227,7 +227,7 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
         {tab === "loans" && <LoansTab data={active} />}
         {tab === "esrm" && <EsrmTab data={active} />}
         {tab === "taxonomy" && <TaxonomyTab data={active} />}
-        {tab === "nsrs" && <NsrsTab data={active} />}
+        {tab === "nfrs" && <NfrsTab data={active} />}
       </main>
 
       <footer className="border-t border-line bg-panel/30 py-4 text-center text-xs text-slate-500">

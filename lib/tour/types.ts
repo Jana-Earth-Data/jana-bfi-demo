@@ -1,6 +1,6 @@
 /** Types for the auto-pilot guided tour. */
 
-export type TourTabId = "mywork" | "esrm" | "taxonomy" | "loans" | "nsrs";
+export type TourTabId = "mywork" | "esrm" | "taxonomy" | "loans" | "nfrs";
 
 export type TourName = "dashboard" | "loan-officer" | "manager";
 

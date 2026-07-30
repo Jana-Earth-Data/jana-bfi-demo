@@ -19,8 +19,8 @@
       "tab": "taxonomy",
       "target": "[data-tour='tab-strip']",
       "calloutTitle": "Three regulatory tiers, one dashboard",
-      "calloutText": "ESRM screens new loans · Taxonomy classifies the book · NSRS produces annual disclosures.",
-      "narration": "The three tabs across the top map directly onto NRB's regulatory stack. ESRM, from the 2018 directive, is the credit decision layer — every new commercial loan gets screened for environmental risk before approval. Taxonomy, from October 2024, classifies your entire book as green, amber, or red. And NSRS, coming in 2026 and 27, requires public disclosure of financed emissions under the PCAF methodology. Most banks are stuck on all three because they don't have facility-level emissions data. Jana provides that data layer.",
+      "calloutText": "ESRM screens new loans · Taxonomy classifies the book · NFRS produces annual disclosures.",
+      "narration": "The three tabs across the top map directly onto NRB's regulatory stack. ESRM, from the 2018 directive, is the credit decision layer — every new commercial loan gets screened for environmental risk before approval. Taxonomy, from October 2024, classifies your entire book as green, amber, or red. And NFRS, coming in 2026 and 27, requires public disclosure of financed emissions under the PCAF methodology. Most banks are stuck on all three because they don't have facility-level emissions data. Jana provides that data layer.",
       "audioFile": "/audio/default/dashboard/tour-02-three-tabs.mp3"
     },
     {
@@ -61,17 +61,17 @@
       "audioFile": "/audio/default/dashboard/tour-06-map.mp3"
     },
     {
-      "id": "switch-to-nsrs",
-      "tab": "nsrs",
-      "target": "[data-tour='nsrs-headline']",
-      "calloutTitle": "Tier 3 — Annual NSRS disclosure",
+      "id": "switch-to-nfrs",
+      "tab": "nfrs",
+      "target": "[data-tour='nfrs-headline']",
+      "calloutTitle": "Tier 3 — Annual NFRS disclosure",
       "calloutText": "PCAF-compliant Scope 3 Category 15 financed emissions, ready for the annual report.",
-      "narration": "Fast-forward to the end of the year. First Bank needs to file its annual sustainability report under NSRS — Nepal's IFRS S2-aligned disclosure framework. This is the dashboard the CFO and CRO see. Total financed emissions across the book, with the most recent fully-reported year, and a multi-year trend. The number on the page is what goes into the annual report, with full PCAF methodology attribution underneath.",
-      "audioFile": "/audio/default/dashboard/tour-07-nsrs.mp3"
+      "narration": "Fast-forward to the end of the year. First Bank needs to file its annual sustainability report under NFRS — Nepal's IFRS S2-aligned disclosure framework. This is the dashboard the CFO and CRO see. Total financed emissions across the book, with the most recent fully-reported year, and a multi-year trend. The number on the page is what goes into the annual report, with full PCAF methodology attribution underneath.",
+      "audioFile": "/audio/default/dashboard/tour-07-nfrs.mp3"
     },
     {
       "id": "data-quality",
-      "tab": "nsrs",
+      "tab": "nfrs",
       "target": "[data-tour='data-quality']",
       "calloutTitle": "PCAF data quality — the technical moat",
       "calloutText": "Without Jana: Score 5 across the board. With Jana: Score 2 on the slice that matters.",
