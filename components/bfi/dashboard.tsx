@@ -75,7 +75,7 @@ const TABS: Array<{
   {
     id: "nfrs",
     label: "NFRS",
-    description: "Disclosure · Financed emissions, PCAF (2026-27)",
+    description: "Disclosure · Financed emissions, PCAF (ICAN exposure draft)",
   },
 ];
 

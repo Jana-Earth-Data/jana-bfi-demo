@@ -1,15 +1,27 @@
 # NRB compliance verbatim session — handoff document
 
-**Audience:** Jana methodology analyst (technical) + bank ESRM / compliance
+> **Status: historical / superseded.** This document served as a bridge
+> during early implementation, when the plan was to schedule a joint
+> verbatim-review session with a bank's compliance office to nail down
+> each question, threshold, and citation. Since then we have ingested
+> the source documents directly (research pack R1–R6), and current work
+> builds directly from the NRB and ICAN source PDFs — 2022 NRB ESRM
+> Guideline, Circular 22 checklist, NRB Green Finance Taxonomy October
+> 2024, ICAN NFRS S1 / S2 exposure drafts (April 2026), and PCAF Global
+> GHG Standard Part A 3rd Edition. This handoff doc is retained for
+> historical context but is not the active plan. See §8 below for the
+> corrections that landed after the source ingest.
+
+**Audience (original):** Jana methodology analyst (technical) + bank ESRM / compliance
 lead (regulatory)
 
-**Purpose:** provide the exact list of regulatory content that needs
+**Original purpose:** provide the exact list of regulatory content that needs
 verbatim review against the NRB source documents, the workflow to do it,
 and a sign-off template. All the demo-quality content is in place and
 reviewed for structure; what remains is confirming each question's
 wording, threshold, and citation against the source PDFs.
 
-**Estimated time:** 30-45 minutes per taxonomy activity (10 activities)
+**Estimated time (original):** 30-45 minutes per taxonomy activity (10 activities)
 plus 20-30 minutes per sector supplement (7 supplements) plus 45-60
 minutes reviewing the DNSH library. Full pass roughly 12-14 hours of
 paired review time, splittable across sessions.
@@ -287,41 +299,18 @@ When the full pass is complete, expect:
 
 ## 6.1 NRBSIS Green Finance Statement — filing-format export
 
-The current `/api/reports/nrb-taxonomy` export produces a bank-branded
-PDF and xlsx that show every classified loan with rationale, citation,
-and DNSH detail, plus a portfolio-scope summary. That is genuinely
-useful for the bank's internal file and for auditor review.
-
-It is NOT the exact format that NRB accepts in its Supervisory
-Information System (NRBSIS). NRBSIS uses XBRL electronic filing —
-schema files with named elements, not a free-form PDF — and NRB issued
-circulars to Class A / B / C / IDB banks starting mid-July 2023
-requiring compliance data through that portal.
-
-To make our export "filing-ready" we need the exact NRBSIS Green
-Finance Statement schema. It is not on the open web (bank-facing
-regulatory instrument), but the bank's compliance office has access to
-it via their supervisory portal login. Ask the compliance lead:
-
-- The NRBSIS Green Finance Statement submission template
-  (Excel or XBRL taxonomy files)
-- The circular that specifies cadence, deadlines, and any lookup
-  code lists
-
-Once we have those, building a matching exporter is roughly a half day.
-The current classification report already carries the underlying data;
-we just need to shape it to the target schema.
-
-Alternatives if the compliance office is slow:
-
-- The NRB Green Finance Taxonomy 2024 PDF (Oct 2024) contains
-  reporting annexes inline. Someone on the Jana side should read the
-  annex section end-to-end and note whether the sector-wise
-  loans-and-advances table structure can be assembled from the public
-  document alone.
-- IRIS RegTech Solutions (Nepal) sells an NRB-SIS XBRL reporting
-  product; they know the schema and could confirm whether it can be
-  licensed for our use or replicated.
+> **Resolved.** The reporting template we asked the bank's compliance
+> office for turned out to be **Annex 4b of the NRB Green Finance
+> Taxonomy 2024 PDF** (p. 144, "Annual report template of NRB
+> Supervisory Information System"). We already had the document; it
+> just wasn't obvious the annex was the submission template. The
+> Annex 4b exporter is being built directly from the taxonomy PDF —
+> see task P4.
+>
+> The earlier ask (NRBSIS XBRL schema, IRIS RegTech licensing option)
+> is no longer relevant. The reporting section that follows is retained
+> as archive context in case NRB later publishes a distinct XBRL layer
+> on top of the Annex 4b form.
 
 ## 7. Contact points
 
@@ -334,3 +323,44 @@ Alternatives if the compliance office is slow:
   the bank's portfolio first. The full 10-activity + 7-supplement pass
   can be spread across the compliance team's normal workload over 2-3
   months.
+
+---
+
+## 8. What we learned by ingesting the source documents
+
+After R1–R6 (see `research/`) we surfaced the following corrections
+that the compliance-review session was going to catch anyway. Documented
+here so the demo team understands why the plan pivoted from
+"joint-review session" to "build directly from source":
+
+- **PCAF Score ceiling is 3, not 2** (R4 §8). Score 2 is Option 1b —
+  the borrower publishes GHG-Protocol-conformant emissions. Nepal SPVs
+  do not do this today. Score 3 (Option 2b — borrower's physical
+  production data × sector emission factor) is the realistic ceiling
+  with Jana. Score 5 baseline is correct.
+- **NFRS is issued by ICAN, not NRB** (R3 §1, Preface). NFRS S1 and S2
+  are ASB Nepal (part of ICAN) exposure drafts aligned to IFRS S1/S2.
+  NRB has supervisory interest but has not published a phased-adoption
+  circular. The "three NRB regulatory frameworks" framing was wrong —
+  it is two NRB frameworks (ESRM, Green Finance Taxonomy) plus NFRS
+  from ICAN.
+- **NFRS mandatory date is a placeholder** (R3 §1.1). Both exposure
+  drafts read "XX XX 202X". Comment period closes 6 June 2026. Year 1
+  waives Scope 3 (including financed emissions) per §C4(b) of NFRS S2.
+  The old "NFRS coming 2026–27" phrasing overclaimed certainty.
+- **NFRS does not cite ESRM, Taxonomy, or PCAF by name** (R3 §6). The
+  ESRM → Taxonomy → NFRS → PCAF crosswalk is Jana editorial framing,
+  not a regulator-mandated chain. Presenting it is fine; presenting it
+  as a NFRS requirement is wrong.
+- **ESRM-before-Taxonomy is a hard NRB rule** (R6 §2.5, taxonomy PDF
+  §3.2.2 p. 26). *"In the case of BFIs, Steps 1 and 2 of the ESRM
+  guidelines shall be applied first and then the taxonomy in terms of
+  classifying activities."* This is why P3 exists — enforce the
+  sequence in the UX.
+- **NRB ESRM is 2022, not 2018** (R1 §1). The 2022 edition supersedes
+  the 2018 edition and adds the climate risk chapter, ESDD Q2.5, the
+  NGFS taxonomy table, and Annex 5b (Project Finance Screening
+  Questionnaire). Verbatim wording work targets the 2022 PDF.
+- **NRBSIS filing template is Annex 4b** of the taxonomy PDF (R6 §1,
+  taxonomy PDF p. 144). No separate NRBSIS XBRL schema is required —
+  see §6.1 above.

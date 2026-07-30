@@ -26,16 +26,16 @@ export const TOOLTIPS: Record<string, TooltipContent> = {
   "pcaf-score-2": {
     title: "PCAF Score 2",
     body:
-      "Best score routinely achievable for corporate loans. Facility-level emissions from Climate TRACE satellite verification, paired with an enterprise value drawn from public financial filings or audited statements.\n\nScore 1 requires third-party-audited emissions reported by the company itself — rare for Nepali industrial borrowers.",
+      "Option 1b — the borrower publishes GHG-Protocol-conformant Scope 1/2/3 emissions but the report is unverified. Requires the borrower itself to produce a GHG-Protocol-conformant emissions inventory. Rare for Nepal SPVs today; NMB Bank is the Nepal reference implementation. Score 1 (Option 1a) is the same but third-party verified.",
     source:
-      "PCAF Global GHG Accounting and Reporting Standard, Part A §5, Table 5-1",
+      "PCAF Global GHG Accounting and Reporting Standard, Part A (3rd ed. 2025), §5.2 / §5.3",
   },
   "pcaf-score-3": {
     title: "PCAF Score 3",
     body:
-      "Facility-level emissions data (Climate TRACE) downgraded one tier because the enterprise value is estimated, not verified from public filings.\n\nThe emissions side is the same quality as Score 2; the score reflects uncertainty in the financial denominator only.",
+      "Option 2b — borrower's primary physical production data (tonnes of cement, MWh generated, etc.) multiplied by a sector emission factor. This is what Jana enables for Nepal cement and hydropower borrowers using Climate TRACE satellite verification, the Global Cement Tracker, and IPCC reservoir factors.\n\nRealistic ceiling with Jana for the Nepal market today: Score 2 requires the borrower to publish GHG-Protocol-conformant emissions, which almost no Nepal SPV does.",
     source:
-      "PCAF Global GHG Standard §5 — Option 2b (physical-activity emissions, estimated EV)",
+      "PCAF Global GHG Standard (3rd ed. 2025) §5.2 / §5.3 — Option 2b (physical production data × sector EF)",
   },
   "pcaf-score-4": {
     title: "PCAF Score 4",
@@ -88,7 +88,7 @@ export const TOOLTIPS: Record<string, TooltipContent> = {
   "facility-tier": {
     title: "Facility-tier borrower",
     body:
-      "A borrower for which we have facility-level emissions data — coordinates plus annual CO₂e from Climate TRACE, the Global Cement and Concrete Tracker, or equivalent satellite verification.\n\nQualifies for PCAF Score 2 or 3 depending on EV quality. Compared to sector-benchmark borrowers (Score 4) or revenue-estimate borrowers (Score 5).",
+      "A borrower for which we have facility-level emissions data — coordinates plus annual CO₂e from Climate TRACE, the Global Cement and Concrete Tracker, or equivalent satellite verification.\n\nQualifies for PCAF Score 3 (Option 2b — physical production data × sector EF). Score 2 (borrower publishes GHG-Protocol emissions) is not routinely achievable in Nepal today. Compared to sector-benchmark borrowers (Score 4) or revenue-estimate borrowers (Score 5).",
   },
 
   // ---------------------------------------------------------------------------
@@ -154,25 +154,25 @@ export const TOOLTIPS: Record<string, TooltipContent> = {
     title: "Low ESRM risk",
     body:
       "Renewable-energy or low-emissions borrower with minimal community impact. Typically aligns with NRB Green Finance Taxonomy 'Green' classification. Eligible for sustainable-finance pricing. Standard ESDD documentation; no extra covenants.",
-    source: "NRB ESRM Guidelines 2018, §3.4(a)",
+    source: "NRB ESRM Guideline 2022, §3.4(a)",
   },
   "risk-medium": {
     title: "Medium ESRM risk",
     body:
       "Commercial profile with a notable environmental footprint but no extreme emissions exposure. Standard ESDD checklist plus sector-specific covenants. Monitored as part of routine credit review.",
-    source: "NRB ESRM Guidelines 2018, §3.4(b)",
+    source: "NRB ESRM Guideline 2022, §3.4(b)",
   },
   "risk-high": {
     title: "High ESRM risk",
     body:
       "Sector and emissions profile place this borrower in NRB ESRM's elevated-risk bucket (typically cement, steel, brick, or large facility-level emitters at 50-1,000 kt CO₂e/yr). Approval should include efficiency-improvement covenants, pollution-control verification, and quarterly E&S reporting.",
-    source: "NRB ESRM Guidelines 2018, §3.4(c)",
+    source: "NRB ESRM Guideline 2022, §3.4(c)",
   },
   "risk-extreme": {
     title: "Extreme ESRM risk",
     body:
       "Facility-level emissions exceed 1 Mt CO₂e per year. Approval requires transition-plan covenants, quarterly emissions reporting, and the highest level of ESDD scrutiny. Subject to enhanced ongoing monitoring through the life of the loan.",
-    source: "NRB ESRM Guidelines 2018, §3.4(c)",
+    source: "NRB ESRM Guideline 2022, §3.4(c)",
   },
 
   // ---------------------------------------------------------------------------

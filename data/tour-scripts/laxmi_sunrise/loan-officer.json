@@ -12,7 +12,7 @@
       "target": "[data-tour='my-work-queue']",
       "calloutTitle": "Laxmi Sunrise Bank · Sujata's compliance workbench",
       "calloutText": "Every loan officer sees their assigned loans with both ESRM and Green Finance Taxonomy status in one place. Full audit trail underneath.",
-      "narration": "Welcome. This is the compliance workbench built for Laxmi Sunrise Bank. Sujata Adhikari is a loan officer. Her queue shows every loan Laxmi has assigned to her, with both regulatory obligations visible on one row. The Nepal Rastra Bank ESRM screening from the 2018 directive, and the Green Finance Taxonomy classification from the October 2024 directive. Over the next six minutes I will walk you through how Sujata completes both flows on a single loan, step by step.",
+      "narration": "Welcome. This is the compliance workbench built for Laxmi Sunrise Bank. Sujata Adhikari is a loan officer. Her queue shows every loan Laxmi has assigned to her, with both regulatory obligations visible on one row. The Nepal Rastra Bank ESRM screening from the 2022 directive, and the Green Finance Taxonomy classification from the October 2024 directive. Over the next six minutes I will walk you through how Sujata completes both flows on a single loan, step by step.",
       "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-01-intro.mp3"
     },
     {
@@ -41,7 +41,7 @@
       "navigateTo": "/esdd/L-0079959?tourStep=1",
       "calloutTitle": "Section 1 · General Risk",
       "calloutText": "Three questions on legal issues, stakeholder grievances, and sensitive-area siting. Verbatim NRB language.",
-      "narration": "Section 1. General Risk. Three questions on legal permits and standing, stakeholder grievances or media coverage, and whether the site sits near protected or sensitive areas. Each question offers four options. A is the best case. B is partial mitigation with a plan. C is an unmitigated concern that will trigger escalation. D is not applicable. The wording matches the 2018 NRB directive verbatim so the audit trail is defensible.",
+      "narration": "Section 1. General Risk. Three questions on legal permits and standing, stakeholder grievances or media coverage, and whether the site sits near protected or sensitive areas. Each question offers four options. A is the best case. B is partial mitigation with a plan. C is an unmitigated concern that will trigger escalation. D is not applicable. The wording matches the 2022 NRB directive verbatim so the audit trail is defensible.",
       "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-04-esdd-section-1.mp3"
     },
     {

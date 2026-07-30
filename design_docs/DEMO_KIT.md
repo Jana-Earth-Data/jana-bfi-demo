@@ -161,7 +161,7 @@ depending on pace. Section headings are the beats; italic is speaker
 prompt; **bold** is what to click or where to look.
 
 ### 1. The problem (30 seconds)
-> *"Nepal Rastra Bank has three environmental regulations. ESRM screening from 2018 requires every commercial loan to be assessed for environmental risk before approval. The Green Finance Taxonomy from October 2024 requires banks to classify their book as green, amber, or red. And starting 2026-27, NFRS requires annual financed-emissions disclosures. Most Nepali banks are stuck on all three — not because they don't want to comply, but because the data infrastructure doesn't exist yet."*
+> *"Three frameworks shape Nepal bank sustainability compliance — ESRM and the Green Finance Taxonomy from NRB, plus NFRS from ICAN with NRB supervisory oversight. ESRM 2022 requires every commercial loan to be assessed for environmental risk before approval. The Green Finance Taxonomy from October 2024 requires banks to classify their book as green, amber, or red. And NFRS S1 and S2 — Nepal's IFRS-baseline sustainability disclosure standards, currently in exposure draft with comments open through June 2026 — will require annual financed-emissions disclosures once ICAN finalises. Year 1 waives Scope 3, but banks will need this data eventually. Most Nepali banks are stuck on all three — not because they don't want to comply, but because the data infrastructure doesn't exist yet."*
 
 ### 2. The officer view (1 minute)
 **Click My Work tab.**
@@ -172,7 +172,7 @@ prompt; **bold** is what to click or where to look.
 
 ### 3. ESDD wizard (1.5 minutes)
 **Click Start ESDD on a cement borrower.**
-> *"This is the NRB ESRM Annex 5 checklist — transcribed verbatim from the 2018 directive. Eleven core questions across general risk, environmental health and safety, and social risks."*
+> *"This is the NRB ESRM Annex 5 checklist — transcribed verbatim from the 2022 directive. Eleven core questions across general risk, environmental health and safety, and social risks, plus the new Q2.5 on climate risk that was added in the 2022 update."*
 
 **Scroll to Section 4.**
 > *"For sectors NRB names specifically, we add a sector supplement. This is a cement borrower so the wizard adds three cement-specific questions on kiln stack emissions, quarry rehabilitation, fugitive dust. Same for hydropower, brick, textiles, steel, chemicals, agriculture."*
@@ -218,7 +218,7 @@ prompt; **bold** is what to click or where to look.
 > *"Ready to attach to the NRB submission."*
 
 ### 8. Close (30 seconds)
-> *"So what you've just seen is one platform that handles all three of Nepal Rastra Bank's environmental regulations. Verbatim ESRM Annex 5 capture from the 2018 directive. Green Finance Taxonomy classification from October 2024 with the central DNSH library. And NFRS-ready portfolio disclosures for 2026 and 2027, exported bank-branded and ready to file. Every capture is officer-attributed and timestamped. Every taxonomy assessment carries its NRB citation. And underneath the workflow, the emissions numbers come from Climate TRACE and EDGAR — independently verifiable data sources the regulator will accept."*
+> *"So what you've just seen is one platform that handles all three of Nepal's sustainability frameworks. Verbatim ESRM Annex 5 capture from NRB's 2022 directive. Green Finance Taxonomy classification from NRB's October 2024 directive with the central DNSH library. And NFRS-ready portfolio disclosures aligned with ICAN's NFRS S1/S2 exposure drafts — exported bank-branded and ready to file once ICAN finalises. Every capture is officer-attributed and timestamped. Every taxonomy assessment carries its NRB citation. And underneath the workflow, the emissions numbers come from Climate TRACE and EDGAR — independently verifiable data sources the regulator will accept."*
 
 **Pause. Look at the questioner.**
 > *"Happy to walk through any of it in more depth."*

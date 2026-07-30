@@ -2,6 +2,8 @@
 
 For a second-meeting demo with a Nepali bank, follow the format below. Goal: introduce the four tabs briefly, let the audio tour do the substantive walkthrough, then open discussion to scope a custom-development contract.
 
+The four tabs map onto the three frameworks that shape Nepal bank sustainability compliance — ESRM 2022 and the Green Finance Taxonomy 2024 (both from NRB), plus NFRS S1/S2 (issued by ICAN, currently in exposure draft with comments open through June 2026). The Loan Book tab is the shared portfolio view all three read from.
+
 ---
 
 ## Tab introductions (two to three bullets each)
@@ -12,7 +14,7 @@ For a second-meeting demo with a Nepali bank, follow the format below. Goal: int
 - Search, sort, and drill into any record.
 
 ### ESRM
-- Credit-decision workbench for new loan applications, mapped to NRB's 2018 directive.
+- Credit-decision workbench for new loan applications, mapped to NRB's 2022 ESRM directive.
 - Each borrower carries satellite-verified emissions, an ownership chain, a risk classification, and a recommendation.
 - The full ESDD checklist (NRB Annex 5) is one click away in the slide-over.
 
@@ -23,8 +25,8 @@ For a second-meeting demo with a Nepali bank, follow the format below. Goal: int
 
 ### NFRS
 - Annual disclosure view: financed emissions, multi-year trend, PCAF data quality.
-- IFRS S2-aligned, presentation currency is NPR.
-- This is what would land in the annual sustainability report.
+- IFRS S2-aligned (NFRS S1/S2 issued by ICAN, currently in exposure draft — comment window closes June 2026). Presentation currency is NPR.
+- This is what would land in the annual sustainability report once ICAN finalises. Year 1 of adoption waives Scope 3 (including financed emissions) per §C4(b) of the NFRS S2 exposure draft.
 
 ---
 
