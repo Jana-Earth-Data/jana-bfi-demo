@@ -33,6 +33,9 @@ import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
+import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
+import { ANNEX5B_ALL } from "@/lib/regulatory/esdd/annex5b-pf-questions";
+import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +63,27 @@ export type LoanCard = {
     color: TaxColor | null;
     activityId: string | null;
     activityName: string | null;
+  };
+  /**
+   * NRB ESRM 2022 §4.3 climate flag — inferred from the borrower's
+   * estimated annual emissions and reduction-target status. The loan
+   * card badge fires when `aboveThreshold && !reductionTargetOnFile`.
+   */
+  climate: {
+    aboveThreshold: boolean;
+    reductionTargetOnFile: boolean;
+    estimatedAnnualTco2e: number;
+  };
+  /**
+   * NRB ESRM 2022 Annex 5b — Project Finance Screening Questionnaire
+   * status. Populated only when the loan is a Project Finance loan; null
+   * on all other loans.
+   */
+  pfScreening: {
+    required: boolean;
+    itemsAnswered: number;
+    riskClass: "low" | "medium" | "high" | "critical" | null;
+    completed: boolean;
   };
 };
 
@@ -228,6 +252,72 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
+  // 5b. Annex 5b PF-screening state for the candidate set.
+  //
+  // Two queries:
+  //   (a) count distinct item_ids per loan on bfi_pf_screening_responses
+  //       (via full row fetch since Supabase JS lacks GROUP BY)
+  //   (b) latest bfi_pf_screening_results row per loan
+  // ------------------------------------------------------------------
+  const pfTotalItems = ANNEX5B_ALL.length;
+  const { data: pfRespRows, error: pfRespErr } =
+    candidateArray.length > 0
+      ? await supabase
+          .from("bfi_pf_screening_responses")
+          .select("loan_id, item_id, captured_at")
+          .eq("bank_id", tenant.id)
+          .in("loan_id", candidateArray)
+          .order("captured_at", { ascending: false })
+      : { data: [], error: null };
+  if (pfRespErr) {
+    return NextResponse.json(
+      { error: `PF response query failed: ${pfRespErr.message}` },
+      { status: 500 },
+    );
+  }
+  const pfAnsweredByLoan = new Map<string, Set<string>>();
+  const pfLastActivityByLoan = new Map<string, string>();
+  for (const row of pfRespRows ?? []) {
+    let set = pfAnsweredByLoan.get(row.loan_id);
+    if (!set) {
+      set = new Set<string>();
+      pfAnsweredByLoan.set(row.loan_id, set);
+      pfLastActivityByLoan.set(row.loan_id, row.captured_at);
+    }
+    set.add(row.item_id);
+  }
+  const { data: pfResults, error: pfResErr } =
+    candidateArray.length > 0
+      ? await supabase
+          .from("bfi_pf_screening_results")
+          .select("loan_id, computed_risk_class, items_flagged, captured_at")
+          .eq("bank_id", tenant.id)
+          .in("loan_id", candidateArray)
+          .order("captured_at", { ascending: false })
+      : { data: [], error: null };
+  if (pfResErr) {
+    return NextResponse.json(
+      { error: `PF result query failed: ${pfResErr.message}` },
+      { status: 500 },
+    );
+  }
+  const pfResultByLoan = new Map<
+    string,
+    { riskClass: "low" | "medium" | "high" | "critical"; capturedAt: string }
+  >();
+  for (const r of pfResults ?? []) {
+    if (pfResultByLoan.has(r.loan_id)) continue;
+    pfResultByLoan.set(r.loan_id, {
+      riskClass: r.computed_risk_class as
+        | "low"
+        | "medium"
+        | "high"
+        | "critical",
+      capturedAt: r.captured_at,
+    });
+  }
+
+  // ------------------------------------------------------------------
   // 6. Build a LoanCard for every candidate loan, then bucket.
   // ------------------------------------------------------------------
   const cards: LoanCard[] = [];
@@ -252,8 +342,18 @@ export async function GET() {
     const taxDone = tax !== undefined;
     const escalated = screening?.escalated ?? false;
 
+    // PF screening (Annex 5b) applicability + completion state.
+    const pfRequired = isProjectFinanceLoan(loan);
+    const pfAnsweredSet = pfAnsweredByLoan.get(loanId);
+    const pfAnswered = pfAnsweredSet?.size ?? 0;
+    const pfResult = pfResultByLoan.get(loanId);
+    const pfDone = pfResult !== undefined;
+
     // Reason string for the card header — human summary of what needs
     // to happen next. Priority ordering matches how the card gets bucketed.
+    // Annex 5b PF screening state weaves in only for Project-Finance loans:
+    // a PF loan is NOT ready-for-review until the Annex 5b screening
+    // completes.
     let reason = "";
     if (escalated) {
       reason = "Escalated to credit committee";
@@ -261,11 +361,20 @@ export async function GET() {
       reason = "ESDD checklist not started";
     } else if (!esddDone && answered > 0) {
       reason = `ESDD checklist ${answered}/${total} answered`;
+    } else if (pfRequired && !pfDone) {
+      // ESDD is done, but this is a Project-Finance loan and Annex 5b is
+      // still open — flag PF screening as the next required step.
+      reason =
+        pfAnswered === 0
+          ? "PF screening pending (Annex 5b not started)"
+          : `PF screening pending (${pfAnswered}/${pfTotalItems} Annex 5b items answered)`;
     } else if (esddDone && taxApplicable && !taxDone) {
       reason = "ESDD complete — taxonomy classification pending";
     } else {
       reason = "Ready for review";
     }
+
+    const climateFlag = inferEmissionsFlag(borrower);
 
     cards.push({
       loanId,
@@ -274,7 +383,11 @@ export async function GET() {
       sector: borrower.nrbSector,
       outstandingNpr: loan.outstandingNpr,
       lastActivityAt:
-        esddAgg?.lastActivityAt ?? tax?.capturedAt ?? screening?.capturedAt ?? null,
+        esddAgg?.lastActivityAt ??
+        pfLastActivityByLoan.get(loanId) ??
+        tax?.capturedAt ??
+        screening?.capturedAt ??
+        null,
       reason,
       esdd: {
         answered,
@@ -288,6 +401,17 @@ export async function GET() {
         activityId: tax?.activityId ?? null,
         activityName,
       },
+      climate: {
+        aboveThreshold: climateFlag.exceedsReportingThreshold,
+        reductionTargetOnFile: climateFlag.reductionTargetOnFile,
+        estimatedAnnualTco2e: climateFlag.estimatedAnnualTco2e,
+      },
+      pfScreening: {
+        required: pfRequired,
+        itemsAnswered: pfAnswered,
+        riskClass: pfResult?.riskClass ?? null,
+        completed: pfDone,
+      },
     });
   }
 
@@ -298,9 +422,16 @@ export async function GET() {
   for (const c of cards) {
     const esddDone = c.esdd.riskClass !== null;
     const taxOk = !c.taxonomy.applicable || c.taxonomy.color !== null;
-    if (c.esdd.escalated) {
+    // Annex 5b PF screening: for Project-Finance loans, the loan is not
+    // ready-for-review until the Annex 5b screening is complete AND has
+    // not been auto-escalated to CRITICAL. NRB ESRM 2022 requires both
+    // the sector-agnostic Annex 5 flow AND the Annex 5b PF questionnaire.
+    const pfOk = !c.pfScreening.required || c.pfScreening.completed;
+    const pfCritical =
+      c.pfScreening.required && c.pfScreening.riskClass === "critical";
+    if (c.esdd.escalated || pfCritical) {
       needsAttention.push(c);
-    } else if (esddDone && taxOk) {
+    } else if (esddDone && taxOk && pfOk) {
       inReview.push(c);
     } else {
       needsAttention.push(c);

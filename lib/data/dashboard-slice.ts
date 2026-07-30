@@ -28,6 +28,7 @@ import {
   buildScreeningLive,
 } from "@/lib/data/screening";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
+import { summarisePortfolioClimate } from "@/lib/regulatory/climate/infer";
 
 const INITIAL_PAGE_SIZE = 50;
 const TOP_N = 20;
@@ -101,6 +102,11 @@ export async function buildDashboardSlice(
     }
   }
 
+  // Portfolio-level climate risk summary (NRB ESRM 2022 §4.4). Computes
+  // the "above threshold without target" callout counts once at slice
+  // build time so the NFRS tab doesn't need a per-page fetch.
+  const climateSummary = summarisePortfolioClimate(data.borrowers);
+
   return {
     meta: data.meta,
     portfolio: data.portfolio,
@@ -110,6 +116,7 @@ export async function buildDashboardSlice(
     applications: apps,
     facilityBorrowers,
     screenings,
+    climateSummary,
     liveEnrichment: token ? { edgar: edgarOk, openaq: openaqOk, edgarYear } : undefined,
     distinctValues: {
       sectors: dv.sectors,

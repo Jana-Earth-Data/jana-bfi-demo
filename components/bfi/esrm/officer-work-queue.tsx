@@ -47,6 +47,16 @@ type LoanCard = {
     activityId: string | null;
     activityName: string | null;
   };
+  /**
+   * NRB ESRM 2022 §4.3 climate flag — the officer sees a small badge
+   * on the card when the loan's borrower is above the 25,000 tCO2e/yr
+   * threshold without a reduction target on file.
+   */
+  climate?: {
+    aboveThreshold: boolean;
+    reductionTargetOnFile: boolean;
+    estimatedAnnualTco2e: number;
+  };
 };
 
 type QueueBody = {
@@ -259,6 +269,15 @@ function LoanCardRow({
               ESCALATED
             </span>
           )}
+          {card.climate?.aboveThreshold &&
+            !card.climate.reductionTargetOnFile && (
+              <span
+                className="rounded-full border border-rose-500/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-200"
+                title="Borrower is above 25,000 tCO₂e/yr with no reduction target on file (NRB ESRM 2022 §4.3)"
+              >
+                &gt;25k tCO₂e · NO TARGET
+              </span>
+            )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {card.reason}

@@ -102,6 +102,13 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
         />
       </div>
 
+      {/* Climate risk callout — the 25k tCO2e/yr NRB ESRM 2022 §4.3 flag.
+          Counts every borrower above threshold and, separately, every
+          borrower above threshold WITHOUT a reduction target on file.
+          The latter is the compliance-relevant population NRB expects
+          the annual report to enumerate. */}
+      <ClimateThresholdCallout summary={data.climateSummary} />
+
       {/* NRBSIS filing — the actual annual submission to NRB SIS.
           Visually distinct (accent-colour border + "FILED" badge) so
           it's obvious which is the regulatory submission vs. the
@@ -638,6 +645,93 @@ function TaxonomyBreakdownSection() {
         </a>{" "}
         to assign and classify.
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Climate risk callout — 25,000 tCO2e/yr threshold (NRB ESRM 2022 §4.3)
+// ---------------------------------------------------------------------------
+//
+// Surfaces two compliance-relevant counts across the borrower catalogue:
+//   1. Borrowers whose estimated annual GHG exceeds 25,000 tCO2e.
+//   2. Of those, the subset without a reduction target on file — the
+//      concrete population NRB expects a bank to flag in its annual
+//      Annex 11 report under §4.4 climate risk tracking.
+//
+// The callout renders even when both counts are zero so an auditor sees
+// the field was checked, not skipped.
+
+function ClimateThresholdCallout({
+  summary,
+}: {
+  summary: DashboardSsrData["climateSummary"];
+}) {
+  const missingTarget = summary.aboveThresholdWithoutTargetCount;
+  const aboveTotal = summary.aboveThresholdCount;
+  const withTarget = summary.aboveThresholdWithTargetCount;
+  return (
+    <div data-tour="climate-threshold-callout">
+      <Panel
+        title="Above 25,000 tCO₂e / yr without reduction target"
+        subtitle="Compliance flag under NRB ESRM 2022 §4.3 · Annex 11 climate risk tracking"
+      >
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div
+            className={`rounded-lg border p-4 ${
+              missingTarget > 0
+                ? "border-rose-500/50 bg-rose-500/10"
+                : "border-emerald-500/40 bg-emerald-500/10"
+            }`}
+          >
+            <div className="text-xs uppercase tracking-wide text-slate-400">
+              Above threshold · no target
+            </div>
+            <div
+              className={`mt-1 text-3xl font-semibold ${
+                missingTarget > 0 ? "text-rose-100" : "text-emerald-100"
+              }`}
+            >
+              {missingTarget.toLocaleString()}
+            </div>
+            <div className="mt-1 text-xs text-slate-400">
+              {missingTarget === 0
+                ? "Every above-threshold borrower has a documented reduction target."
+                : `${missingTarget === 1 ? "Borrower" : "Borrowers"} above 25k tCO₂e / yr with no reduction target on file. NRB expects a plan under §4.3.`}
+            </div>
+          </div>
+          <div className="rounded-lg border border-line bg-panel/40 p-4">
+            <div className="text-xs uppercase tracking-wide text-slate-400">
+              Above threshold · total
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-white">
+              {aboveTotal.toLocaleString()}
+            </div>
+            <div className="mt-1 text-xs text-slate-400">
+              of {summary.borrowersAssessed.toLocaleString()} borrowers
+              assessed
+            </div>
+          </div>
+          <div className="rounded-lg border border-line bg-panel/40 p-4">
+            <div className="text-xs uppercase tracking-wide text-slate-400">
+              Reduction target on file
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-emerald-200">
+              {withTarget.toLocaleString()}
+            </div>
+            <div className="mt-1 text-xs text-slate-400">
+              of {aboveTotal.toLocaleString()} above-threshold borrowers
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-slate-400">
+          NRB ESRM 2022 §4.3 sets 25,000 tCO₂e / yr as the reporting
+          threshold. Borrowers above it are expected to measure, disclose,
+          set targets, and mitigate; banks are expected to flag any
+          without a target. Portfolio climate risk (NGFS taxonomy) is
+          captured per borrower on the ESRM tab.
+        </p>
+      </Panel>
     </div>
   );
 }

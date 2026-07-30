@@ -17,6 +17,7 @@ import {
 } from "@/lib/types/bfi";
 import { LoanRow } from "@/lib/data/portfolio-query";
 import type { Officer } from "@/lib/tenants";
+import type { ClimatePortfolioSummary } from "@/lib/regulatory/climate/infer";
 
 export type DashboardSsrData = {
   meta: BfiDemoMeta;
@@ -28,6 +29,13 @@ export type DashboardSsrData = {
   facilityBorrowers: Borrower[]; // borrowers with facility data (for ESRM/maps)
   /** Pre-computed screenings keyed by borrower ID (covers the applications queue). */
   screenings: Record<string, BorrowerScreening>;
+  /**
+   * Portfolio-level climate risk summary (NRB ESRM 2022 §4.4).
+   * Powers the NFRS "above threshold without target" callout and any
+   * other portfolio-level climate metric. Always present — computed from
+   * the in-memory synthesized borrower catalogue.
+   */
+  climateSummary: ClimatePortfolioSummary;
   /** True when EDGAR / OpenAQ screening enrichments were fetched live. */
   liveEnrichment?: {
     edgar: boolean;
