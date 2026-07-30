@@ -32,6 +32,14 @@ export type TaxonomyClassification = {
   dnshFailures?: string[];
 };
 
+/**
+ * The four NRB core environmental objectives (Chapter 2.3, pp. 20-22).
+ * Each activity in Annex 2 tags itself with one or more of these letters
+ * in parentheses, e.g. "(A, M, N)". Used as the top-level grouping for
+ * DNSH conditions (Table 1, p. 22).
+ */
+export type NrbObjective = "A" | "M" | "N" | "P";
+
 export type TaxonomyActivity = {
   id: string;
   name: string;

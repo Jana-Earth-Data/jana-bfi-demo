@@ -17,7 +17,7 @@ import { getBfiDemoData } from "@/lib/api/bfi";
 import { getBorrowerDetail } from "@/lib/data/portfolio-query";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { suggestActivitiesForSector } from "@/lib/regulatory/taxonomy/activities";
+import { suggestActivitiesForSector } from "@/lib/regulatory/taxonomy/applicability";
 
 export const dynamic = "force-dynamic";
 

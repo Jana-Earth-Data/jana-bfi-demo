@@ -59,18 +59,32 @@ const CEMENT_ESDD_RESPONSES: Array<{
   { questionId: "annex5.cement.3", answer: "b", remarks: null },
 ];
 
+// Cement — NRB §5.11 has NO Green column; classification maxes at Amber.
+// These answers exercise the dry-process kiln + alternative-fuel Amber path
+// with quarry rehabilitation flagged under DNSH.
 const CEMENT_TAXONOMY_ANSWERS = {
+  dry_process_kiln: true,
+  alt_fuel_or_low_carbon_kiln: true,
+  efficient_kiln_60pct_masonry_share: false,
   whr_operational: true,
-  kiln_pm_within_limits: true,
   alternative_fuel_share_pct: 22,
+  dnsh_air_emissions_compliance: true,
   dnsh_quarry_rehabilitation: false,
 };
 
+// Hydro — NRB §7.1 uses run-of-river + power-density + lifecycle GHG,
+// not MW capacity bands. These answers exercise the Green path.
 const HYDRO_TAXONOMY_ANSWERS = {
   installed_capacity_mw: 22,
-  iee_or_eia_current: true,
+  run_of_river_no_reservoir: true,
+  power_density_above_5: true,
+  lifecycle_gco2e_per_kwh: 45,
+  eia_or_iee_current: true,
+  avoids_protected_and_disaster_zones: true,
   dnsh_environmental_flow: true,
   dnsh_resettlement_discharged: true,
+  dnsh_biodiversity_offset: true,
+  dnsh_seismic_assessment: true,
 };
 
 export async function POST(request: NextRequest) {
@@ -228,8 +242,9 @@ export async function POST(request: NextRequest) {
       criterion_answers: CEMENT_TAXONOMY_ANSWERS,
       computed_color: "amber",
       computed_rationale:
-        "Cement plant with operational Waste Heat Recovery, kiln emissions compliant, and 22% alternative fuel share. Classified as Amber (transitional). Cement remains a hard-to-abate sector so full Green requires further alternative-fuel substitution. Quarry rehabilitation plan flagged under DNSH.",
-      citation: "NRB GFT 2024, Ch. 2 Industry — Cement",
+        "Cement production classified Amber (transitional). NRB §5.11 has NO Green column — cement is a hard-to-abate sector and the best possible outcome under the taxonomy is Amber. Levers in place: dry-process kiln + reduced clinker; HHK/TK/CSEB or clinker substitution; WHR operational (Jana editorial, not NRB-named); 22% alternative fuel share. Quarry rehabilitation plan flagged under DNSH.",
+      citation:
+        "NRB GFT 2024, Annex 2 §5.11 (Table 9, pp. 97-98 — Amber only)",
     });
     if (error) {
       return NextResponse.json(
@@ -246,12 +261,15 @@ export async function POST(request: NextRequest) {
       loan_id: HYDRO_LOAN_ID,
       borrower_id: HYDRO_BORROWER_ID,
       officer_id: officer.id,
-      activity_id: "hydro-small",
+      // Legacy id "hydro-small" is aliased to "hydro" by findActivityById.
+      // Persist the current activity id so re-openings resolve directly.
+      activity_id: "hydro",
       criterion_answers: HYDRO_TAXONOMY_ANSWERS,
       computed_color: "green",
       computed_rationale:
-        "Small hydropower plant (22 MW) with current IEE/EIA approval, maintained environmental flow, and cleared resettlement obligations. Aligns with the NRB Green Finance Taxonomy under Renewable Energy — Hydropower.",
-      citation: "NRB GFT 2024, Ch. 2 Renewable Energy",
+        "Hydro plant meets NRB §7.1 Green: run-of-river or > 5 W/m² power density + verified lifecycle GHG at 45 gCO2e/kWh (< 100 ceiling) + EIA/IEE current + site outside protected / disaster zones. DNSH checks passed.",
+      citation:
+        "NRB GFT 2024, Annex 2 §7.1 (Table 11, pp. 104-105 — Green)",
     });
     if (error) {
       return NextResponse.json(
