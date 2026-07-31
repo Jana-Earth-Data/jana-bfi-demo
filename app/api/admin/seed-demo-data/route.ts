@@ -37,6 +37,33 @@ export const dynamic = "force-dynamic";
 const CEMENT_LOAN_ID = "L-0079959";
 const HYDRO_LOAN_ID = "L-0080028";
 
+// Small loan in a critical sector — walkthrough path for the fourth
+// EsddLoanCategory variant. Loan ID is looked up at seed time because
+// the brick-industry SME borrower + loan are stochastic in the
+// synthesizer (pinned to under-review by the portfolio hook but not
+// pinned to a specific ID). Non-escalated answers throughout — the
+// point is to demonstrate that a small brick loan still routes
+// through the FULL Circular 22 checklist (no fast-path) because brick
+// is on NRB's §5 critical-sector list.
+const BRICK_ESDD_RESPONSES: Array<{
+  questionId: string;
+  answer: "a" | "b" | "c" | "d";
+  remarks: string | null;
+}> = [
+  { questionId: "annex5.1.1", answer: "a", remarks: null },
+  { questionId: "annex5.1.2", answer: "a", remarks: null },
+  { questionId: "annex5.1.3", answer: "b", remarks: "Kiln downwind of a wetland; buffer maintained per DoE guidance." },
+  { questionId: "annex5.2.1", answer: "b", remarks: "Legacy fixed-chimney bull's trench kiln; brick-sector modernisation programme retrofit committed by FY 2027." },
+  { questionId: "annex5.2.2", answer: "a", remarks: null },
+  { questionId: "annex5.2.3", answer: "a", remarks: null },
+  { questionId: "annex5.2.4", answer: "b", remarks: "Retrofit plan includes zig-zag firing; energy use expected to drop 25%." },
+  { questionId: "annex5.2.5", answer: "b", remarks: "Physical: air-quality PM2.5 exposure. Transition: brick-sector modernisation regulation." },
+  { questionId: "annex5.3.1", answer: "a", remarks: null },
+  { questionId: "annex5.3.2", answer: "b", remarks: "Seasonal migrant labour, all age-verified per Nepal Labour Act; no child labour on site." },
+  { questionId: "annex5.3.3", answer: "a", remarks: null },
+  { questionId: "annex5.3.4", answer: "a", remarks: null },
+];
+
 // A canonical set of ESDD answers that produces an escalated, extreme-
 // risk cement screening. Two 'c' answers (Q 3.2 labour, Q 3.3 community
 // H&S) are the escalation drivers. Every other question answered 'a' or
@@ -203,7 +230,28 @@ export async function POST(request: NextRequest) {
   }
   const CEMENT_BORROWER_ID = cementLoan.borrowerId;
   const HYDRO_BORROWER_ID = hydroLoan.borrowerId;
-  const targetLoanIds = [CEMENT_LOAN_ID, HYDRO_LOAN_ID];
+
+  // Find the SME brick loan pinned to under-review by the portfolio
+  // synthesizer's demo-tour hook. Brick is on NRB Circular 22 §5
+  // critical-sector list, so this is the small-loan-in-critical-sector
+  // walkthrough path. Not fatal if missing — brick borrowers appear
+  // stochastically in the SME pool.
+  const brickBorrower = demoData.borrowers.find(
+    (b) => b.nrbSector?.toLowerCase().includes("brick"),
+  );
+  const brickLoan = brickBorrower
+    ? demoData.loans.find(
+        (l) =>
+          l.borrowerId === brickBorrower.id &&
+          l.category === "sme-term-loan" &&
+          l.status === "under-review",
+      )
+    : undefined;
+  const BRICK_LOAN_ID = brickLoan?.id ?? null;
+  const BRICK_BORROWER_ID = brickBorrower?.id ?? null;
+
+  const targetLoanIds: string[] = [CEMENT_LOAN_ID, HYDRO_LOAN_ID];
+  if (BRICK_LOAN_ID) targetLoanIds.push(BRICK_LOAN_ID);
   const now = new Date().toISOString();
 
   const perTenantResults: Array<Record<string, unknown>> = [];
@@ -346,13 +394,90 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 5b) Insert non-escalated ESDD state + screening for the brick SME
+    // loan (the small-loan-in-critical-sector walkthrough path). Skipped
+    // silently if the synthesizer didn't produce a brick borrower this
+    // build.
+    let brickResponsesLen = 0;
+    let brickScreeningsLen = 0;
+    if (BRICK_LOAN_ID && BRICK_BORROWER_ID) {
+      // Wipe prior rows for this loan too.
+      for (const table of [
+        "bfi_esdd_responses",
+        "bfi_esrm_screenings",
+      ] as const) {
+        await supabase
+          .from(table)
+          .delete()
+          .eq("bank_id", tenant.id)
+          .eq("loan_id", BRICK_LOAN_ID);
+      }
+      const brickRows = BRICK_ESDD_RESPONSES.map((r) => ({
+        bank_id: tenant.id,
+        loan_id: BRICK_LOAN_ID,
+        borrower_id: BRICK_BORROWER_ID,
+        officer_id: officer.id,
+        question_id: r.questionId,
+        answer: r.answer,
+        remarks: r.remarks,
+      }));
+      {
+        const { error } = await supabase
+          .from("bfi_esdd_responses")
+          .insert(brickRows);
+        if (error) {
+          return NextResponse.json(
+            { error: `[${tenant.id}] Brick ESDD insert failed: ${error.message}` },
+            { status: 500 },
+          );
+        }
+      }
+      const brickSnapshot: Record<
+        string,
+        { answer: string; remarks: string | null; capturedAt: string; officerId: string }
+      > = {};
+      for (const r of BRICK_ESDD_RESPONSES) {
+        brickSnapshot[r.questionId] = {
+          answer: r.answer,
+          remarks: r.remarks,
+          capturedAt: now,
+          officerId: officer.id,
+        };
+      }
+      {
+        const { error } = await supabase.from("bfi_esrm_screenings").insert({
+          bank_id: tenant.id,
+          loan_id: BRICK_LOAN_ID,
+          borrower_id: BRICK_BORROWER_ID,
+          officer_id: officer.id,
+          computed_risk_class: "medium",
+          computed_recommendation: "approve",
+          escalation_flag: false,
+          computed_rationale:
+            "Small brick SME loan. Critical-sector routing per Circular 22 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. All answers 'a' or 'b' — no unmitigated concerns. Modernisation retrofit commitment noted on the kiln air-emissions question.",
+          esdd_snapshot: brickSnapshot,
+        });
+        if (error) {
+          return NextResponse.json(
+            { error: `[${tenant.id}] Brick screening insert failed: ${error.message}` },
+            { status: 500 },
+          );
+        }
+      }
+      brickResponsesLen = brickRows.length;
+      brickScreeningsLen = 1;
+    }
+
     // 6) Assign both seeded loans to the officer so the manager tour
     // shows owners and so the officer's queue has both under "In review".
     // Cement is the escalated case (drives the escalation banner); hydro
     // is the Green-taxonomy case (drives the taxonomy walkthrough — the
     // tour step "the manager clicks into a hydro borrower" needs an
-    // assigned loan to click into).
-    for (const loanId of [CEMENT_LOAN_ID, HYDRO_LOAN_ID]) {
+    // assigned loan to click into). Brick is the small-critical loan
+    // if the synthesizer produced one this build.
+    const assignmentLoanIds = [CEMENT_LOAN_ID, HYDRO_LOAN_ID];
+    if (BRICK_LOAN_ID) assignmentLoanIds.push(BRICK_LOAN_ID);
+    for (const loanId of assignmentLoanIds) {
       const { error } = await supabase.from("bfi_loan_assignments").upsert(
         {
           bank_id: tenant.id,
@@ -399,10 +524,10 @@ export async function POST(request: NextRequest) {
       tenant: tenant.id,
       officer: officer.id,
       seeded: {
-        esddResponses: responseRows.length,
-        esrmScreenings: 1,
+        esddResponses: responseRows.length + brickResponsesLen,
+        esrmScreenings: 1 + brickScreeningsLen,
         taxonomyAssessments: 2,
-        loanAssignments: 2,
+        loanAssignments: BRICK_LOAN_ID ? 3 : 2,
         hydroDocStatuses: hydroDocRows.length,
       },
       drivingQuestionIds,
@@ -416,6 +541,7 @@ export async function POST(request: NextRequest) {
     loans: {
       cement: CEMENT_LOAN_ID,
       hydro: HYDRO_LOAN_ID,
+      brick: BRICK_LOAN_ID,
     },
   });
 }

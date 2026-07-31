@@ -712,6 +712,29 @@ function buildPortfolio(): BfiDemoData {
     }
   }
 
+  // Demo tour hook: ensure at least one SME brick-industry loan is
+  // under-review so the "small loan in critical sector" walkthrough
+  // path has a concrete loan to demonstrate. Brick is on NRB's
+  // critical-sector list per Circular 22 §5, so a small SME loan to a
+  // brick borrower should route through the full ESDD checklist (not
+  // the fast-path). Picks the largest SME term loan by NPR to the
+  // first brick-industry borrower for stable selection.
+  const brickBorrower = catalog.sme.find((b) =>
+    b.nrbSector.toLowerCase().includes("brick"),
+  );
+  if (brickBorrower) {
+    const brickSmeLoans = loans.filter(
+      (l) =>
+        l.borrowerId === brickBorrower.id && l.category === "sme-term-loan",
+    );
+    if (brickSmeLoans.length > 0) {
+      const biggest = brickSmeLoans.reduce((acc, l) =>
+        l.outstandingNpr > acc.outstandingNpr ? l : acc,
+      );
+      biggest.status = "under-review";
+    }
+  }
+
   // Compute PCAF attributions
   const attributions: PcafAttribution[] = loans.map((l) => {
     const b = catalog.byId.get(l.borrowerId)!;
