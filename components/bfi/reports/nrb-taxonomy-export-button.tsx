@@ -36,16 +36,14 @@ export function NrbTaxonomyExportButton() {
   // button so an officer doesn't tap twice on a slow connection.
   const [pending, setPending] = useState<ExportFormat | null>(null);
 
+  // Heading intentionally omitted — this component is rendered inside a
+  // Panel that already provides the title + subtitle. Rendering our own
+  // heading duplicates the Panel header and confuses the reader (looks
+  // like two exports instead of one).
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <div className="text-sm font-semibold text-slate-100">
-          NRB Green Finance Taxonomy — regulatory export
-        </div>
-        <div className="text-xs text-slate-400">
-          Full portfolio classification report. Formats accepted by NRB
-          filings (Excel · PDF) plus a machine-readable JSON copy.
-        </div>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="text-xs text-slate-400">
+        One row per loan · JSON / Excel / PDF · bank-branded
       </div>
       <div className="flex flex-wrap gap-2">
         {FORMATS.map((f) => (
