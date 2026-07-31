@@ -446,7 +446,7 @@ function ManagerSummary({
               {escalatedCount} loan{escalatedCount === 1 ? "" : "s"} escalated to credit committee
             </div>
             <div className="text-xs text-amber-200/70">
-              Any &lsquo;c&rsquo; answer in NRB ESRM Annex 5 triggers escalation
+              Any &lsquo;c&rsquo; answer in NRB Circular 22 triggers escalation
             </div>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -1440,10 +1440,10 @@ function ScreeningWorkbench({
 }
 
 // ---------------------------------------------------------------------------
-// ESDD checklist panel (NRB ESRM Annex 5) — LIVE STATUS from Supabase
+// ESDD checklist panel (NRB Circular 22) — LIVE STATUS from Supabase
 // ---------------------------------------------------------------------------
 //
-// Shows the loan's actual ESDD progress against the NRB ESRM Annex 5
+// Shows the loan's actual ESDD progress against the NRB Circular 22
 // questions. Fetches the latest response per question from
 // bfi_esdd_responses and the latest saved screening (if any) from
 // bfi_esrm_screenings, then renders per-section progress plus an
@@ -1642,7 +1642,7 @@ const TAXONOMY_COLOR_LABEL: Record<TaxonomyColor, string> = {
 
 /**
  * NRB compliance status drawer — one drawer per loan, two subpanels:
- *   1. ESDD (NRB ESRM Annex 5)      — risk screening
+ *   1. ESDD (NRB Circular 22)      — risk screening
  *   2. Taxonomy (NRB GFT Oct 2024)  — green classification
  *
  * Both subpanels are live: they fetch the latest saved state from
@@ -1873,7 +1873,7 @@ function EsddSubpanel({
           ESDD checklist
         </div>
         <div className="text-[10px] uppercase tracking-wide text-slate-500">
-          NRB ESRM Annex 5
+          NRB Circular 22
         </div>
       </div>
 

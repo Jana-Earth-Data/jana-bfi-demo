@@ -290,13 +290,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6) Assign the cement loan to the seeded officer so the manager tour
-    // shows an owner (and so the officer's queue has it under "In review").
-    {
+    // 6) Assign both seeded loans to the officer so the manager tour
+    // shows owners and so the officer's queue has both under "In review".
+    // Cement is the escalated case (drives the escalation banner); hydro
+    // is the Green-taxonomy case (drives the taxonomy walkthrough — the
+    // tour step "the manager clicks into a hydro borrower" needs an
+    // assigned loan to click into).
+    for (const loanId of [CEMENT_LOAN_ID, HYDRO_LOAN_ID]) {
       const { error } = await supabase.from("bfi_loan_assignments").upsert(
         {
           bank_id: tenant.id,
-          loan_id: CEMENT_LOAN_ID,
+          loan_id: loanId,
           officer_id: officer.id,
           assigned_by: officer.id,
           assigned_at: now,
@@ -305,7 +309,7 @@ export async function POST(request: NextRequest) {
       );
       if (error) {
         return NextResponse.json(
-          { error: `[${tenant.id}] Assignment upsert failed: ${error.message}` },
+          { error: `[${tenant.id}] Assignment upsert (${loanId}) failed: ${error.message}` },
           { status: 500 },
         );
       }
@@ -318,7 +322,7 @@ export async function POST(request: NextRequest) {
         esddResponses: responseRows.length,
         esrmScreenings: 1,
         taxonomyAssessments: 2,
-        loanAssignments: 1,
+        loanAssignments: 2,
       },
       drivingQuestionIds,
     });

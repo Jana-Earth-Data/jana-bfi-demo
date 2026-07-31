@@ -496,8 +496,9 @@ function BasicInfoStep({
     <div className="rounded-2xl border border-line bg-panel p-6">
       <h2 className="text-lg font-semibold text-white">Basic information</h2>
       <p className="mt-1 text-sm text-slate-400">
-        Prefilled from the loan and borrower record. NRB Annex 5 requires
-        these fields to be captured at the top of every ESDD checklist.
+        Prefilled from the loan and borrower record. NRB Circular 22
+        requires these fields to be captured at the top of every ESDD
+        checklist.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -932,7 +933,7 @@ function ScreeningResult({
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
           <div className="font-semibold">Escalated to credit committee</div>
           <div className="mt-1 text-xs">
-            One or more questions received a 'c' answer per NRB ESRM Annex 5.
+            One or more questions received a 'c' answer per NRB Circular 22.
             This screening must be reviewed by the credit committee before
             approval per NRB guidance.
           </div>

@@ -422,7 +422,7 @@ function LoanDrawer({ row, onClose }: { row: LoanRow; onClose: () => void }) {
 
         {/*
           Compact NRB compliance stripe — two live-status CTAs for the
-          two independent NRB frameworks (ESDD Annex 5 risk screening,
+          two independent NRB frameworks (ESDD Circular 22 risk screening,
           Green Finance Taxonomy Oct 2024 classification). Chips fetch
           from the same Supabase endpoints the rich compliance drawer
           uses. For full per-question detail, use the "View NRB
@@ -589,8 +589,9 @@ type StripeState = {
   };
 };
 
-// ESDD total is the fixed sector-agnostic count from Circular 22 (13
-// questions). Sector supplements were removed to conform to source.
+// ESDD total is the fixed sector-agnostic count from Circular 22 (12
+// questions — 3 general + 5 EHS incl. new Q2.5 climate + 4 social).
+// Sector supplements were removed to conform to source.
 import {
   fullChecklist as annex5FullChecklist,
 } from "@/lib/regulatory/esdd/annex5-questions";
@@ -678,7 +679,7 @@ function NrbComplianceStripe({
     <div className="mt-4 grid grid-cols-2 gap-2">
       <StripeCard
         label="ESDD"
-        subtitle="Annex 5"
+        subtitle="Circular 22"
         chip={
           state.esdd.loading ? (
             <StripeChip tone="neutral">…</StripeChip>

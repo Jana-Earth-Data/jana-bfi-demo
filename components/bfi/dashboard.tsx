@@ -73,7 +73,7 @@ const TABS: Array<{
   {
     id: "esrm",
     label: "ESRM",
-    description: "Manager view · All loans under review (2018 NRB Directive)",
+    description: "Manager view · All loans under review (NRB Circular 22 · ESRM 2022)",
   },
   {
     id: "taxonomy",
