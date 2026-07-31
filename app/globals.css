@@ -37,3 +37,13 @@ a {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Facility map — brighten CARTO dark_only_labels overlay so place names
+   are actually readable against the dark base. Native tiles render
+   labels at ~#333 which disappears on our dark UI. The filter stack
+   inverts + hue-rotates + brightens to produce near-white labels while
+   keeping the map background dark. */
+.facility-map-labels {
+  filter: invert(1) hue-rotate(180deg) brightness(1.2) contrast(1.1);
+  mix-blend-mode: screen;
+}
