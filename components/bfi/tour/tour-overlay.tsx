@@ -62,15 +62,19 @@ function calloutPosition(rect: Rect | null) {
   // near-full-width target ends up overlapping the target's own
   // right-side content (e.g. the CTA column on a loan card).
   //
-  // Pin to the top-right corner instead so the callout hovers over
-  // blank chrome, not over content the reader needs to see next. The
-  // 50% threshold catches typical loan-card widths (65-75% of vw) as
-  // well as true full-width banners.
+  // Pin to the top-LEFT of the viewport. Loan-card action buttons
+  // ("Start ESDD", "Review taxonomy") sit at the card's right edge,
+  // which is near the viewport's right edge for wide cards, so
+  // top-right ALSO collides. Top-left is the only safe corner —
+  // there's nothing important there once the tour spotlight has
+  // drawn the reader's eye down onto the card. The 50% threshold
+  // catches typical loan-card widths (65-75% of vw) as well as true
+  // full-width banners.
   const targetIsWide = rect.width > vw * 0.5;
   if (targetIsWide) {
     return {
       top: "24px",
-      left: `${Math.max(24, vw - calloutWidth - 24)}px`,
+      left: "24px",
     };
   }
 
@@ -102,11 +106,13 @@ function calloutPosition(rect: Rect | null) {
       left: `${Math.min(vw - calloutWidth - 24, Math.max(24, rect.left))}px`,
     };
   }
-  // Nothing fits without overlap — pin the callout to the top-right
-  // corner (or top-left if the spotlight itself is on the right). This
-  // way the callout still displays but the spotlight remains visible.
-  const pinRight = rect.left + rect.width / 2 < vw / 2;
-  return pinRight
+  // Nothing fits without overlap — default to top-left. Loan-card CTAs
+  // and most workbench actions live on the right, so top-left is the
+  // safest fallback corner. Only flip to top-right if the target
+  // itself is anchored on the LEFT side of the viewport (leaving the
+  // right side free).
+  const targetOnLeft = rect.left + rect.width < vw * 0.5;
+  return targetOnLeft
     ? { top: "24px", left: `${Math.max(24, vw - calloutWidth - 24)}px` }
     : { top: "24px", left: "24px" };
 }
