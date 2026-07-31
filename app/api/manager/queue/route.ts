@@ -35,6 +35,13 @@ export type ManagerQueueRow = {
   escalated: boolean;
   screeningAt: string | null;
   lastEsddActivityAt: string | null;
+  /**
+   * Count of CAP items for this loan whose deadline is in the past AND
+   * status is not 'completed'. Drives the per-row "Overdue CAP" pill
+   * in the manager view and rolls up into the top-of-page banner.
+   * NRB Circular 22 §7.3.5 — deadlines are non-optional.
+   */
+  overdueCapCount: number;
 };
 
 export async function GET() {
@@ -146,6 +153,30 @@ export async function GET() {
     for (const o of officers ?? []) officerNameById.set(o.id, o.name);
   }
 
+  // Overdue CAP items per loan. Batched — one query for the whole
+  // page. deadline_date < today AND status != 'completed'. Silently
+  // returns zero if bfi_cap_items table not present in this environment.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const overdueCapCountByLoan = new Map<string, number>();
+  try {
+    const { data: capRows } = await supabase
+      .from("bfi_cap_items")
+      .select("loan_id")
+      .eq("bank_id", tenant.id)
+      .in("loan_id", loanIds)
+      .neq("status", "completed")
+      .lt("deadline_date", todayIso);
+    for (const r of capRows ?? []) {
+      overdueCapCountByLoan.set(
+        r.loan_id,
+        (overdueCapCountByLoan.get(r.loan_id) ?? 0) + 1,
+      );
+    }
+  } catch {
+    // Table missing (older Supabase without the P25 migration) —
+    // silently degrade to zero counts across the board.
+  }
+
   const rows: ManagerQueueRow[] = apps.map((app) => {
     // Circular 22: 12-question sector-agnostic checklist. No supplement.
     const total = fullChecklist().length;
@@ -169,11 +200,20 @@ export async function GET() {
       escalated: screening?.escalated ?? false,
       screeningAt: screening?.capturedAt ?? null,
       lastEsddActivityAt: progress?.latest ?? null,
+      overdueCapCount: overdueCapCountByLoan.get(app.loan.id) ?? 0,
     };
   });
 
   const escalatedCount = rows.filter((r) => r.escalated).length;
+  const overdueCapsTotal = rows.reduce((s, r) => s + r.overdueCapCount, 0);
+  const loansWithOverdueCaps = rows.filter((r) => r.overdueCapCount > 0).length;
 
-  return NextResponse.json({ ok: true, rows, escalatedCount });
+  return NextResponse.json({
+    ok: true,
+    rows,
+    escalatedCount,
+    overdueCapsTotal,
+    loansWithOverdueCaps,
+  });
 }
 

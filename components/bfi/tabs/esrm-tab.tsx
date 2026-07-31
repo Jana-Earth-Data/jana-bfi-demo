@@ -65,6 +65,7 @@ type ManagerRow = {
   escalated: boolean;
   screeningAt: string | null;
   lastEsddActivityAt: string | null;
+  overdueCapCount: number;
 };
 
 type OwnerFilter = "all" | "unassigned" | { officerId: string };
@@ -81,6 +82,8 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
     new Map(),
   );
   const [escalatedCount, setEscalatedCount] = useState(0);
+  const [overdueCapsTotal, setOverdueCapsTotal] = useState(0);
+  const [loansWithOverdueCaps, setLoansWithOverdueCaps] = useState(0);
   const [version, setVersion] = useState(0);
   const bumpVersion = () => setVersion((v) => v + 1);
 
@@ -111,6 +114,7 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
           escalated: false,
           screeningAt: null,
           lastEsddActivityAt: null,
+          overdueCapCount: 0,
         });
       } else {
         next.set(loanId, {
@@ -136,6 +140,8 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         for (const r of body.rows ?? []) map.set(r.loanId, r);
         setManagerRows(map);
         setEscalatedCount(body.escalatedCount ?? 0);
+        setOverdueCapsTotal(body.overdueCapsTotal ?? 0);
+        setLoansWithOverdueCaps(body.loansWithOverdueCaps ?? 0);
       } catch {
         /* silent — the tab still works from data.applications */
       }
@@ -206,6 +212,8 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
       <ManagerSummary
         managerRows={managerRows}
         escalatedCount={escalatedCount}
+        overdueCapsTotal={overdueCapsTotal}
+        loansWithOverdueCaps={loansWithOverdueCaps}
         apps={apps}
         onSelectLoan={(loanId) => {
           setSelectedLoanId(loanId);
@@ -424,11 +432,15 @@ function ApplicationsList({
 function ManagerSummary({
   managerRows,
   escalatedCount,
+  overdueCapsTotal,
+  loansWithOverdueCaps,
   apps,
   onSelectLoan,
 }: {
   managerRows: Map<string, ManagerRow>;
   escalatedCount: number;
+  overdueCapsTotal: number;
+  loansWithOverdueCaps: number;
   apps: LoanRow[];
   onSelectLoan: (loanId: string) => void;
 }) {
@@ -479,6 +491,50 @@ function ManagerSummary({
           </div>
         </div>
       )}
+      {overdueCapsTotal > 0 && (() => {
+        const overdueCapApps = apps.filter(
+          (r) => (managerRows.get(r.loan.id)?.overdueCapCount ?? 0) > 0,
+        );
+        return (
+          <div
+            className="rounded-2xl border border-rose-500/50 bg-rose-500/10 p-4"
+            data-tour="overdue-caps-banner"
+          >
+            <div className="flex items-baseline justify-between">
+              <div className="text-sm font-semibold text-rose-100">
+                {overdueCapsTotal} corrective action item
+                {overdueCapsTotal === 1 ? "" : "s"} overdue across{" "}
+                {loansWithOverdueCaps} loan
+                {loansWithOverdueCaps === 1 ? "" : "s"}
+              </div>
+              <div className="text-xs text-rose-200/70">
+                NRB Circular 22 §7.3.5 — CAP deadlines are non-optional
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {overdueCapApps.slice(0, 8).map((r) => {
+                const count = managerRows.get(r.loan.id)?.overdueCapCount ?? 0;
+                return (
+                  <button
+                    key={r.loan.id}
+                    type="button"
+                    onClick={() => onSelectLoan(r.loan.id)}
+                    className="rounded-full border border-rose-500/40 bg-rose-500/15 px-2.5 py-0.5 text-xs text-rose-100 transition hover:bg-rose-500/25"
+                    title={`${count} overdue CAP item${count === 1 ? "" : "s"}`}
+                  >
+                    {r.borrower.name} · {count}
+                  </button>
+                );
+              })}
+              {overdueCapApps.length > 8 && (
+                <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-xs text-rose-200/70">
+                  +{overdueCapApps.length - 8} more
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
       <div className="rounded-2xl border border-line bg-panel px-4 py-3 text-xs text-slate-400">
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
           <div>
