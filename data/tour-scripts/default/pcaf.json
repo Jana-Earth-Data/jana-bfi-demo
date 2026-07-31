@@ -45,8 +45,8 @@
       "navigateTo": "/",
       "selectBorrowerNameContains": "Hongshi",
       "calloutTitle": "PCAF Data Availability \u2014 analyst confirmation",
-      "calloutText": "Auto-inference from the borrower record is the starting point. The officer confirms or overrides each flag with evidence.",
-      "narration": "This is the PCAF Data Availability panel. Every borrower gets four flag rows corresponding to the PCAF option ladder. Verified reported emissions. Unverified reported. Physical activity data. Revenue-only. The starting state is auto-inferred from what the bank's borrower record contains. Riya then confirms or overrides each one before the score becomes defensible for filing.",
+      "calloutText": "Auto-suggestion from the borrower record is the starting point. The officer confirms or sets each flag manually with evidence.",
+      "narration": "This is the PCAF Data Availability panel. Every borrower gets four flag rows corresponding to the PCAF option ladder. Verified reported emissions. Unverified reported. Physical activity data. Revenue-only. The starting state is auto-inferred from what the bank's borrower record contains. Riya then confirms each one, or sets it manually with evidence, each one before the score becomes defensible for filing.",
       "audioFile": "/audio/default/pcaf/tour-04-collection-intro.mp3"
     },
     {
@@ -57,7 +57,7 @@
       "selectBorrowerNameContains": "Hongshi",
       "calloutTitle": "Four flag rows \u00b7 one for each PCAF option",
       "calloutText": "Verified \u00b7 Unverified \u00b7 Physical activity \u00b7 Revenue-only. Higher flag ON = higher option in the ladder.",
-      "narration": "Four flag rows on this panel. Each row corresponds to one option in the PCAF ladder. Verified reported emissions moves the loan to Score 1 Option 1a. Unverified reported moves it to Score 2. Physical activity data available moves it to Score 3 Option 2b \u2014 that is the row where Jana's Climate TRACE and Global Cement Tracker data does the work. Revenue-only is the fallback that puts the loan at Score 4. When Riya toggles a flag away from the auto-inferred state, the badge flips from AUTO to OVERRIDE so the audit trail records who changed what.",
+      "narration": "Four flag rows on this panel. Each row corresponds to one option in the PCAF ladder. Verified reported emissions moves the loan to Score 1 Option 1a. Unverified reported moves it to Score 2. Physical activity data available moves it to Score 3 Option 2b \u2014 that is the row where Jana's Climate TRACE and Global Cement Tracker data does the work. Revenue-only is the fallback that puts the loan at Score 4. When Riya toggles a flag away from the auto-inferred state, the badge flips from AUTO to MANUAL so the audit trail records who changed what.",
       "audioFile": "/audio/default/pcaf/tour-05-collection-toggle.mp3"
     },
     {

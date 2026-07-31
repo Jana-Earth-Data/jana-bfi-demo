@@ -268,7 +268,7 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
   return (
     <Panel
       title="PCAF Data Availability — analyst confirmation"
-      subtitle="Which data does the borrower publish? What did we find? Officer confirms or overrides the auto-inferred flags."
+      subtitle="Which data does the borrower publish? What did we find? Officer confirms the auto-suggested flags, or sets them manually with evidence."
     >
       <div data-tour="pcaf-availability-panel" className="space-y-3">
         {loading && (
@@ -312,8 +312,8 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
                   </span>
                 ) : (
                   <span>
-                    No override on file · inferred values shown from borrower
-                    catalog.
+                    No manual entry on file · auto-suggested values shown
+                    from borrower catalog.
                   </span>
                 )}
               </div>
@@ -460,11 +460,11 @@ function FlagRow({
             }`}
             title={
               isOverride
-                ? "Officer has overridden the auto-inferred value"
-                : "Auto-inferred from borrower catalog"
+                ? "Officer set this manually — differs from the system suggestion"
+                : "Auto-suggested from borrower catalog"
             }
           >
-            {isOverride ? "OVERRIDE" : "AUTO"}
+            {isOverride ? "MANUAL" : "AUTO"}
           </span>
         </div>
       </div>
@@ -516,9 +516,9 @@ function AutoInferenceFooter({
         />
       </div>
       <div className="mt-1 text-[10px] text-slate-500">
-        These borrower-catalog fields drive the AUTO suggestion. Override
-        when you have primary evidence (annual report, assurance letter,
-        utility bill).
+        These borrower-catalog fields drive the AUTO suggestion. Switch a
+        row to MANUAL when you have primary evidence (annual report,
+        assurance letter, utility bill).
       </div>
     </div>
   );

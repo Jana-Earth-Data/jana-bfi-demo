@@ -667,9 +667,9 @@ function SectionStep({
         )}
         {remarksRequired && (
           <p className="mt-2 text-[11px] text-slate-500">
-            Remarks required on every answered question · configured in{" "}
+            Remarks required on every answered question ·{" "}
             <Link href="/settings" className="underline hover:text-slate-300">
-              tenant settings
+              See Settings
             </Link>
           </p>
         )}

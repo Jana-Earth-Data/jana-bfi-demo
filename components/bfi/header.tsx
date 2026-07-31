@@ -105,8 +105,8 @@ export function DashboardHeader({
           />
           <Link
             href="/settings"
-            title="Tenant settings"
-            aria-label="Tenant settings"
+            title="Settings"
+            aria-label="Settings"
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-panel text-slate-300 transition hover:bg-line/30"
           >
             {/* Gear icon (inline svg — no lucide dep for one glyph) */}

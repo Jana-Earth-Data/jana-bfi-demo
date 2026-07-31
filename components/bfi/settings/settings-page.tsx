@@ -130,7 +130,7 @@ export function SettingsPage({
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <div>
             <div className="text-xs uppercase tracking-wide text-slate-500">
-              {tenantDisplayName} — Tenant settings
+              {tenantDisplayName} — Settings
             </div>
             <div className="text-base font-semibold text-white">
               Configuration
@@ -204,7 +204,7 @@ export function SettingsPage({
         <main className="flex-1">
           {loading ? (
             <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
-              Loading tenant settings…
+              Loading settings…
             </div>
           ) : (
             <>
