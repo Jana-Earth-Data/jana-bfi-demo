@@ -90,6 +90,61 @@ const HYDRO_TAXONOMY_ANSWERS = {
   dnsh_seismic_assessment: true,
 };
 
+// Circular 22 Annex 2 documentation matrix — Himal Power's 60 MW Khimti
+// station puts it in the ">50 MW / EIA" band, which has 5 required
+// documents: company registration, survey license, EIA approval,
+// development license, PPA. Seed a mix so the panel has visible state
+// at demo time (verified / in-progress / not-collected). We also record
+// an audit row for the IEE approval doc — it is NOT required for >50 MW
+// so the panel filters it out, but the row lets us demonstrate the
+// audit trail for a doc the officer initially assumed might apply.
+const HYDRO_DOC_STATUSES: Array<{
+  documentId: string;
+  status:
+    | "not-required"
+    | "not-collected"
+    | "in-progress"
+    | "received"
+    | "verified";
+  notes: string | null;
+}> = [
+  {
+    documentId: "company-registration",
+    status: "verified",
+    notes: "VAT + PAN + registration certificate on file · verified 2026-02-11.",
+  },
+  {
+    documentId: "survey-license",
+    status: "verified",
+    notes: "Generation + transmission survey license (DoED ref. SL-2054-021).",
+  },
+  {
+    documentId: "eia-approval-letter",
+    status: "verified",
+    notes: "MoFE approval letter on file (Ashad 2081); no outstanding conditions.",
+  },
+  {
+    documentId: "development-license",
+    status: "in-progress",
+    notes: "Amendment request to include Khimti-II tie-in — DoED intake 2026-04-02.",
+  },
+  {
+    documentId: "power-purchase-agreement",
+    status: "in-progress",
+    notes: "NEA PPA in final drafting; tariff annex still pending signatures.",
+  },
+  {
+    // IEE is only required for the 1-50 MW band. Recorded here as
+    // 'not-collected' to demonstrate the audit trail for a doc the
+    // officer briefly considered; the panel filters not-required docs
+    // out of the render, so this stays in the DB without cluttering
+    // the UI.
+    documentId: "iee-approval-letter",
+    status: "not-collected",
+    notes: "N/A for >50 MW band (EIA path); noted for audit trail only.",
+  },
+];
+
 export async function POST(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const expected = process.env.SEED_ADMIN_TOKEN;
@@ -171,6 +226,7 @@ export async function POST(request: NextRequest) {
       "bfi_esdd_responses",
       "bfi_esrm_screenings",
       "bfi_taxonomy_assessments",
+      "bfi_hydro_doc_status",
     ] as const) {
       const { error } = await supabase
         .from(table)
@@ -315,6 +371,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 7) Insert NRB Circular 22 Annex 2 doc-matrix statuses for the
+    // Himal Power hydropower loan. Gives the hydro documentation panel
+    // something concrete to render at demo time.
+    const hydroDocRows = HYDRO_DOC_STATUSES.map((s) => ({
+      bank_id: tenant.id,
+      loan_id: HYDRO_LOAN_ID,
+      borrower_id: HYDRO_BORROWER_ID,
+      officer_id: officer.id,
+      document_id: s.documentId,
+      status: s.status,
+      notes: s.notes,
+    }));
+    {
+      const { error } = await supabase
+        .from("bfi_hydro_doc_status")
+        .upsert(hydroDocRows, { onConflict: "bank_id,loan_id,document_id" });
+      if (error) {
+        return NextResponse.json(
+          { error: `[${tenant.id}] Hydro doc-status insert failed: ${error.message}` },
+          { status: 500 },
+        );
+      }
+    }
+
     perTenantResults.push({
       tenant: tenant.id,
       officer: officer.id,
@@ -323,6 +403,7 @@ export async function POST(request: NextRequest) {
         esrmScreenings: 1,
         taxonomyAssessments: 2,
         loanAssignments: 2,
+        hydroDocStatuses: hydroDocRows.length,
       },
       drivingQuestionIds,
     });

@@ -38,6 +38,11 @@ import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 import { ClimateRiskPanel } from "@/components/bfi/esrm/climate-risk-panel";
 import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
+import { HydroDocMatrixPanel } from "@/components/bfi/hydro/doc-matrix-panel";
+
+function isHydroBorrower(nrbSector: string): boolean {
+  return nrbSector.toLowerCase().includes("hydropower");
+}
 
 const NRB_REGULATORY_LINK =
   "https://www.nrb.org.np/contents/uploads/2018/05/Environment-Social-Risk-Management-Guidelines-2018.pdf";
@@ -1094,6 +1099,20 @@ function ScreeningWorkbench({
                 }
               />
             </div>
+
+            {/* Hydropower documentation matrix — NRB Circular 22 Annex 2.
+                Pre-approval documentation gate for hydro loans. Rendered
+                ABOVE the ESDD compliance stripe since it's a hard
+                pre-disbursement checklist, not a risk-scored screening.
+                Only mounted for hydro-sector borrowers. */}
+            {isHydroBorrower(borrower.nrbSector) && (
+              <div className="mt-3">
+                <HydroDocMatrixPanel
+                  loanId={loan.id}
+                  borrowerId={borrower.id}
+                />
+              </div>
+            )}
 
             {/* Compliance status stripe — live ESDD + Taxonomy for this loan.
                 Renders inline in the workbench so the manager doesn't have
