@@ -610,7 +610,7 @@ export async function buildGreenStatementXlsx(
   s1.headerFooter.oddFooter = `&L${branding.displayName}&R${footer}`;
 
   // -------------------------------------------------------------------------
-  // Sheet 2 — Annex 4b statement (verbatim columns + green-labeling columns)
+  // Sheet 2 — Annex 4b statement (source columns + green-labeling columns)
   // -------------------------------------------------------------------------
   const s2 = wb.addWorksheet("Green Finance Statement");
   s2.columns = [
@@ -635,7 +635,7 @@ export async function buildGreenStatementXlsx(
   const superHeader = s2.getRow(1);
   superHeader.getCell(1).value = "";
   superHeader.getCell(2).value = "";
-  superHeader.getCell(3).value = "Annex 4b verbatim columns (NPR million)";
+  superHeader.getCell(3).value = "Annex 4b (NPR million)";
   superHeader.getCell(8).value =
     "Green finance labeling per Table 4 (SIS separately labels green finance for lending areas)";
   s2.mergeCells(1, 3, 1, 7);
@@ -1111,7 +1111,7 @@ export async function buildGreenStatementPdf(
       color: primary,
     });
     // Left label
-    page.drawText("Annex 4b verbatim columns · NPR million", {
+    page.drawText("Annex 4b · NPR million", {
       x: cols[2].x,
       y: rowTop - 12,
       size: 8,
