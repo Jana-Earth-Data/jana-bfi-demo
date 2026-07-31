@@ -3,26 +3,28 @@
   "totalDurationSecondsApprox": 220,
   "voice": "onyx",
   "model": "tts-1-hd",
-  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "narrator": "OpenAI TTS \u00b7 onyx \u00b7 neutral male, news-anchor cadence",
   "notesForRegeneration": "Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour pcaf --force",
   "steps": [
     {
       "id": "intro",
       "tab": "nfrs",
       "target": "[data-tour='data-quality']",
-      "calloutTitle": "PCAF data quality — computed per loan",
-      "calloutText": "PCAF Global GHG Standard Part A 3rd Edition — every loan gets a Score 1-5 based on the data available, not a portfolio average.",
+      "calloutTitle": "PCAF data quality \u2014 computed per loan",
+      "calloutText": "PCAF Global GHG Standard Part A 3rd Edition \u2014 every loan gets a Score 1-5 based on the data available, not a portfolio average.",
       "narration": "This is the PCAF data quality panel on the NFRS tab. PCAF is the Partnership for Carbon Accounting Financials. Its Global GHG Standard Part A defines a 1-to-5 data quality scale for financed emissions. 1 is best, 5 is worst. Every loan in Laxmi's book gets scored individually based on what data is available for that specific borrower. This is what the CFO and CRO show the auditor when NFRS goes live.",
-      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-01-intro.mp3"
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-01-intro.mp3",
+      "navigateTo": "/"
     },
     {
       "id": "distribution",
       "tab": "nfrs",
       "target": "[data-tour='data-quality']",
       "calloutTitle": "The distribution across 80,000 loans",
-      "calloutText": "5 loans at Score 1 · 39 at Score 2 · 991 at Score 3 · 79,000 at Score 5. The right-hand tail matters — it is where the audit risk lives.",
+      "calloutText": "5 loans at Score 1 \u00b7 39 at Score 2 \u00b7 991 at Score 3 \u00b7 79,000 at Score 5. The right-hand tail matters \u2014 it is where the audit risk lives.",
       "narration": "Here is the actual distribution across Laxmi's 80,000-loan portfolio. Five loans at Score 1 where the borrower publishes verified GHG-Protocol emissions. Thirty-nine loans at Score 2 with unverified borrower emissions. Roughly a thousand loans at Score 3. computed from physical activity data multiplied by a sector emission factor. That's the slice where Jana's Climate TRACE and Global Cement Tracker data does the work. Seventy-nine thousand loans at Score 5. mostly retail plus SME loans with no facility-level attribution. This distribution replaces the industry-standard practice of averaging one number across the whole book.",
-      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-02-distribution.mp3"
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-02-distribution.mp3",
+      "navigateTo": "/"
     },
     {
       "id": "drill-in",
@@ -30,28 +32,31 @@
       "target": "[data-tour='pcaf-panel']",
       "targetOptional": true,
       "selectBorrowerNameContains": "Hongshi",
-      "calloutTitle": "Per-loan PCAF panel · Hongshi cement",
-      "calloutText": "Score 3 · Option 2b (physical activity × sector emission factor) · citation to PCAF Part A §5.3",
+      "calloutTitle": "Per-loan PCAF panel \u00b7 Hongshi cement",
+      "calloutText": "Score 3 \u00b7 Option 2b (physical activity \u00d7 sector emission factor) \u00b7 citation to PCAF Part A \u00a75.3",
       "narration": "Let's drill into a single loan. Hongshi-Shivam Cement. The compliance workbench shows the PCAF panel for this loan. Score 3 with option letter 2b. Option 2b in the PCAF rubric is physical production data multiplied by a verified sector emission factor. In this case the input is Climate TRACE satellite emissions for the specific facility. The citation next to the score points to PCAF Global GHG Standard Part A 3rd Edition section 5.3 for project finance and business loans. This is what an auditor needs to see. score, method, source data, and citation on one row.",
-      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-03-drill-in.mp3"
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-03-drill-in.mp3",
+      "navigateTo": "/"
     },
     {
       "id": "asset-classes",
       "tab": "nfrs",
       "target": "[data-tour='data-quality']",
-      "calloutTitle": "10 asset classes · PCAF 3rd Edition",
-      "calloutText": "Business loans · project finance · mortgages · motor vehicles · listed equity · corporate bonds · sovereign debt · commercial real estate · sub-sovereign · securitisation.",
+      "calloutTitle": "10 asset classes \u00b7 PCAF 3rd Edition",
+      "calloutText": "Business loans \u00b7 project finance \u00b7 mortgages \u00b7 motor vehicles \u00b7 listed equity \u00b7 corporate bonds \u00b7 sovereign debt \u00b7 commercial real estate \u00b7 sub-sovereign \u00b7 securitisation.",
       "narration": "PCAF 3rd Edition expanded to ten asset classes. Business loans, project finance, motor vehicle loans, mortgages, listed equity, corporate bonds, sovereign debt, commercial real estate, and two newer categories added in the 2025 edition. sub-sovereign debt and securitisation. Every loan in Laxmi's book maps to one of these classes and the scoring rubric adjusts accordingly. project finance uses a slightly different option list than business loans, and sovereign debt uses country-level data rather than facility-level. The scoring engine handles the differences automatically.",
-      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-04-asset-classes.mp3"
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-04-asset-classes.mp3",
+      "navigateTo": "/"
     },
     {
       "id": "closing",
       "tab": "nfrs",
       "target": "[data-tour='data-quality']",
-      "calloutTitle": "Score 3 is the honest ceiling · with Jana",
+      "calloutTitle": "Score 3 is the honest ceiling \u00b7 with Jana",
       "calloutText": "Score 1-2 require borrower disclosure. Score 3 is the realistic ceiling for Nepal facilities. Score 5 is the baseline everyone else operates at.",
       "narration": "The takeaway for a Nepal bank. Score 1 or 2 requires the borrower to publish their own GHG Protocol emissions. Almost no Nepal special-purpose vehicle does that today. Score 3 is the honest ceiling with Jana's data on the loans that carry the emissions risk. And without Jana the whole book collapses to Score 5. revenue-based estimates using national averages. When NFRS goes live and NRB or an auditor asks for the distribution, this is the picture Laxmi shows. Thanks for watching.",
-      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-05-closing.mp3"
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-05-closing.mp3",
+      "navigateTo": "/"
     }
   ]
 }

@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Borrower, Loan } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
 import {
@@ -90,11 +90,30 @@ export function PfScreeningWizard({
   borrower: Borrower;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<WizardStep>(0);
+  const searchParams = useSearchParams();
+  // Guided-tour hook — same pattern as EsddWizard. When the URL carries
+  // ?tourStep=N (0..8), render that specific step and suppress the
+  // auto-jump-to-Review that fires when a saved result exists. Lets the
+  // PF tour walk PS1→PS2→PS3→…→Review without the wizard collapsing.
+  const tourStep = (() => {
+    const raw = searchParams?.get("tourStep");
+    if (raw === null || raw === undefined) return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > REVIEW_STEP) return null;
+    return n as WizardStep;
+  })();
+  const isTourDriven = tourStep !== null;
+  const [step, setStep] = useState<WizardStep>(tourStep ?? 0);
   const [responses, setResponses] = useState<Record<string, StoredResponse>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
   const [loading, setLoading] = useState(true);
   const [priorResult, setPriorResult] = useState<PfScreeningResult | null>(null);
+
+  // Track tourStep changes so navigating between /pf-screening/X?tourStep=1
+  // and ?tourStep=2 within a live tour actually flips the wizard step.
+  useEffect(() => {
+    if (tourStep !== null) setStep(tourStep);
+  }, [tourStep]);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +142,9 @@ export function PfScreeningWizard({
               rationale: body.latestResult.computed_rationale,
             };
             setPriorResult(summary);
-            setStep(REVIEW_STEP);
+            // Only auto-jump to Review when NOT tour-driven. When the
+            // tour is driving via ?tourStep, respect its cadence.
+            if (!isTourDriven) setStep(REVIEW_STEP);
           }
         }
       } finally {
@@ -133,6 +154,7 @@ export function PfScreeningWizard({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loan.id]);
 
   async function recordAnswer(
