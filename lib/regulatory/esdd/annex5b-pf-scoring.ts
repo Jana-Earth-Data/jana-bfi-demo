@@ -7,15 +7,17 @@
  *   - Each item has a `flagOnAnswer` (either 'no' or 'yes'). A response
  *     matching that value counts as a flag.
  *   - 'n/a' never flags.
- *   - Items marked `criticalOnFlag = true` push the overall risk to
- *     CRITICAL when they are flagged.
+ *   - Items marked `ifcPsTerminationTrigger = true` push the overall risk
+ *     to CRITICAL when they are flagged. // Jana synthesis of IFC PS
+ *     termination-grade language, per the citation on each item.
  *   - Otherwise, overall risk is:
  *       LOW      : < 5 flags
  *       MEDIUM   : 5..15 flags
  *       HIGH     : > 15 flags
  *
- * The rationale sentence names the driving PS(s) and the critical items
- * (if any) so the wizard's Review step can render a defensible summary.
+ * The rationale sentence names the driving PS(s) and the termination-
+ * trigger items (if any) so the wizard's Review step can render a
+ * defensible summary.
  *
  * NRB ESRM 2022 Annex 5b does not itself publish a formal aggregation
  * formula for the questionnaire; the thresholds above are Jana editorial
@@ -78,7 +80,7 @@ export function scorePfScreening(
       if (ans === "yes" || ans === "no") applicable += 1;
       if (itemIsFlagged(item, ans)) {
         flagged += 1;
-        if (item.criticalOnFlag) {
+        if (item.ifcPsTerminationTrigger) {
           criticalFlagged += 1;
           criticalFlaggedItems.push(item.id);
         }
@@ -149,10 +151,10 @@ function buildRationale({
       ? criticalFlaggedItems.map((id) => id.replace("annex5b.", "")).join(", ")
       : "none";
     return (
-      `PF risk: CRITICAL. ${criticalFlaggedItems.length} auto-critical item(s) ` +
+      `PF risk: CRITICAL. ${criticalFlaggedItems.length} IFC PS termination-grade item(s) ` +
       `flagged (${criticalList}). Total flags: ${itemsFlagged}. Top-flagged PS: ${drivingList}. ` +
       `Screening must be reviewed by credit committee before any approval; ` +
-      `escalation is mandatory per NRB ESRM 2022 Annex 5b + IFC PS.`
+      `escalation is mandatory per the IFC PS red lines NRB ESRM 2022 Annex 5b is built on.`
     );
   }
   if (riskClass === "high") {
@@ -171,7 +173,7 @@ function buildRationale({
     );
   }
   return (
-    `PF risk: LOW. ${itemsFlagged} flagged item(s). No auto-critical findings. ` +
+    `PF risk: LOW. ${itemsFlagged} flagged item(s). No IFC PS termination-grade findings. ` +
     `Recommend approve under standard commercial terms with routine E&S monitoring ` +
     `per NRB ESRM Annex 10.`
   );

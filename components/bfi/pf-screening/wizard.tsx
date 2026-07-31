@@ -548,10 +548,17 @@ function ItemCard({
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {item.id.replace("annex5b.", "")}
         </div>
-        {item.criticalOnFlag && (
-          <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-rose-200">
-            Auto-critical if flagged
-          </span>
+        {item.ifcPsTerminationTrigger && (
+          <div className="flex flex-col items-end">
+            <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-rose-200">
+              IFC PS termination trigger
+            </span>
+            {item.terminationCitation && (
+              <span className="mt-1 text-[10px] text-rose-300/80">
+                {item.terminationCitation}
+              </span>
+            )}
+          </div>
         )}
       </div>
       <div className="mb-4 text-sm text-white">{item.prompt}</div>
@@ -703,12 +710,16 @@ function ReviewStep({
     <div className="flex flex-col gap-4">
       {displayed.riskClass === "critical" && (
         <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100">
-          <div className="font-semibold">CRITICAL PF finding — escalation required</div>
+          <div className="font-semibold">
+            IFC PS termination trigger flagged — elevated review required
+          </div>
           <div className="mt-1 text-xs">
-            One or more Annex 5b items marked as auto-critical have been
-            flagged (child/forced labor, forced eviction, critical habitat
-            impact, IP relocation without FPIC, etc.). This screening must
-            be reviewed by the credit committee before any approval.
+            One or more Annex 5b items whose answer maps onto termination-
+            grade language in the underlying IFC Performance Standards has
+            been flagged (child/forced labor, forced eviction, critical
+            habitat impact, IP relocation without FPIC, etc.). This
+            screening must be reviewed by the credit committee before any
+            approval.
           </div>
         </div>
       )}
@@ -783,7 +794,7 @@ function ReviewStep({
         {displayed.criticalFlaggedItems.length > 0 && (
           <div className="mt-4">
             <div className="text-xs uppercase tracking-wide text-slate-500">
-              Auto-critical items flagged
+              IFC PS termination triggers flagged
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {displayed.criticalFlaggedItems.map((id) => (

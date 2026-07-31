@@ -26,11 +26,19 @@
  *                        `[Jana editorial]` so a reviewer can spot the
  *                        non-verbatim additions
  *   - `flagOnAnswer`   : which answer triggers a review flag (see below)
- *   - `criticalOnFlag` : (optional) items where NRB / IFC PS itself calls
- *                        the answer non-negotiable — flagging escalates the
- *                        whole screening to CRITICAL. These are Jana editorial
- *                        (marked TODO in guidance) unless the source is
- *                        explicit; see `pfCriticalItems()`.
+ *   - `ifcPsTerminationTrigger` : (optional) marks items that, when flagged,
+ *                        hit a non-negotiable red line in the IFC PS text
+ *                        NRB Annex 5b is built on. NRB itself does NOT
+ *                        publish an escalation grid for Annex 5b — this
+ *                        field is Jana synthesis of IFC PS termination-grade
+ *                        language. Each marked item carries a
+ *                        `terminationCitation` string pointing to the
+ *                        specific IFC PS § that supports its inclusion.
+ *                        Reviewers should treat the mechanic as operational
+ *                        triage, not regulatory rule. See
+ *                        `pfCriticalItems()`.
+ *   - `terminationCitation` : the IFC PS § string that anchors the
+ *                        termination-trigger flag on the item.
  *   - `citation`       : `NRB ESRM 2022 Annex 5b · PS<n> §<i>`
  *
  * Flag-on-answer conventions:
@@ -630,7 +638,9 @@ const PS2_ITEMS: Annex5bItem[] = [
       "Minimum working age in Nepal is 14 (Child Labour Act 2000; Labour Act 2074/2017); minimum age for hazardous work is 16.",
     ],
     flagOnAnswer: "no",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS2 §21-22 (termination triggers — child labor and forced labor findings)",
     citation: "NRB ESRM 2022 Annex 5b · PS2 §19",
   },
   {
@@ -1015,7 +1025,9 @@ const PS3_ITEMS: Annex5bItem[] = [
     ],
     // Any 'yes' is a critical finding.
     flagOnAnswer: "yes",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS3 §29 (prohibited pesticides — elevated review)",
     citation: "NRB ESRM 2022 Annex 5b · PS3 §19",
   },
   {
@@ -1271,7 +1283,9 @@ const PS4_ITEMS: Annex5bItem[] = [
     ],
     // Risk exposure — 'yes' is critical.
     flagOnAnswer: "yes",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS4 §12-14 (immediate review of security-personnel incidents)",
     citation: "NRB ESRM 2022 Annex 5b · PS4 §14",
   },
 ];
@@ -1318,7 +1332,9 @@ const PS5_ITEMS: Annex5bItem[] = [
       "IFC PS5 §9: compensation at full replacement cost is a non-negotiable minimum.",
     ],
     flagOnAnswer: "no",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS5 §9 (replacement-cost requirement — non-negotiable)",
     citation: "NRB ESRM 2022 Annex 5b · PS5 §3",
   },
   // Consultation and Grievance Mechanism
@@ -1407,7 +1423,9 @@ const PS5_ITEMS: Annex5bItem[] = [
       "IFC PS5 §19: RAP is mandatory for physical displacement.",
     ],
     flagOnAnswer: "no",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS5 §12-19 (elevated review — RAP required)",
     citation: "NRB ESRM 2022 Annex 5b · PS5 §10",
   },
   {
@@ -1433,7 +1451,8 @@ const PS5_ITEMS: Annex5bItem[] = [
       "IFC PS5 §5: forced eviction (eviction without due process) is prohibited. Any 'yes' is a critical stop-the-line finding.",
     ],
     flagOnAnswer: "yes",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation: "IFC PS5 §29 (forced evictions not permitted)",
     citation: "NRB ESRM 2022 Annex 5b · PS5 §12",
   },
   // Private Sector Responsibilities under Government-Managed Resettlement
@@ -1532,7 +1551,9 @@ const PS6_ITEMS: Annex5bItem[] = [
       "IFC PS6 §16-19: critical habitat impacts require the highest bar — net gains, not just no net loss. A 'no' here is a critical finding.",
     ],
     flagOnAnswer: "no",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS6 §16-17 (critical habitat — no net loss non-negotiable)",
     citation: "NRB ESRM 2022 Annex 5b · PS6 §5",
   },
   {
@@ -1558,7 +1579,9 @@ const PS6_ITEMS: Annex5bItem[] = [
       "The follow-up to 6.6. Combined 'yes' to 6.6 and 'no' to 6.7 is a critical finding.",
     ],
     flagOnAnswer: "no",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS6 §20 (host-country + IFC review required)",
     citation: "NRB ESRM 2022 Annex 5b · PS6 §7",
   },
   {
@@ -1842,7 +1865,8 @@ const PS7_ITEMS: Annex5bItem[] = [
       "IFC PS7 §14-15: relocation of IPs from traditional/customary lands requires FPIC — a 'yes' without 7.8 is a critical finding.",
     ],
     flagOnAnswer: "yes",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation: "IFC PS7 §14 (FPIC non-negotiable)",
     citation: "NRB ESRM 2022 Annex 5b · PS7 §6",
   },
   {
@@ -1868,7 +1892,8 @@ const PS7_ITEMS: Annex5bItem[] = [
       "IFC PS7 §12-17: FPIC is required for the three specific triggers (traditional lands, relocation, cultural heritage). A 'no' where any of 7.5/7.6/7.7 is 'yes' is a critical finding.",
     ],
     flagOnAnswer: "no",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation: "IFC PS7 §12-17 (FPIC non-negotiable)",
     citation: "NRB ESRM 2022 Annex 5b · PS7 §8",
   },
   // Private Sector Responsibility where Government is Responsible for Managing Indigenous Peoples Issues
@@ -1976,7 +2001,9 @@ const PS8_ITEMS: Annex5bItem[] = [
       "IFC PS8 §11-12: significant damage to critical cultural heritage is generally not permitted — 'yes' is a critical finding.",
     ],
     flagOnAnswer: "yes",
-    criticalOnFlag: true,
+    ifcPsTerminationTrigger: true,
+    terminationCitation:
+      "IFC PS8 §11 (critical cultural heritage non-negotiable)",
     citation: "NRB ESRM 2022 Annex 5b · PS8 §6",
   },
   {
@@ -2078,16 +2105,20 @@ export function pfScreeningChecklist(): Annex5bItem[] {
 
 /**
  * Items where a flag on the answer escalates the whole screening to
- * CRITICAL. Derived from the `criticalOnFlag: true` markers on the catalog
- * items above.
+ * CRITICAL. Derived from the `ifcPsTerminationTrigger: true` markers on the
+ * catalog items above.
  *
- * NRB ESRM 2022 Annex 5b does not itself publish an explicit "auto-critical"
- * list; the items marked here are Jana editorial calls anchored on the
- * IFC Performance Standards text that the Annex is aligned to (e.g.
- * child/forced labor, forced eviction, critical habitat, WHO Ia/Ib
- * pesticides, IP relocation without FPIC, significant damage to critical
- * cultural heritage). Review with compliance before treating as verbatim.
+ * NRB ESRM 2022 Annex 5b does not itself publish an escalation grid for
+ * this questionnaire; the items marked here are Jana synthesis of the
+ * IFC Performance Standards termination-grade language that the Annex is
+ * aligned to (e.g. child/forced labor, forced eviction, critical habitat,
+ * WHO Ia/Ib pesticides, IP relocation without FPIC, significant damage to
+ * critical cultural heritage, security-abuse allegations). Each marked
+ * item carries a `terminationCitation` string pointing to the specific
+ * IFC PS § that supports its inclusion. Treat the mechanic as operational
+ * triage — surfacing show-stoppers to the credit committee — not as a
+ * verbatim regulatory rule.
  */
 export function pfCriticalItems(): Annex5bItem[] {
-  return ANNEX5B_ALL.filter((i) => i.criticalOnFlag === true);
+  return ANNEX5B_ALL.filter((i) => i.ifcPsTerminationTrigger === true);
 }

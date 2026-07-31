@@ -57,11 +57,20 @@ export const IFC_PS_TITLE: Record<IfcPS, string> = {
  *                       flag on `yes` (e.g. "uses WHO Class Ia pesticides",
  *                       "forced evictions carried out")
  * - `citation`       : cite string for audit trail (`NRB ESRM 2022 Annex 5b · PSx §y.z`)
- * - `criticalOnFlag` : when true, a flag on this item pushes the overall
- *                       screening to CRITICAL. Set for items where NRB /
- *                       IFC PS itself calls the issue non-negotiable (child
- *                       labor, forced eviction, critical habitat, protected
- *                       area, IP relocation without FPIC, etc.).
+ * - `ifcPsTerminationTrigger` : when true, a flag on this item pushes the
+ *                       overall screening to CRITICAL because the item maps
+ *                       onto termination-grade language in the underlying
+ *                       IFC Performance Standards text NRB Annex 5b is built
+ *                       on (child/forced labor, forced eviction, critical
+ *                       habitat, protected area without permit, IP relocation
+ *                       without FPIC, WHO Ia/Ib pesticides, critical cultural
+ *                       heritage, security-abuse allegations, etc.). NRB
+ *                       Annex 5b itself does NOT publish an escalation grid
+ *                       — this is Jana synthesis of the IFC PS red lines,
+ *                       supported by the per-item `terminationCitation`.
+ * - `terminationCitation` : (optional; set alongside `ifcPsTerminationTrigger`)
+ *                       the specific IFC PS § that supports the item's
+ *                       inclusion as a termination trigger.
  */
 export type Annex5bItem = {
   id: string;
@@ -72,7 +81,8 @@ export type Annex5bItem = {
   guidanceNote: string[];
   flagOnAnswer: "no" | "yes";
   citation: string;
-  criticalOnFlag?: boolean;
+  ifcPsTerminationTrigger?: boolean;
+  terminationCitation?: string;
 };
 
 /**
@@ -82,7 +92,8 @@ export type PfScreeningResponse = Record<string, PfAnswer | null>;
 
 /**
  * Overall risk classification. LOW / MEDIUM / HIGH are graduated by flag
- * count; CRITICAL is triggered by any item marked `criticalOnFlag = true`.
+ * count; CRITICAL is triggered by any item marked
+ * `ifcPsTerminationTrigger = true`.
  */
 export type PfRiskClass = "low" | "medium" | "high" | "critical";
 
