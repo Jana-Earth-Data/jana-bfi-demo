@@ -270,8 +270,14 @@ export function buildTaxonomyReport(
     }
   }
 
-  // Stable ordering: green first, then amber, red, unclassified; within a
-  // bucket, largest exposure first.
+  // Ordering: color bucket first (green → amber → red → unclassified to
+  // match NRB's Annex 4b template order), then alphabetical by borrower
+  // name within each bucket. Alphabetical wins over NPR-descending
+  // because the per-loan detail is read as a lookup — an auditor asks
+  // "did we classify X?" not "what's the largest exposure?" The
+  // portfolio aggregate table above already surfaces materiality. The
+  // xlsx export ships every row unsorted-friendly so analysts can
+  // re-sort by any column they prefer.
   const colorRank: Record<NrbTaxonomyColor, number> = {
     green: 0,
     amber: 1,
@@ -281,21 +287,28 @@ export function buildTaxonomyReport(
   loans.sort((a, b) => {
     const c = colorRank[a.color] - colorRank[b.color];
     if (c !== 0) return c;
-    return b.outstandingNpr - a.outstandingNpr;
+    return a.borrowerName.localeCompare(b.borrowerName);
   });
 
-  // Build the capped per-color detail slice for the PDF. Preserves the
-  // per-color ordering (green first, then amber/red/unclassified) and
-  // takes the top DETAIL_ROWS_PER_COLOR by NPR within each colour.
-  const perColorCounts: Record<NrbTaxonomyColor, number> = {
-    green: 0, amber: 0, red: 0, unclassified: 0,
+  // Build the capped per-color detail slice for the PDF. Two-stage:
+  //   1. Pick top DETAIL_ROWS_PER_COLOR by NPR within each colour
+  //      (materiality — auditor should see the largest exposures).
+  //   2. Sort the picked set alphabetically by borrower name within
+  //      each colour (lookup — reader wants to find a specific name).
+  // This gives the PDF both "biggest exposures shown" and "easy to
+  // find a specific borrower" without picking one over the other.
+  const byColor: Record<NrbTaxonomyColor, TaxonomyReportLoan[]> = {
+    green: [], amber: [], red: [], unclassified: [],
   };
+  for (const l of loans) byColor[l.color].push(l);
   const detailLoans: TaxonomyReportLoan[] = [];
-  for (const l of loans) {
-    if (perColorCounts[l.color] < DETAIL_ROWS_PER_COLOR) {
-      detailLoans.push(l);
-      perColorCounts[l.color] += 1;
-    }
+  for (const color of Object.keys(colorRank) as NrbTaxonomyColor[]) {
+    const topN = byColor[color]
+      .slice()
+      .sort((a, b) => b.outstandingNpr - a.outstandingNpr)
+      .slice(0, DETAIL_ROWS_PER_COLOR)
+      .sort((a, b) => a.borrowerName.localeCompare(b.borrowerName));
+    detailLoans.push(...topN);
   }
 
   return {
