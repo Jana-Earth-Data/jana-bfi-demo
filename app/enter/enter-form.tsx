@@ -55,7 +55,7 @@ export function EnterForm({ defaultBankLabel }: { defaultBankLabel: string }) {
           type="text"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="e.g. LX-K7QN2P"
+          placeholder="e.g. XX-XXXXXX"
           autoComplete="off"
           autoCapitalize="characters"
           className="rounded-md border border-slate-600 bg-slate-800/70 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
