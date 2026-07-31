@@ -13,6 +13,7 @@
 
 import { DashboardSsrData } from "@/components/bfi/dashboard";
 import { OfficerWorkQueue } from "@/components/bfi/esrm/officer-work-queue";
+import { FollowupsPanel } from "@/components/bfi/followups/followups-panel";
 
 export function MyWorkTab({ data }: { data: DashboardSsrData }) {
   const officer = data.currentOfficer;
@@ -49,6 +50,10 @@ export function MyWorkTab({ data }: { data: DashboardSsrData }) {
 
   return (
     <div className="grid gap-4" data-tour="my-work-queue">
+      {/* Follow-ups panel — CAP deadlines + monitoring cycles that this
+          officer owes action on. Hides itself when the officer has an
+          empty queue so we don't render a ghost panel. */}
+      <FollowupsPanel />
       <OfficerWorkQueue currentOfficer={officer} />
     </div>
   );
