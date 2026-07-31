@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "totalDurationSecondsApprox": 300,
+  "totalDurationSecondsApprox": 330,
   "voice": "onyx",
   "model": "tts-1-hd",
   "narrator": "OpenAI TTS \u00b7 onyx \u00b7 neutral male, news-anchor cadence",
@@ -77,14 +77,24 @@
       "navigateTo": "/pf-screening/L-0080028?tourStep=5"
     },
     {
-      "id": "ps7-ps8",
+      "id": "ps7",
       "tab": "mywork",
       "target": "[data-tour='pf-screening-wizard']",
-      "calloutTitle": "PS7 + PS8 \u2014 Indigenous Peoples + Cultural Heritage",
-      "calloutText": "Twenty items combined. FPIC on Indigenous Peoples and protection of critical cultural heritage.",
-      "narration": "The last two Performance Standards. PS7 covers Indigenous Peoples. ten items on identification, consultation, and Free Prior and Informed Consent. FPIC is a termination trigger under IFC PS7 sections twelve through seventeen for any project that will relocate Indigenous Peoples or affect their cultural heritage. Nepal has significant Indigenous populations in hydro-rich watersheds so this section is genuinely load-bearing. PS8 covers cultural heritage. ten items on identification, chance finds, and critical cultural heritage. Damage to critical cultural heritage is a termination trigger under section eleven.",
-      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-08-ps7-ps8.mp3",
+      "calloutTitle": "PS7 \u2014 Indigenous Peoples",
+      "calloutText": "Ten items on identification, consultation, and Free Prior and Informed Consent. Nepal Indigenous populations in hydro-rich watersheds make this section load-bearing.",
+      "narration": "Performance Standard 7. Indigenous Peoples. Ten items on identification, consultation, and Free Prior and Informed Consent. FPIC is a termination trigger under IFC PS7 sections twelve through seventeen for any project that will relocate Indigenous Peoples or affect their cultural heritage. Nepal has significant Indigenous populations in hydro-rich watersheds so this section is genuinely load-bearing.",
+      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-08-ps7.mp3",
       "navigateTo": "/pf-screening/L-0080028?tourStep=6"
+    },
+    {
+      "id": "ps8",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "navigateTo": "/pf-screening/L-0080028?tourStep=7",
+      "calloutTitle": "PS8 \u2014 Cultural Heritage",
+      "calloutText": "Ten items on identification, chance finds, and critical cultural heritage. Termination trigger on damage to critical cultural heritage.",
+      "narration": "Performance Standard 8. Cultural heritage. Ten items on identification, chance finds during construction, and critical cultural heritage. Damage to critical cultural heritage is a termination trigger under section eleven of IFC PS8. For a Nepal hydropower project, this section typically flags proximity to religious sites, traditional community landmarks, and archaeological features.",
+      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-09-ps8.mp3"
     },
     {
       "id": "review",
@@ -93,7 +103,7 @@
       "calloutTitle": "Review \u00b7 PS breakdown + PF risk classification",
       "calloutText": "The scoring engine aggregates flags per PS, applies the IFC-PS-termination-trigger check, and returns Low / Medium / High / Critical.",
       "narration": "The Review step. The scoring engine aggregates the answers, counts flagged items per Performance Standard, and applies the IFC PS termination trigger check. It returns a Low, Medium, High, or Critical classification. Any triggered termination-grade item automatically routes the screening to Critical regardless of the total flag count. Sujata sees the per-PS breakdown, the list of any triggered termination items with citations, and the rationale text. She saves the screening and it lands in the audit trail alongside the standard ESDD.",
-      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-09-review.mp3",
+      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-10-review.mp3",
       "navigateTo": "/pf-screening/L-0080028?tourStep=8"
     },
     {
@@ -103,7 +113,7 @@
       "calloutTitle": "Two screenings, one audit trail",
       "calloutText": "Standard ESDD covers all commercial loans. PF Screening layers on top for project-finance loans. Both persist under the same loan ID.",
       "narration": "That is the Project Finance screening workflow. One hundred and forty-eight IFC PS items on top of the twelve-question standard ESDD, every answer attributed to Sujata, every termination trigger flagged with its specific IFC PS section. When NRB or the credit committee reviews this loan, they see both screenings side by side under the same loan record. Thanks for watching.",
-      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-10-closing.mp3",
+      "audioFile": "/audio/laxmi_sunrise/pf-screening/tour-11-closing.mp3",
       "navigateTo": "/pf-screening/L-0080028?tourStep=8"
     }
   ]
