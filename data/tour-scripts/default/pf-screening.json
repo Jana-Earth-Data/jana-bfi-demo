@@ -1,0 +1,102 @@
+{
+  "version": "1.0",
+  "totalDurationSecondsApprox": 300,
+  "voice": "onyx",
+  "model": "tts-1-hd",
+  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant default --tour pf-screening --force",
+  "steps": [
+    {
+      "id": "intro",
+      "tab": "mywork",
+      "target": "[data-tour='esdd-pf-callout']",
+      "navigateTo": "/esdd/L-0080028?tourStep=4",
+      "calloutTitle": "Project Finance triggers Annex 5b",
+      "calloutText": "Himal Power is a Project Finance loan. NRB Circular 22 §5 routes PF loans through an additional IFC-Performance-Standard-aligned screening on top of the standard ESDD.",
+      "narration": "This tour walks through the Annex 5b Project Finance Screening Questionnaire. The loan on screen is Himal Power. a run-of-river hydropower special-purpose vehicle. Because the loan officer selected Project Finance as the loan category on the ESDD wizard, Circular 22 routes this loan through an additional screening. one hundred and forty-eight items across the eight IFC Performance Standards. The Review step of the standard ESDD wizard shows a callout linking to the PF screening. Riya clicks it.",
+      "audioFile": "/audio/default/pf-screening/tour-01-intro.mp3"
+    },
+    {
+      "id": "ps1",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "navigateTo": "/pf-screening/L-0080028",
+      "calloutTitle": "PS1 — Assessment & Management",
+      "calloutText": "Twenty-four items covering the Environmental and Social Management System, stakeholder engagement, and grievance mechanism.",
+      "narration": "Performance Standard 1 covers the framework. Does the borrower have an ESMS in place. Twenty-four items on management system, policy commitments, risk identification, stakeholder engagement, grievance mechanism, and monitoring. Each item is a yes-no-or-not-applicable answer with an optional remarks field. The wizard auto-saves every answer to the audit trail and shows Riya her running total per Performance Standard on the left rail.",
+      "audioFile": "/audio/default/pf-screening/tour-02-ps1.mp3"
+    },
+    {
+      "id": "ps2",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "PS2 — Labour & Working Conditions",
+      "calloutText": "Twenty-nine items covering worker rights, health and safety, and the child-labor and forced-labor red lines.",
+      "narration": "Performance Standard 2 covers labour. Twenty-nine items on human resources policy, working conditions, occupational health and safety, worker organisations, and the non-negotiable prohibitions on child labor and forced labor. If any of those non-negotiables get flagged, the screening bumps to critical. Riya sees an IFC PS termination trigger badge next to the item, with the specific IFC Performance Standard section citation, so the credit committee knows immediately what triggered the escalation.",
+      "audioFile": "/audio/default/pf-screening/tour-03-ps2.mp3"
+    },
+    {
+      "id": "ps3",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "PS3 — Resource Efficiency & Pollution",
+      "calloutText": "Twenty-four items on air emissions, water use and discharge, hazardous materials, and greenhouse gas accounting.",
+      "narration": "Performance Standard 3 covers resource efficiency and pollution prevention. Twenty-four items on air emissions, effluent discharge, hazardous materials handling, pesticide use, water withdrawal, and greenhouse-gas accounting for major emitters. The WHO Class One-A and One-B pesticides item carries an IFC PS termination trigger because those substances are prohibited under IFC PS3 section twenty-nine absent a full risk assessment.",
+      "audioFile": "/audio/default/pf-screening/tour-04-ps3.mp3"
+    },
+    {
+      "id": "ps4",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "PS4 — Community H&S",
+      "calloutText": "Fourteen items covering community health, infrastructure safety, hazardous materials transport, and use of security personnel.",
+      "narration": "Performance Standard 4 covers community health and safety. Fourteen items. For a hydropower loan the dam-safety items in this section carry disproportionate weight. structural integrity, downstream flood risk, emergency response plans. The security-personnel section also flags any allegations of abuse by armed security as a termination trigger under IFC PS4 sections twelve through fourteen.",
+      "audioFile": "/audio/default/pf-screening/tour-05-ps4.mp3"
+    },
+    {
+      "id": "ps5",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "PS5 — Land Acquisition & Resettlement",
+      "calloutText": "Fourteen items — the highest-stakes area for hydropower. Three IFC PS termination triggers live here.",
+      "narration": "Performance Standard 5 covers land acquisition and involuntary resettlement. This is the highest-stakes section for hydropower financing because dam construction and reservoir inundation often require displacement. Fourteen items with three IFC PS termination triggers. forced eviction is prohibited under section twenty-nine. compensation must equal full replacement cost per section nine. and any physical displacement requires a Resettlement Action Plan per sections twelve through nineteen. Missing any of these is grounds for elevated credit-committee review.",
+      "audioFile": "/audio/default/pf-screening/tour-06-ps5.mp3"
+    },
+    {
+      "id": "ps6",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "PS6 — Biodiversity",
+      "calloutText": "Twenty-three items on habitat, protected areas, and ecosystem services — Nepal hydropower usually sits close to critical habitat.",
+      "narration": "Performance Standard 6 covers biodiversity conservation and sustainable natural-resource management. Twenty-three items. For run-of-river hydropower in Nepal this section is where the environmental flow and downstream habitat questions live. Critical habitat impact is a termination trigger under IFC PS6 sections sixteen and seventeen. no net loss is non-negotiable. Operating in a protected area without proper permits is also a termination trigger under section twenty.",
+      "audioFile": "/audio/default/pf-screening/tour-07-ps6.mp3"
+    },
+    {
+      "id": "ps7-ps8",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "PS7 + PS8 — Indigenous Peoples + Cultural Heritage",
+      "calloutText": "Twenty items combined. FPIC on Indigenous Peoples and protection of critical cultural heritage.",
+      "narration": "The last two Performance Standards. PS7 covers Indigenous Peoples. ten items on identification, consultation, and Free Prior and Informed Consent. FPIC is a termination trigger under IFC PS7 sections twelve through seventeen for any project that will relocate Indigenous Peoples or affect their cultural heritage. Nepal has significant Indigenous populations in hydro-rich watersheds so this section is genuinely load-bearing. PS8 covers cultural heritage. ten items on identification, chance finds, and critical cultural heritage. Damage to critical cultural heritage is a termination trigger under section eleven.",
+      "audioFile": "/audio/default/pf-screening/tour-08-ps7-ps8.mp3"
+    },
+    {
+      "id": "review",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "Review · PS breakdown + PF risk classification",
+      "calloutText": "The scoring engine aggregates flags per PS, applies the IFC-PS-termination-trigger check, and returns Low / Medium / High / Critical.",
+      "narration": "The Review step. The scoring engine aggregates the answers, counts flagged items per Performance Standard, and applies the IFC PS termination trigger check. It returns a Low, Medium, High, or Critical classification. Any triggered termination-grade item automatically routes the screening to Critical regardless of the total flag count. Riya sees the per-PS breakdown, the list of any triggered termination items with citations, and the rationale text. She saves the screening and it lands in the audit trail alongside the standard ESDD.",
+      "audioFile": "/audio/default/pf-screening/tour-09-review.mp3"
+    },
+    {
+      "id": "closing",
+      "tab": "mywork",
+      "target": "[data-tour='pf-screening-wizard']",
+      "calloutTitle": "Two screenings, one audit trail",
+      "calloutText": "Standard ESDD covers all commercial loans. PF Screening layers on top for project-finance loans. Both persist under the same loan ID.",
+      "narration": "That is the Project Finance screening workflow. One hundred and forty-eight IFC PS items on top of the twelve-question standard ESDD, every answer attributed to Riya, every termination trigger flagged with its specific IFC PS section. When NRB or the credit committee reviews this loan, they see both screenings side by side under the same loan record. Thanks for watching.",
+      "audioFile": "/audio/default/pf-screening/tour-10-closing.mp3"
+    }
+  ]
+}

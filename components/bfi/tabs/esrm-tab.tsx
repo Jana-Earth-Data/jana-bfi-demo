@@ -1350,7 +1350,7 @@ function ScreeningWorkbench({
         title="PCAF data quality for this loan"
         subtitle="What an annual NFRS disclosure would attribute to this exposure"
       >
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div data-tour="pcaf-panel" className="grid gap-3 lg:grid-cols-3">
           <div className="rounded-md border border-line/60 bg-panel/40 p-3">
             <div className="text-xs uppercase tracking-wide text-slate-400">
               Attribution

@@ -2,7 +2,12 @@
 
 export type TourTabId = "mywork" | "esrm" | "taxonomy" | "loans" | "nfrs";
 
-export type TourName = "dashboard" | "loan-officer" | "manager";
+export type TourName =
+  | "dashboard"
+  | "loan-officer"
+  | "manager"
+  | "pf-screening"
+  | "pcaf";
 
 export type TourStep = {
   id: string;

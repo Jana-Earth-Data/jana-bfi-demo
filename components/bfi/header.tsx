@@ -16,6 +16,8 @@ const TOUR_LABELS: Record<TourName, string> = {
   dashboard: "Dashboard",
   "loan-officer": "Loan officer",
   manager: "Manager",
+  "pf-screening": "PF screening",
+  pcaf: "PCAF scoring",
 };
 
 export function DashboardHeader({

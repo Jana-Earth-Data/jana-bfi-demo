@@ -50,9 +50,9 @@ SCRIPTS_ROOT = REPO_ROOT / "data" / "tour-scripts"
 AUDIO_ROOT = REPO_ROOT / "public" / "audio"
 KEY_PATH = REPO_ROOT / "tts.key"
 
-# Known tour names. If more are added, list them here so --all-tours picks
-# them up. Kept in sync with tour-context.tsx.
-KNOWN_TOURS = ("dashboard", "loan-officer", "manager")
+# Known tour names. Kept in sync with lib/tour/types.ts TourName union.
+# --all-tours discovers what's actually on disk so this is informational.
+KNOWN_TOURS = ("dashboard", "loan-officer", "manager", "pf-screening", "pcaf")
 
 # Transient errors we should retry. OpenAI TTS occasionally returns a
 # TLS EOF mid-handshake, a socket reset, or a 5xx. Retrying with backoff
