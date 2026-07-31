@@ -37,6 +37,9 @@ import { deriveEsddLoanCategory } from "@/lib/regulatory/esdd/loan-category-deri
 import { formatNpr } from "@/components/bfi/ui";
 import Link from "next/link";
 import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
+import type { TenantSettings } from "@/lib/settings/types";
+import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
+import { remarksRequiredForSection } from "@/lib/settings/schema";
 
 // Steps: 0 basics, 1 general, 2 ehs, 3 social, 4 review.
 // Circular 22 has no sector supplement — the wizard reduces to 5 steps.
@@ -93,6 +96,29 @@ export function EsddWizard({
   const [priorScreening, setPriorScreening] = useState<SavedScreening | null>(
     null,
   );
+  // Tenant settings drive the require-remarks-per-section gating. Start
+  // with DEFAULT_SETTINGS so the wizard is usable before the fetch
+  // resolves; the fetch swaps them in when ready.
+  const [tenantSettings, setTenantSettings] =
+    useState<TenantSettings>(DEFAULT_SETTINGS);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/settings", { cache: "no-store" });
+        if (cancelled) return;
+        if (res.ok) {
+          const body = await res.json();
+          if (body?.settings) setTenantSettings(body.settings as TenantSettings);
+        }
+      } catch {
+        /* silent — fall back to defaults */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load existing responses + prior screening on mount so the officer can
   // resume or see the previously saved decision.
@@ -238,6 +264,7 @@ export function EsddWizard({
               onAnswer={recordAnswer}
               onBack={() => setStep(0)}
               onContinue={() => setStep(2)}
+              remarksRequired={remarksRequiredForSection("general", tenantSettings)}
             />
           ) : step === 2 ? (
             <SectionStep
@@ -248,6 +275,7 @@ export function EsddWizard({
               onAnswer={recordAnswer}
               onBack={() => setStep(1)}
               onContinue={() => setStep(3)}
+              remarksRequired={remarksRequiredForSection("ehs", tenantSettings)}
             />
           ) : step === 3 ? (
             <SectionStep
@@ -258,6 +286,7 @@ export function EsddWizard({
               onAnswer={recordAnswer}
               onBack={() => setStep(2)}
               onContinue={advanceFromSocial}
+              remarksRequired={remarksRequiredForSection("social", tenantSettings)}
             />
           ) : (
             <ReviewStep
@@ -585,6 +614,7 @@ function SectionStep({
   onAnswer,
   onBack,
   onContinue,
+  remarksRequired,
 }: {
   title: string;
   subtitle?: string;
@@ -594,8 +624,35 @@ function SectionStep({
   onAnswer: (q: EsddQuestion, a: EsddAnswer, remarks?: string) => void;
   onBack: () => void;
   onContinue: () => void;
+  /** When true, every answered question must have a non-empty remarks
+   *  string before the "Continue" button will advance. Driven by
+   *  tenant settings (see /settings → ESRM). */
+  remarksRequired: boolean;
 }) {
   const answered = questions.filter((q) => responses[q.id]).length;
+  // Tenant-setting-driven check: which answered questions are missing
+  // remarks. Used to disable Continue + show inline errors.
+  const missingRemarksIds = remarksRequired
+    ? questions
+        .filter((q) => {
+          const r = responses[q.id];
+          if (!r) return false;
+          const t = (r.remarks ?? "").trim();
+          return t.length === 0;
+        })
+        .map((q) => q.id)
+    : [];
+  const [showRemarksError, setShowRemarksError] = useState(false);
+  const canContinue = missingRemarksIds.length === 0;
+
+  function handleContinue() {
+    if (!canContinue) {
+      setShowRemarksError(true);
+      return;
+    }
+    onContinue();
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-2xl border border-line bg-panel p-6">
@@ -608,6 +665,14 @@ function SectionStep({
         {subtitle && (
           <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
         )}
+        {remarksRequired && (
+          <p className="mt-2 text-[11px] text-slate-500">
+            Remarks required on every answered question · configured in{" "}
+            <Link href="/settings" className="underline hover:text-slate-300">
+              tenant settings
+            </Link>
+          </p>
+        )}
       </div>
 
       {questions.map((q) => (
@@ -617,8 +682,20 @@ function SectionStep({
           stored={responses[q.id] ?? null}
           status={saveStatus[q.id] ?? "idle"}
           onAnswer={onAnswer}
+          remarksRequired={remarksRequired}
+          remarksMissing={
+            showRemarksError && missingRemarksIds.includes(q.id)
+          }
         />
       ))}
+
+      {showRemarksError && missingRemarksIds.length > 0 && (
+        <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          Remarks required on {missingRemarksIds.length} answered
+          question{missingRemarksIds.length === 1 ? "" : "s"} before advance
+          (tenant setting).
+        </div>
+      )}
 
       <div className="mt-2 flex justify-between">
         <button
@@ -630,7 +707,7 @@ function SectionStep({
         </button>
         <button
           type="button"
-          onClick={onContinue}
+          onClick={handleContinue}
           className="rounded-md px-4 py-2 text-sm font-semibold text-white transition"
           style={{ backgroundColor: "var(--brand-primary)" }}
         >
@@ -646,11 +723,20 @@ function QuestionCard({
   stored,
   status,
   onAnswer,
+  remarksRequired = false,
+  remarksMissing = false,
 }: {
   question: EsddQuestion;
   stored: StoredResponse | null;
   status: SaveStatus;
   onAnswer: (q: EsddQuestion, a: EsddAnswer, remarks?: string) => void;
+  /** Tenant setting — when true the remarks textarea gets a red
+   *  asterisk and blocks section advance until non-empty. */
+  remarksRequired?: boolean;
+  /** True when the parent SectionStep has surfaced a missing-remarks
+   *  error and this question is one of the offenders. Highlights the
+   *  textarea. */
+  remarksMissing?: boolean;
 }) {
   const [remarks, setRemarks] = useState<string>(stored?.remarks ?? "");
   const current = stored?.answer;
@@ -707,7 +793,12 @@ function QuestionCard({
 
       <div className="mt-4">
         <label className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
-          Remarks (optional)
+          Remarks{" "}
+          {remarksRequired ? (
+            <span className="text-rose-400">*</span>
+          ) : (
+            <span className="text-slate-500">(optional)</span>
+          )}
         </label>
         <textarea
           value={remarks}
@@ -716,9 +807,17 @@ function QuestionCard({
             if (current) onAnswer(question, current, remarks || undefined);
           }}
           rows={2}
+          required={remarksRequired && current !== undefined}
           placeholder="Field notes, evidence references, mitigation commitments…"
-          className="w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+          className={`w-full rounded-md border bg-panelAlt px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none ${
+            remarksMissing ? "border-rose-500/60" : "border-line"
+          }`}
         />
+        {remarksMissing && (
+          <div className="mt-1 text-[11px] text-rose-300">
+            Remarks required on this answered question.
+          </div>
+        )}
       </div>
 
       {question.guidanceNotes && question.guidanceNotes.length > 0 && (

@@ -665,6 +665,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 6d) Seed the tenant settings row. Default tenant gets all defaults
+    // (empty settings blob — resolveSettings() fills from DEFAULT_SETTINGS
+    // at read time). Laxmi Sunrise gets Section 3 remarks required per
+    // Willard's stated ask. Any additional tenant-specific overrides
+    // land in this table over time.
+    const tenantSettingsBlob: Record<string, unknown> =
+      tenant.id === "laxmi_sunrise"
+        ? {
+            esrm: {
+              remarksRequired: {
+                section3: true,
+              },
+            },
+          }
+        : {};
+    let tenantSettingsCount = 0;
+    {
+      const { error } = await supabase
+        .from("bfi_tenant_settings")
+        .upsert(
+          {
+            bank_id: tenant.id,
+            settings: tenantSettingsBlob,
+            updated_by: officer.id,
+          },
+          { onConflict: "bank_id" },
+        );
+      if (error) {
+        return NextResponse.json(
+          { error: `[${tenant.id}] Tenant settings upsert failed: ${error.message}` },
+          { status: 500 },
+        );
+      }
+      tenantSettingsCount = 1;
+    }
+
     // 7) Insert NRB Circular 22 Annex 2 doc-matrix statuses for the
     // Himal Power hydropower loan. Gives the hydro documentation panel
     // something concrete to render at demo time.
@@ -906,6 +942,7 @@ export async function POST(request: NextRequest) {
         bulkClassifiedCount,
         loanAssignments: BRICK_LOAN_ID ? 3 : 2,
         hydroDocStatuses: hydroDocRows.length,
+        tenantSettings: tenantSettingsCount,
         pcafAvailability: pcafAvailabilityCount,
         capItems: capRows.length,
         covenants: covenantRows.length,
