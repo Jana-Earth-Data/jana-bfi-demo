@@ -313,6 +313,9 @@ export async function POST(request: NextRequest) {
       "bfi_esrm_screenings",
       "bfi_taxonomy_assessments",
       "bfi_hydro_doc_status",
+      "bfi_cap_items",
+      "bfi_covenants",
+      "bfi_monitoring_reports",
     ] as const) {
       const { error } = await supabase
         .from(table)
@@ -686,6 +689,213 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 8) Seed the escalated cement loan's Corrective Action Plan +
+    // covenants + one past monitoring cycle so the CAP panel has real
+    // state at demo time. Uses realistic dates keyed off `now` so the
+    // reminder engine (P26) has a mix of overdue / due-soon / not-yet
+    // items to surface.
+    const now_dt = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const addDays = (d: Date, days: number) => {
+      const c = new Date(d);
+      c.setDate(c.getDate() + days);
+      return c;
+    };
+    const addMonthsFn = (d: Date, months: number) => {
+      const c = new Date(d);
+      c.setMonth(c.getMonth() + months);
+      return c;
+    };
+
+    const capRows = [
+      // CAP item 1 — labour practices (in progress, 90 days out)
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        area_of_concern:
+          "Labour practices — unsafe contract-worker conditions flagged by union reps (ESDD Q 3.2 answered 'c').",
+        corrective_action:
+          "Establish contractor H&S protocol + monthly worker H&S audits + third-party OHS certification (ISO 45001 or equivalent) covering all contract crews on the kiln, packing and quarry lines.",
+        deadline_date: iso(addDays(now_dt, 90)),
+        completion_indicator:
+          "Third-party OHS audit report submitted and reviewed by the Bank; contractor protocol signed by all contract-crew leads.",
+        responsible_party: "Client HR + third-party auditor",
+        cost_npr: 2500000,
+        status: "in_progress",
+        linked_esdd_question_id: "annex5.3.2",
+        created_by: officer.id,
+      },
+      // CAP item 2 — community H&S traffic (overdue, deadline in the past)
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        area_of_concern:
+          "Community H&S — recurring complaints on heavy-vehicle traffic through Biratnagar city limits (ESDD Q 3.3 answered 'c').",
+        corrective_action:
+          "Committed traffic-safety measures — deceleration signage on approaches, a dedicated fenced lane through city limits, and formal community consultation on route timing.",
+        deadline_date: iso(addDays(now_dt, -45)),
+        completion_indicator:
+          "Signed community MoU + traffic-safety plan approved by the local ward office and evidence of signage installation on site.",
+        responsible_party:
+          "Client operations + ward-level engagement lead",
+        cost_npr: 4200000,
+        // Store as in_progress so the GET-side derivation flips it to
+        // overdue based on the past deadline (mirrors what a real
+        // officer's row would look like right before the reminder).
+        status: "in_progress",
+        linked_esdd_question_id: "annex5.3.3",
+        created_by: officer.id,
+      },
+      // CAP item 3 — quarry rehabilitation (not started, 180 days out)
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        area_of_concern:
+          "Quarry rehabilitation — 2-year rehab lag on legacy quarry blocks flagged in taxonomy DNSH.",
+        corrective_action:
+          "Catch-up rehabilitation plan for legacy quarry blocks — 2 hectares within 6 months and a species-return survey by an external forestry consultant.",
+        deadline_date: iso(addDays(now_dt, 180)),
+        completion_indicator:
+          "2 hectares rehabilitated and species-return survey report on file.",
+        responsible_party:
+          "Client environment team + external forestry consultant",
+        cost_npr: 8000000,
+        status: "not_started",
+        linked_esdd_question_id: null,
+        created_by: officer.id,
+      },
+    ];
+    {
+      const { error } = await supabase.from("bfi_cap_items").insert(capRows);
+      if (error) {
+        return NextResponse.json(
+          { error: `[${tenant.id}] CAP item insert failed: ${error.message}` },
+          { status: 500 },
+        );
+      }
+    }
+
+    const covenantRows = [
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        covenant_type: "positive",
+        clause_text:
+          "The Borrower shall submit to the Bank a quarterly Environmental and Social (E&S) performance report covering compliance with the E&S requirements attached to this facility, including progress against the Corrective Action Plan and any material E&S incidents during the reporting period.",
+        deadline_date: null,
+        status: "active",
+        library_template_id: "positive.quarterly-es-report",
+        created_by: officer.id,
+      },
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        covenant_type: "negative",
+        clause_text:
+          "The Borrower shall not commence, expand or continue any operations within any protected forest area, national park, wildlife reserve, conservation area, buffer zone or other legally designated critical habitat, without the prior written consent of the Bank and the relevant Government authority.",
+        deadline_date: null,
+        status: "active",
+        library_template_id: "negative.no-operations-protected-area",
+        created_by: officer.id,
+      },
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        covenant_type: "condition_precedent",
+        clause_text:
+          "As a condition precedent to disbursement of the next tranche, the Borrower shall provide the Bank with certified evidence of third-party Occupational Health & Safety certification (ISO 45001 or equivalent) covering the kiln, packing and quarry operations.",
+        deadline_date: iso(addDays(now_dt, 90)),
+        status: "active",
+        library_template_id: "condition_precedent.permits-on-file",
+        created_by: officer.id,
+      },
+      {
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        covenant_type: "event_of_default",
+        clause_text:
+          "Any confirmed instance of child labour or forced labour at any facility owned or operated by the Borrower, or any subcontractor engaged in the financed activities, shall constitute an Event of Default. The Borrower shall have thirty (30) days from written notification by the Bank to fully remediate the finding, failing which the Bank may cancel the facility and declare all amounts owed immediately due and payable.",
+        deadline_date: null,
+        status: "active",
+        library_template_id: "event_of_default.child-forced-labor",
+        created_by: officer.id,
+      },
+    ];
+    {
+      const { error } = await supabase
+        .from("bfi_covenants")
+        .insert(covenantRows);
+      if (error) {
+        return NextResponse.json(
+          { error: `[${tenant.id}] Covenant insert failed: ${error.message}` },
+          { status: 500 },
+        );
+      }
+    }
+
+    // One past monitoring cycle so the panel has history + next_due_date
+    // ~30 days out (P26 will surface it as "Due this month").
+    const monReportingEnd = addMonthsFn(now_dt, -3);
+    const monReportingStart = addMonthsFn(now_dt, -6);
+    const monNextDue = addDays(now_dt, 30);
+    const monChecklist: Record<string, { response: string; flag: string }> = {
+      "annex10.1": { response: `${iso(monReportingStart)} → ${iso(monReportingEnd)}`, flag: "ok" },
+      "annex10.2": { response: "Operation stage — kiln + packing lines running at nameplate capacity.", flag: "ok" },
+      "annex10.3": { response: "No location changes; Khimti-II tie-in still pending amendment.", flag: "ok" },
+      "annex10.4": {
+        response:
+          "Labour CAP on track (in progress); quarry rehab CAP not yet started (deadline within timeframe); community H&S traffic-safety plan behind schedule — vendor not selected as of period end.",
+        flag: "issue",
+      },
+      "annex10.5": { response: "No spills or explosions reported. One minor near-miss (packing line pallet drop) logged with root cause + remediation.", flag: "ok" },
+      "annex10.6": { response: "No new regulatory fines during the period.", flag: "ok" },
+      "annex10.7": {
+        response:
+          "Two minor recordable injuries on packing line (both LTI < 3 days). Root cause: ergonomic. Corrective PPE + procedure change implemented.",
+        flag: "issue",
+      },
+      "annex10.8": { response: "No new E&S risks beyond those already tracked in the CAP.", flag: "ok" },
+      "annex10.9": { response: "Pollution Control Certificate valid through 2027-06; Fire Safety valid through 2026-11; NS cement certifications current.", flag: "ok" },
+      "annex10.10": { response: "ISO 14001 current; SA8000 not held (recommended as part of the OHS CAP).", flag: "ok" },
+      "annex10.11": {
+        response:
+          "Ongoing community complaints on heavy-vehicle traffic through Biratnagar — see CAP item 2. Client held one community meeting during the period but no route-timing MoU signed.",
+        flag: "issue",
+      },
+      "annex10.12": { response: "Stakeholder consultation limited to the traffic complaint referenced above.", flag: "ok" },
+      "annex10.13": { response: "Waste-heat recovery cogen unit operated at 92% availability during the period.", flag: "ok" },
+    };
+    {
+      const { error } = await supabase.from("bfi_monitoring_reports").insert({
+        bank_id: tenant.id,
+        loan_id: CEMENT_LOAN_ID,
+        borrower_id: CEMENT_BORROWER_ID,
+        reporting_period_start: iso(monReportingStart),
+        reporting_period_end: iso(monReportingEnd),
+        next_due_date: iso(monNextDue),
+        frequency_months: 3,
+        covenant_compliance_status: "partial",
+        cap_compliance_status: "partial",
+        notes:
+          "Two CAP items on track (labour, quarry); community H&S traffic-safety plan behind schedule; requires escalation to credit committee if next reporting cycle shows no progress.",
+        checklist_snapshot: monChecklist,
+        submitted_by: officer.id,
+      });
+      if (error) {
+        return NextResponse.json(
+          { error: `[${tenant.id}] Monitoring report insert failed: ${error.message}` },
+          { status: 500 },
+        );
+      }
+    }
+
     perTenantResults.push({
       tenant: tenant.id,
       officer: officer.id,
@@ -697,6 +907,9 @@ export async function POST(request: NextRequest) {
         loanAssignments: BRICK_LOAN_ID ? 3 : 2,
         hydroDocStatuses: hydroDocRows.length,
         pcafAvailability: pcafAvailabilityCount,
+        capItems: capRows.length,
+        covenants: covenantRows.length,
+        monitoringReports: 1,
       },
       drivingQuestionIds,
     });

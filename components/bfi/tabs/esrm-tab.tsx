@@ -40,6 +40,7 @@ import { ClimateRiskPanel } from "@/components/bfi/esrm/climate-risk-panel";
 import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 import { HydroDocMatrixPanel } from "@/components/bfi/hydro/doc-matrix-panel";
 import { PcafAvailabilityPanel } from "@/components/bfi/pcaf/availability-panel";
+import { CapPanel } from "@/components/bfi/cap/cap-panel";
 import type {
   PcafComputationResult,
   PcafOption,
@@ -1392,6 +1393,15 @@ function ScreeningWorkbench({
           </div>
         </div>
       </Panel>
+
+      {/* Corrective Action Plan + E&S Covenants + Monitoring — NRB
+          Circular 22 §7.3.5 (Annex 8 CAP + Annex 9 covenants) + §7.3.7
+          (Annex 10 monitoring). The panel fetches the loan's latest
+          saved ESRM screening and returns null when the risk class is
+          Low (Low-risk loans don't require a CAP per §7.3.5). Rendered
+          ABOVE the PCAF availability panel so escalated loans get the
+          mitigation-planning surface before the disclosure surface. */}
+      <CapPanel loanId={loan.id} borrowerId={borrower.id} />
 
       {/* PCAF Data Availability — analyst confirmation.  Renders ABOVE
           the "PCAF data quality for this loan" panel so the officer
