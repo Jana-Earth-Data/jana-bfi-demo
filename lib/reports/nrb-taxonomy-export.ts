@@ -78,8 +78,26 @@ export type TaxonomyReport = {
   generatedAt: string;
   scope: PortfolioScope;
   portfolio: Record<NrbTaxonomyColor, TaxonomyReportBucket>;
+  /** Full classified-loan list. Used by xlsx + JSON exports. */
   loans: TaxonomyReportLoan[];
+  /**
+   * Per-color capped detail slice (top-N by NPR per color). Used by the
+   * PDF export so a portfolio with 1000+ classified loans still yields
+   * a browsable document instead of a 1000-page detail annex. When the
+   * count is capped, `detailLoansCapPerColor` records the cap so the
+   * PDF footer can note it.
+   */
+  detailLoans: TaxonomyReportLoan[];
+  detailLoansCapPerColor: number;
 };
+
+/**
+ * How many loans per color to include in the PDF per-loan detail
+ * pages. Real Nepal Class-A banks classify 1000+ commercial loans; the
+ * PDF is aggregate + a top-N detail, with the full list available via
+ * the xlsx / JSON exports.
+ */
+export const DETAIL_ROWS_PER_COLOR = 50;
 
 /** Row shape as returned by the /bfi_taxonomy_assessments Supabase select. */
 export type TaxonomyAssessmentRow = {
@@ -266,6 +284,20 @@ export function buildTaxonomyReport(
     return b.outstandingNpr - a.outstandingNpr;
   });
 
+  // Build the capped per-color detail slice for the PDF. Preserves the
+  // per-color ordering (green first, then amber/red/unclassified) and
+  // takes the top DETAIL_ROWS_PER_COLOR by NPR within each colour.
+  const perColorCounts: Record<NrbTaxonomyColor, number> = {
+    green: 0, amber: 0, red: 0, unclassified: 0,
+  };
+  const detailLoans: TaxonomyReportLoan[] = [];
+  for (const l of loans) {
+    if (perColorCounts[l.color] < DETAIL_ROWS_PER_COLOR) {
+      detailLoans.push(l);
+      perColorCounts[l.color] += 1;
+    }
+  }
+
   return {
     tenant: {
       id: tenant.id,
@@ -275,6 +307,8 @@ export function buildTaxonomyReport(
     scope,
     portfolio,
     loans,
+    detailLoans,
+    detailLoansCapPerColor: DETAIL_ROWS_PER_COLOR,
   };
 }
 
@@ -998,7 +1032,10 @@ export async function buildTaxonomyPdf(
     };
 
     let currentColor: NrbTaxonomyColor | null = null;
-    for (const loan of report.loans) {
+    // PDF uses the per-color-capped slice so 1000+ classified loans
+    // don't blow the document out to hundreds of pages. The xlsx and
+    // JSON exports still carry the full loan list for downstream use.
+    for (const loan of report.detailLoans) {
       if (loan.color !== currentColor) {
         currentColor = loan.color;
         newPage(

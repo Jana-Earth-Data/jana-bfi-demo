@@ -31,6 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { listTenants } from "@/lib/tenants";
 import { getBfiDemoData } from "@/lib/api/bfi";
+import { suggestActivitiesForSector } from "@/lib/regulatory/taxonomy/applicability";
 
 export const dynamic = "force-dynamic";
 
@@ -496,6 +497,93 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 6b) Bulk-classify every commercial + corporate loan (excluding the
+    // two hand-crafted rows) so the NRB Green Finance Taxonomy PDF /
+    // xlsx exports and the NRBSIS Annex 4b filing show realistic
+    // aggregates instead of "1 Green, 1 Amber". Uses the synthesizer's
+    // per-loan `nrbTaxonomy` colour (which already applies plausible
+    // sector logic) as the source of truth for auto-classification.
+    // Activity id resolved via suggestActivitiesForSector; loans without
+    // a matching activity are skipped rather than persisted as junk.
+    let bulkClassifiedCount = 0;
+    {
+      // Purge prior bulk-seed rows from this run's target range so re-runs
+      // don't pile up duplicates. Preserves the hand-crafted Hongshi +
+      // Himal Power rows (different loan IDs).
+      const commercialCorporateLoans = demoData.loans.filter(
+        (l) =>
+          (l.category?.startsWith("commercial-") ||
+            l.category?.startsWith("corporate-")) &&
+          l.id !== CEMENT_LOAN_ID &&
+          l.id !== HYDRO_LOAN_ID,
+      );
+      const bulkLoanIds = commercialCorporateLoans.map((l) => l.id);
+      if (bulkLoanIds.length > 0) {
+        // Wipe in chunks — Supabase `in()` handles up to ~1000 comfortably.
+        const CHUNK = 500;
+        for (let i = 0; i < bulkLoanIds.length; i += CHUNK) {
+          const slice = bulkLoanIds.slice(i, i + CHUNK);
+          const { error } = await supabase
+            .from("bfi_taxonomy_assessments")
+            .delete()
+            .eq("bank_id", tenant.id)
+            .in("loan_id", slice);
+          if (error) {
+            return NextResponse.json(
+              { error: `[${tenant.id}] Bulk taxonomy wipe failed: ${error.message}` },
+              { status: 500 },
+            );
+          }
+        }
+      }
+
+      // Build insert rows.
+      const bulkRows: Array<Record<string, unknown>> = [];
+      for (const loan of commercialCorporateLoans) {
+        const borrower = demoData.borrowers.find(
+          (b) => b.id === loan.borrowerId,
+        );
+        if (!borrower) continue;
+        const activities = suggestActivitiesForSector(borrower.nrbSector);
+        const activityId = activities[0]?.id ?? null;
+        if (!activityId) continue; // no activity match — leave unclassified
+        // Trust the synthesizer's colour. It already handles the special
+        // cases (cement never Green, fossil always Red, hydro Green when
+        // small, etc.). See lib/data/portfolio.ts taxonomyForLoan.
+        const color = loan.nrbTaxonomy; // 'green' | 'amber' | 'red' | 'unclassified'
+        if (color === "unclassified") continue; // don't persist unclassified
+        bulkRows.push({
+          bank_id: tenant.id,
+          loan_id: loan.id,
+          borrower_id: loan.borrowerId,
+          officer_id: officer.id,
+          activity_id: activityId,
+          criterion_answers: {},
+          computed_color: color,
+          computed_rationale:
+            "Auto-classified from borrower sector + NRB Green Finance Taxonomy 2024 sector logic. Not officer-reviewed — bulk-seed pass for annual filing aggregates. Individual officer verification pending for exposures selected for detailed review.",
+          citation: "NRB GFT 2024 (auto-classification per sector default)",
+        });
+      }
+
+      // Insert in chunks. Supabase POST limits payload size but 500-row
+      // chunks stay well under the default cap.
+      const INSERT_CHUNK = 500;
+      for (let i = 0; i < bulkRows.length; i += INSERT_CHUNK) {
+        const slice = bulkRows.slice(i, i + INSERT_CHUNK);
+        const { error } = await supabase
+          .from("bfi_taxonomy_assessments")
+          .insert(slice);
+        if (error) {
+          return NextResponse.json(
+            { error: `[${tenant.id}] Bulk taxonomy insert failed (chunk ${i}): ${error.message}` },
+            { status: 500 },
+          );
+        }
+      }
+      bulkClassifiedCount = bulkRows.length;
+    }
+
     // 7) Insert NRB Circular 22 Annex 2 doc-matrix statuses for the
     // Himal Power hydropower loan. Gives the hydro documentation panel
     // something concrete to render at demo time.
@@ -526,7 +614,8 @@ export async function POST(request: NextRequest) {
       seeded: {
         esddResponses: responseRows.length + brickResponsesLen,
         esrmScreenings: 1 + brickScreeningsLen,
-        taxonomyAssessments: 2,
+        taxonomyAssessments: 2 + bulkClassifiedCount,
+        bulkClassifiedCount,
         loanAssignments: BRICK_LOAN_ID ? 3 : 2,
         hydroDocStatuses: hydroDocRows.length,
       },
