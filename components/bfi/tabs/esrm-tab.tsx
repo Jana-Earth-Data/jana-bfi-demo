@@ -39,6 +39,11 @@ import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 import { ClimateRiskPanel } from "@/components/bfi/esrm/climate-risk-panel";
 import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 import { HydroDocMatrixPanel } from "@/components/bfi/hydro/doc-matrix-panel";
+import { PcafAvailabilityPanel } from "@/components/bfi/pcaf/availability-panel";
+import type {
+  PcafComputationResult,
+  PcafOption,
+} from "@/lib/regulatory/pcaf/types";
 
 function isHydroBorrower(nrbSector: string): boolean {
   return nrbSector.toLowerCase().includes("hydropower");
@@ -953,7 +958,7 @@ function ScreeningWorkbench({
     assignment: { officerId: string; officerName: string } | null,
   ) => void;
 }) {
-  const { loan, borrower, attribution } = row;
+  const { loan, borrower, attribution: baseAttribution } = row;
   const screening = useMemo(
     () => prebuiltScreening ?? buildScreening(borrower),
     [borrower, prebuiltScreening]
@@ -962,6 +967,48 @@ function ScreeningWorkbench({
   const openaqLive = !!liveEnrichment?.openaq;
   const [esddOpen, setEsddOpen] = useState(false);
   const [sanityOpen, setSanityOpen] = useState(false);
+
+  // Live-refresh source of truth for the "PCAF data quality for this loan"
+  // panel below the availability collection panel.  Seeded from the SSR
+  // attribution and swapped in place when the officer saves an override
+  // via <PcafAvailabilityPanel> — the compute result comes back on the
+  // POST response so we can update without a round-trip to /api/pcaf/scores.
+  const [pcafOverride, setPcafOverride] = useState<{
+    score: 1 | 2 | 3 | 4 | 5;
+    option: PcafOption;
+    citation: string;
+    method: string;
+  } | null>(null);
+  // Reset the override whenever the underlying loan changes — an officer
+  // navigating between loans shouldn't see stale override state from a
+  // sibling borrower.
+  useEffect(() => {
+    setPcafOverride(null);
+  }, [loan.id]);
+
+  const attribution = useMemo(() => {
+    if (!pcafOverride) return baseAttribution;
+    return {
+      ...baseAttribution,
+      dataQualityScore: pcafOverride.score,
+      pcafOption: pcafOverride.option,
+      pcafCitation: pcafOverride.citation,
+      qualityNote: pcafOverride.method,
+    };
+  }, [baseAttribution, pcafOverride]);
+
+  function handlePcafAvailabilitySaved(result: {
+    resolvedFlags: unknown;
+    computed: PcafComputationResult | null;
+  }) {
+    if (!result.computed) return;
+    setPcafOverride({
+      score: result.computed.score,
+      option: result.computed.option,
+      citation: result.computed.citation,
+      method: result.computed.method,
+    });
+  }
   const ctLive = !isMock && borrower.facilities.length > 0;
   // CT 2024 snapshot is real data baked into data/ct-nepal-2024.json — used
   // in mock mode for any borrower whose facility data comes from the snapshot.
@@ -1345,6 +1392,18 @@ function ScreeningWorkbench({
           </div>
         </div>
       </Panel>
+
+      {/* PCAF Data Availability — analyst confirmation.  Renders ABOVE
+          the "PCAF data quality for this loan" panel so the officer
+          confirms / overrides the flags first, then sees the resulting
+          score refresh in place.  Save propagates a fresh compute up
+          via `handlePcafAvailabilitySaved` so the neighbour panel below
+          re-renders with the new score / option / citation without any
+          route hop. */}
+      <PcafAvailabilityPanel
+        borrower={borrower}
+        onSaved={handlePcafAvailabilitySaved}
+      />
 
       <Panel
         title="PCAF data quality for this loan"

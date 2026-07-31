@@ -30,7 +30,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import type { PcafOption } from "@/lib/regulatory/pcaf/types";
+import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { resolveCurrentTenant } from "@/lib/tenants";
+import {
+  assetClassForLoanCategory,
+  computePcafScore,
+  inferPcafAvailability,
+  resolvePcafAvailability,
+} from "@/lib/regulatory/pcaf/scoring";
+import type {
+  PcafDataAvailability,
+  PcafOption,
+} from "@/lib/regulatory/pcaf/types";
+import { SCORE_FOR_OPTION } from "@/lib/regulatory/pcaf/types";
 
 export const dynamic = "force-dynamic";
 

@@ -118,6 +118,43 @@ const HYDRO_TAXONOMY_ANSWERS = {
   dnsh_seismic_assessment: true,
 };
 
+// PCAF Data Availability overrides — one per demonstration borrower so the
+// PCAF collection panel has real analyst-confirmed state at demo time.
+// Hongshi: verified Score 1 (borrower publishes with third-party assurance).
+// Himal Power: physical activity data available → Score 2b/3 path.
+const PCAF_AVAILABILITY_SEEDS = [
+  {
+    borrowerKey: "cement" as const, // Hongshi-Shivam Cement
+    flags: {
+      borrower_publishes_verified: true,
+      borrower_publishes_unverified: false,
+      energy_consumption_data_available: true,
+      physical_activity_data_available: true,
+      revenue_data_available: true,
+      sector_average_only: false,
+      out_of_scope: false,
+    },
+    evidence_note:
+      "Hongshi-Shivam Cement 2024 Sustainability & GHG Report (pp. 42-46). Scope 1+2 emissions independently assured by KPMG per ISAE 3410. Physical clinker production tonnage in AR. Facility-level Climate TRACE cross-check consistent (±3%).",
+    pcaf_citation: "PCAF Part A 3rd Edition §5.3 Option 1a (verified reported)",
+  },
+  {
+    borrowerKey: "hydro" as const, // Himal Power
+    flags: {
+      borrower_publishes_verified: false,
+      borrower_publishes_unverified: false,
+      energy_consumption_data_available: false,
+      physical_activity_data_available: true,
+      revenue_data_available: true,
+      sector_average_only: false,
+      out_of_scope: false,
+    },
+    evidence_note:
+      "Himal Power annual generation report (GWh sent-out to NEA grid). No borrower-published GHG. Physical activity × Nepal grid emission factor (DoED / NEA 2024). Climate TRACE for downstream methane from reservoir surface confirms de-minimis (~0 gCO2/kWh in run-of-river configuration).",
+    pcaf_citation: "PCAF Part A 3rd Edition §5.3 Option 2b (physical activity × emission factor)",
+  },
+];
+
 // Circular 22 Annex 2 documentation matrix — Himal Power's 60 MW Khimti
 // station puts it in the ">50 MW / EIA" band, which has 5 required
 // documents: company registration, survey license, EIA approval,
@@ -584,6 +621,47 @@ export async function POST(request: NextRequest) {
       bulkClassifiedCount = bulkRows.length;
     }
 
+    // 6c) Seed PCAF Data Availability overrides so the PCAF collection
+    // panel on the borrower workbench has real analyst-confirmed state.
+    // Hongshi shows Score 1 (verified reporting); Himal Power shows
+    // Score 3 (physical activity × emission factor). Wiped + re-inserted
+    // on every seed run.
+    let pcafAvailabilityCount = 0;
+    {
+      for (const seed of PCAF_AVAILABILITY_SEEDS) {
+        const borrowerId =
+          seed.borrowerKey === "cement" ? CEMENT_BORROWER_ID : HYDRO_BORROWER_ID;
+        const { error: delErr } = await supabase
+          .from("bfi_pcaf_availability")
+          .delete()
+          .eq("bank_id", tenant.id)
+          .eq("borrower_id", borrowerId);
+        if (delErr) {
+          return NextResponse.json(
+            { error: `[${tenant.id}] PCAF availability wipe (${seed.borrowerKey}) failed: ${delErr.message}` },
+            { status: 500 },
+          );
+        }
+        const { error: insErr } = await supabase
+          .from("bfi_pcaf_availability")
+          .insert({
+            bank_id: tenant.id,
+            borrower_id: borrowerId,
+            ...seed.flags,
+            evidence_note: seed.evidence_note,
+            pcaf_citation: seed.pcaf_citation,
+            captured_by: officer.id,
+          });
+        if (insErr) {
+          return NextResponse.json(
+            { error: `[${tenant.id}] PCAF availability insert (${seed.borrowerKey}) failed: ${insErr.message}` },
+            { status: 500 },
+          );
+        }
+        pcafAvailabilityCount += 1;
+      }
+    }
+
     // 7) Insert NRB Circular 22 Annex 2 doc-matrix statuses for the
     // Himal Power hydropower loan. Gives the hydro documentation panel
     // something concrete to render at demo time.
@@ -618,6 +696,7 @@ export async function POST(request: NextRequest) {
         bulkClassifiedCount,
         loanAssignments: BRICK_LOAN_ID ? 3 : 2,
         hydroDocStatuses: hydroDocRows.length,
+        pcafAvailability: pcafAvailabilityCount,
       },
       drivingQuestionIds,
     });

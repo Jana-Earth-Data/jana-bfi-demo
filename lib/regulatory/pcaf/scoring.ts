@@ -219,6 +219,53 @@ export function inferPcafAvailability(
 }
 
 // ---------------------------------------------------------------------------
+// Availability resolver — compose inferred + officer-saved overrides
+// ---------------------------------------------------------------------------
+
+/**
+ * Merge an officer-saved `bfi_pcaf_availability` row on top of the
+ * inferred flag bundle produced by {@link inferPcafAvailability}.
+ *
+ * The demo default is to infer every availability flag from the borrower
+ * catalog (Climate TRACE match, publicly-listed flag, name substring
+ * lists).  When an officer has reviewed the borrower's actual annual
+ * report / assurance statement and persisted a row via the
+ * `PCAF Data Availability` collection panel, those saved flags take
+ * precedence per-flag.  Missing flags on the saved side fall through
+ * to the inferred value (a `Partial<PcafDataAvailability>` shape is
+ * supported so a partial-save from an older UI still composes cleanly).
+ *
+ * This is the composition point referenced by the P24 collection UI —
+ * the workbench PCAF panel + `/api/pcaf/availability/[borrowerId]` both
+ * flow through it so the score displayed and the score returned to
+ * downstream consumers stay in sync.
+ */
+export function resolvePcafAvailability(
+  inferred: PcafDataAvailability,
+  saved: Partial<PcafDataAvailability> | null | undefined,
+): PcafDataAvailability {
+  if (!saved) return inferred;
+  return {
+    borrower_publishes_verified:
+      saved.borrower_publishes_verified ?? inferred.borrower_publishes_verified,
+    borrower_publishes_unverified:
+      saved.borrower_publishes_unverified ??
+      inferred.borrower_publishes_unverified,
+    energy_consumption_data_available:
+      saved.energy_consumption_data_available ??
+      inferred.energy_consumption_data_available,
+    physical_activity_data_available:
+      saved.physical_activity_data_available ??
+      inferred.physical_activity_data_available,
+    revenue_data_available:
+      saved.revenue_data_available ?? inferred.revenue_data_available,
+    sector_average_only:
+      saved.sector_average_only ?? inferred.sector_average_only,
+    out_of_scope: saved.out_of_scope ?? inferred.out_of_scope,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Core decision tree
 // ---------------------------------------------------------------------------
 
