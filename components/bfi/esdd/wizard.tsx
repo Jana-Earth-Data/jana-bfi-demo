@@ -692,8 +692,7 @@ function SectionStep({
       {showRemarksError && missingRemarksIds.length > 0 && (
         <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
           Remarks required on {missingRemarksIds.length} answered
-          question{missingRemarksIds.length === 1 ? "" : "s"} before advance
-          (tenant setting).
+          question{missingRemarksIds.length === 1 ? "" : "s"} before advance.
         </div>
       )}
 
