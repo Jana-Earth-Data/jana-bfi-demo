@@ -1,6 +1,6 @@
 # Jana BFI Demo
 
-Sales-demo dashboard for Jana Earth Data's financed-emissions product, scoped to Nepal's commercial banking sector. Shows a loan officer's view of a fictional bank's portfolio against Nepal Rastra Bank's three regulatory frameworks (ESRM 2018, Green Finance Taxonomy 2024, NSRS 2026–27), with PCAF Cat. 15 attribution math wired to real Climate TRACE 2024 and EDGAR data.
+Sales-demo dashboard for Jana Earth Data's financed-emissions product, scoped to Nepal's commercial banking sector. Shows a loan officer's view of a fictional bank's portfolio against the three Nepal frameworks that shape bank sustainability compliance — ESRM 2022 and the Green Finance Taxonomy 2024 (both from NRB), plus NFRS S1/S2 (from ICAN, currently in exposure draft with comments open through June 2026) — with PCAF Cat. 15 attribution math wired to real Climate TRACE 2024 and EDGAR data.
 
 ## Stack
 

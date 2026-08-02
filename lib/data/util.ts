@@ -17,7 +17,7 @@ export const AS_OF_DATE = "2026-05-01";
  */
 export const TREND_YEARS = [2021, 2022, 2023, 2024, 2025] as const;
 
-/** Most recent fully-reported year — the one a bank would cite in its annual NSRS disclosure. */
+/** Most recent fully-reported year — the one a bank would cite in its annual NFRS disclosure. */
 export const LATEST_FULL_YEAR = 2024;
 
 /** Latest year with any data (may be partial). */

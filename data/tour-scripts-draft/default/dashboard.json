@@ -1,0 +1,126 @@
+{
+  "version": "1.0-draft",
+  "totalDurationSecondsApprox": 490,
+  "voice": "onyx",
+  "model": "tts-1-hd",
+  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "Draft — reframed to lead with the full NRB regulatory stack. Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant default --tour dashboard --force",
+  "steps": [
+    {
+      "id": "intro",
+      "tab": "loans",
+      "target": "[data-tour='loan-table']",
+      "calloutTitle": "First Bank of Nepal · the whole NRB stack",
+      "calloutText": "A simulated eighty thousand loan portfolio. Every piece of the Nepal Rastra Bank sustainability framework has to run against it — screening, taxonomy, project finance, CAP, and disclosure.",
+      "narration": "Welcome. What you are looking at is a compliance workbench built for First Bank of Nepal. The book on this tab is a simulated portfolio of eighty thousand loans for a hypothetical Class A commercial bank. Nepal Rastra Bank does not ask a bank for one thing. It asks for a full stack. Circular twenty-two for environmental risk screening. The Green Finance Taxonomy for portfolio classification. Annex five b for project finance loans. Corrective action plans with covenants and monitoring on any medium or high risk loan. And PCAF style financed emissions disclosure for the upcoming NFRS filing. Over the next five minutes I will walk you through how one platform lets a bank execute every layer.",
+      "audioFile": "/audio/default/dashboard/tour-01-intro.mp3"
+    },
+    {
+      "id": "framework-tabs",
+      "tab": "taxonomy",
+      "target": "[data-tour='tab-strip']",
+      "calloutTitle": "Five domains, one workspace",
+      "calloutText": "My Work runs the officer flow. Manager runs the portfolio. Taxonomy classifies. NFRS discloses. All read from the same audit trail.",
+      "narration": "The tabs across the top map to the layers of the framework. My Work is the officer surface where each new loan gets screened. Manager is the portfolio view where the compliance lead reviews escalations, corrective actions, and covenants. Taxonomy classifies every eligible loan as green, amber, or red under the October twenty twenty four directive. And NFRS is where the annual filing is assembled, with PCAF style financed emissions underneath. Most Nepal banks are stuck on the top three layers because they do not have the workflow tools to execute them or the facility level data to defend a taxonomy classification. Jana provides both.",
+      "audioFile": "/audio/default/dashboard/tour-02-framework-tabs.mp3"
+    },
+    {
+      "id": "taxonomy-funnel",
+      "tab": "taxonomy",
+      "target": "[data-tour='funnel']",
+      "calloutTitle": "Small by count. Large by value. All the regulatory risk.",
+      "calloutText": "Of eighty thousand loans, about ten thousand are non-retail business loans in scope. Around one thousand carry facility level data behind roughly one hundred and twenty unique borrowers.",
+      "narration": "Here is the picture that shapes every decision downstream. Of First Bank's eighty thousand loans, about ten thousand are non-retail business loans that fall inside the NRB regulatory perimeter. The retail majority, home mortgages and personal loans, sits outside taxonomy and outside Circular twenty-two. Of those ten thousand in-scope loans, around one thousand are large commercial and corporate exposures where facility level emissions data attaches. Behind those sit roughly one hundred and twenty unique borrowers spanning cement, hydropower, hotels, logistics, waste utilities, and heavy industry. By count that slice is small. By outstanding value and by regulatory exposure it carries almost everything a supervisor cares about.",
+      "audioFile": "/audio/default/dashboard/tour-03-funnel.mp3"
+    },
+    {
+      "id": "manager-queue",
+      "tab": "esrm",
+      "target": "[data-tour='application-queue']",
+      "calloutTitle": "The Manager tab · every application, every escalation",
+      "calloutText": "The application queue surfaces every loan currently under compliance review — with owner, ESDD status, taxonomy classification, and CAP status on one row.",
+      "narration": "This is the Manager tab. It used to be called ESRM. We renamed it because it does more than environmental risk now. It runs the whole compliance lifecycle. Every commercial loan currently under review is here, with the assigned officer, the ESDD checklist progress, the taxonomy classification, and the corrective action plan status on the same row. When a loan escalates, a banner appears above the queue. When corrective actions go overdue, another banner appears. The manager never has to open a spreadsheet to find out where the portfolio stands.",
+      "audioFile": "/audio/default/dashboard/tour-04-manager-queue.mp3"
+    },
+    {
+      "id": "compliance-stripe",
+      "tab": "esrm",
+      "target": "[data-tour='compliance-stripe']",
+      "workbenchSubtab": "overview",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "Hongshi Shivam Cement · every regulatory decision on one strip",
+      "calloutText": "ESDD chip · Taxonomy chip · CAP status · escalation callout with the driving questions. Everything the credit committee needs, front and centre.",
+      "narration": "Open any single loan and the compliance state is right at the top of the workbench. Here is Hongshi Shivam Cement, the country's largest cement plant. The strip shows the environmental risk class from the ESDD, the taxonomy classification from the October twenty twenty four directive, and whether a corrective action plan is on track or overdue. If the loan escalated, the driving questions are listed inline so the credit committee sees exactly what triggered it. No drawers to open. No separate escalation queue to maintain.",
+      "audioFile": "/audio/default/dashboard/tour-05-compliance-stripe.mp3"
+    },
+    {
+      "id": "workbench-subtabs",
+      "tab": "esrm",
+      "target": "[data-tour='workbench-subtabs']",
+      "workbenchSubtab": "overview",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "One workbench · five surfaces",
+      "calloutText": "Overview · CAP + Covenants · PCAF · Hydropower docs · Facility map. Everything an officer or manager needs on a single loan.",
+      "narration": "Below the strip, the workbench splits into sub-tabs. Overview holds the ESDD screening, the taxonomy result, and any escalations. CAP and Covenants holds the corrective action plan, the financial clause covenants, and the monitoring schedule. PCAF holds the data availability panel that feeds the financed emissions score. Hydropower docs holds the sector specific evidence matrix for run-of-river projects. And Facility map holds the geolocated emissions dot backed by Climate TRACE. One loan. Every regulatory obligation. One click apart.",
+      "audioFile": "/audio/default/dashboard/tour-06-workbench-subtabs.mp3"
+    },
+    {
+      "id": "cap-panel",
+      "tab": "esrm",
+      "target": "[data-tour='cap-panel']",
+      "workbenchSubtab": "cap",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "CAP + Covenants + Monitoring · NRB §7.3.5 and §7.3.7",
+      "calloutText": "Time-bound corrective actions. Financial clause covenants. Periodic monitoring reports. Everything §7.3.5 and §7.3.7 require, captured against the loan record.",
+      "narration": "This is the CAP and Covenants sub-tab. NRB Circular twenty-two section seven point three point five requires a time-bound corrective action plan on every medium and high risk loan, with covenants written into the facility agreement. Section seven point three point seven requires periodic monitoring reports against those covenants. On this panel the officer captures each corrective action with a deadline and an owner, records the covenants exactly as they appear in the loan document, and schedules the monitoring cadence. When an action goes overdue, it flags on the loan and it flags on the portfolio banner. Regulators do not accept a screening that was never followed up. This is how a bank proves the follow-up.",
+      "audioFile": "/audio/default/dashboard/tour-07-cap-panel.mp3"
+    },
+    {
+      "id": "pf-screening-callout",
+      "tab": "mywork",
+      "target": "[data-tour='esdd-pf-callout']",
+      "navigateTo": "/esdd/L-0080028?tourStep=4",
+      "calloutTitle": "Project finance loans · Annex 5b layers on top",
+      "calloutText": "Circular 22 §5 routes project finance loans through an additional one hundred and forty-eight-item IFC Performance Standards screening on top of the standard ESDD.",
+      "narration": "For project finance loans, Circular twenty-two adds a second screening on top of the standard ESDD. Annex five b. One hundred and forty-eight items mapped to the eight IFC Performance Standards. Assessment and management. Labour. Pollution. Community health. Land acquisition. Biodiversity. Indigenous peoples. Cultural heritage. Each performance standard carries its own termination triggers with citations back to the exact section of the IFC document. If a trigger fires, the loan routes to critical review regardless of the aggregate flag count. A separate tour walks through the full Annex five b flow. What matters here is that the tool routes project finance loans through the additional layer automatically.",
+      "audioFile": "/audio/default/dashboard/tour-08-pf-screening.mp3"
+    },
+    {
+      "id": "overdue-caps",
+      "tab": "esrm",
+      "target": "[data-tour='overdue-caps-banner']",
+      "targetOptional": true,
+      "calloutTitle": "Portfolio-wide overdue CAPs · the follow-up regulator wants to see",
+      "calloutText": "Every corrective action past its deadline surfaces on the Manager tab. Missed deadlines are not permitted under §7.3.5.",
+      "narration": "Back on the Manager tab. When any corrective action goes past its deadline anywhere in the portfolio, it surfaces on this banner. The banner names the borrower and the number of overdue items. A manager clicks a pill to jump straight into the loan. This is the piece almost every bank in Nepal is missing today. Without a follow-up surface, a screening becomes a piece of paper the bank filed once and never looked at again. NRB explicitly does not accept that pattern. The overdue banner is how a bank shows a supervisor that the corrective action plan is a living document.",
+      "audioFile": "/audio/default/dashboard/tour-09-overdue-caps.mp3"
+    },
+    {
+      "id": "nfrs-disclosure",
+      "tab": "nfrs",
+      "target": "[data-tour='nfrs-headline']",
+      "calloutTitle": "Annual NFRS disclosure · assembled, not reconstructed",
+      "calloutText": "Total financed emissions across the book, with a multi-year trend. Feeds the annual sustainability report under NFRS S1 and S2.",
+      "narration": "Fast forward to year-end. First Bank has to file its annual sustainability report under NFRS. Nepal's IFRS S two aligned climate disclosure standard, currently in exposure draft with comments open through June twenty twenty six. This is what the CFO and the CRO see. Total financed emissions across the book, the most recent fully reported year, the multi-year trend, and the PCAF methodology stack underneath. The number on this page is the number that goes into the annual report. It is not reconstructed from a spreadsheet at year-end. It is assembled continuously from the loan by loan work the officers were already doing.",
+      "audioFile": "/audio/default/dashboard/tour-10-nfrs-disclosure.mp3"
+    },
+    {
+      "id": "pcaf-data-quality",
+      "tab": "nfrs",
+      "target": "[data-tour='data-quality']",
+      "calloutTitle": "PCAF data quality · the honest picture",
+      "calloutText": "Without facility data: Score 5 across the book. With Jana: Score 3 on the slice that carries the emissions risk. Score 2 and 1 need the borrower itself to disclose.",
+      "narration": "Underneath the headline sits the PCAF data quality distribution. PCAF requires every bank to score every loan from one to five, with one being best. Without facility level data, a bank defaults to Score five, revenue based estimates using national averages. With Jana, the highest emission slice of the portfolio moves to Score three, physical activity data multiplied by a sector emission factor, backed by Climate TRACE and facility inventory records. Score two and Score one need the borrower itself to publish assured emissions, which almost no Nepal borrower does today. Score three is the honest ceiling. It is also a two notch improvement on the loans that carry the risk. That is the trade the auditor sees.",
+      "audioFile": "/audio/default/dashboard/tour-11-pcaf-data-quality.mp3"
+    },
+    {
+      "id": "closing",
+      "tab": "taxonomy",
+      "target": "[data-tour='header']",
+      "calloutTitle": "One platform · every layer of the framework",
+      "calloutText": "Circular 22 screening. Annex 5b PF layer. Green Taxonomy classification. CAP plus covenants plus monitoring. PCAF disclosure. All on the same audit trail.",
+      "narration": "That is the full stack. Circular twenty-two environmental risk screening on every commercial loan. Annex five b project finance screening on the project finance subset. Green Finance Taxonomy classification for the portfolio filing. Corrective action plans, covenants, and monitoring for every medium and high risk loan. And PCAF financed emissions for the annual NFRS disclosure. Jana is the workflow surface that lets the bank execute the framework and the data layer that lets the bank defend it. The book in front of you is synthetic. Every emissions number is real. Thanks for watching.",
+      "audioFile": "/audio/default/dashboard/tour-12-closing.mp3"
+    }
+  ]
+}

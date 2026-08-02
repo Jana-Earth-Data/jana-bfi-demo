@@ -45,6 +45,12 @@ import {
   usdToNpr,
 } from "@/lib/data/util";
 import { getBorrowerCatalog, SmeBorrower } from "@/lib/data/entities";
+import {
+  assetClassForLoanCategory,
+  computePcafScore,
+  inferPcafAvailability,
+} from "@/lib/regulatory/pcaf/scoring";
+import { SCORE_FOR_OPTION } from "@/lib/regulatory/pcaf/types";
 
 // ---------------------------------------------------------------------------
 // Portfolio scale and mix
@@ -236,69 +242,66 @@ function pickSmeBorrower(
 // PCAF calculation
 // ---------------------------------------------------------------------------
 
-function pcafFor(
-  loan: Loan,
-  borrower: Borrower
-): PcafAttribution {
-  const isRetail = (loan.category ?? "").startsWith("retail-");
-  if (isRetail) {
+/**
+ * PCAF attribution for one loan.  Delegates the score / option / citation
+ * decision to `lib/regulatory/pcaf/scoring.ts` — the PCAF Part A 3rd
+ * Edition (Dec 2025) rubric — and keeps the attribution-factor and
+ * attributed-tCO2e math here since those are portfolio-shape concerns.
+ */
+function pcafFor(loan: Loan, borrower: Borrower): PcafAttribution {
+  // 1. Determine PCAF asset class + inferred availability flags.
+  const assetClass = assetClassForLoanCategory(loan.category);
+  const availability = inferPcafAvailability(borrower, loan.category);
+
+  // 2. Run the PCAF §5 decision tree.
+  const compute = computePcafScore(loan, borrower, null, availability, assetClass);
+  const score = compute.score;
+  const option = compute.option;
+
+  // 3. Out-of-scope short-circuit — retail personal / education loans.
+  //    Score is still populated (Score 5) so the disclosure histogram
+  //    can include them, but attribution factor + attributed tCO2e are
+  //    zero because the borrower is the retail pool.
+  const isOutOfScope =
+    compute.assetClass === "out-of-scope" || borrower.kind === "retail-pool";
+  if (isOutOfScope) {
     return {
       loanId: loan.id,
       borrowerId: borrower.id,
       methodology: "out-of-scope",
       attributionFactor: 0,
       attributedCo2eTonnes: 0,
-      dataQualityScore: 5,
-      qualityNote: "Retail loans are out of scope for PCAF Cat. 15",
+      dataQualityScore: SCORE_FOR_OPTION[option],
+      qualityNote: compute.method,
+      pcafOption: option,
+      pcafAssetClass: compute.assetClass,
+      pcafCitation: compute.citation,
+      pcafDataSource: compute.dataSource,
     };
   }
 
-  // Sector-benchmark for SMEs, hydropower, and any borrower with no
-  // facility-tier data. Note text is tailored to the sector when we know
-  // the methodology should be described differently (hydropower comes from
-  // installed-capacity lifecycle attribution, not EDGAR emission intensity,
-  // because Climate TRACE does not currently track Nepal hydropower at
-  // facility level).
-  if (borrower.dataTier === "sector-benchmark" || borrower.facilities.length === 0) {
-    const ev = Math.max(50_000, borrower.enterpriseValueUsd);
-    const af = loan.outstandingUsd / ev;
-    const sectorLower = borrower.nrbSector.toLowerCase();
-    const isHydro =
-      sectorLower.includes("hydropower") || sectorLower.includes("hydro");
-    const qualityNote = isHydro
-      ? "Hydropower emissions estimated from installed capacity (lifecycle attribution). Climate TRACE does not currently track Nepal hydropower at facility level."
-      : "EDGAR sector emission intensity x estimated revenue";
-    return {
-      loanId: loan.id,
-      borrowerId: borrower.id,
-      methodology: "sector-benchmark",
-      attributionFactor: af,
-      attributedCo2eTonnes: Math.round(af * borrower.totalCo2eTonnes),
-      dataQualityScore: 4,
-      qualityNote,
-    };
-  }
-
-  // Facility tier
-  const ev = Math.max(1_000_000, borrower.enterpriseValueUsd);
+  // 4. Compute the attribution factor (loan / EV) — PCAF Part A §4.2.
+  //    Floors mirror the previous implementation so a tiny synthetic EV
+  //    can't produce a >100 % share.
+  const ev =
+    borrower.facilities.length > 0
+      ? Math.max(1_000_000, borrower.enterpriseValueUsd)
+      : Math.max(50_000, borrower.enterpriseValueUsd);
   const af = loan.outstandingUsd / ev;
   const attributed = af * borrower.totalCo2eTonnes;
+
+  // 5. Pick the legacy `methodology` label — kept for the ESRM tab's
+  //    existing badges (facility-attributed vs satellite-emissions vs
+  //    sector-benchmark) so the visual language of the tabs is
+  //    preserved.  New consumers should use `pcafOption` + `pcafCitation`.
   let methodology: PcafMethodology;
-  let score: 1 | 2 | 3 | 4 | 5;
-  let note: string;
-  if (borrower.evSource === "public-filing" && borrower.publiclyListed) {
-    methodology = "facility-attributed";
-    score = 2;
-    note = "Climate TRACE facility emissions + public-filing enterprise value";
-  } else if (borrower.evSource === "public-filing") {
-    methodology = "facility-attributed";
-    score = 2;
-    note = "Climate TRACE facility emissions + public financial filings";
-  } else {
-    methodology = "satellite-emissions";
-    score = 3;
-    note = "Climate TRACE facility emissions + estimated enterprise value";
-  }
+  if (score <= 2) methodology = "facility-attributed";
+  else if (score === 3) methodology = borrower.evSource === "public-filing"
+    ? "facility-attributed"
+    : "satellite-emissions";
+  else if (score === 4) methodology = "sector-benchmark";
+  else methodology = "revenue-based-estimate";
+
   return {
     loanId: loan.id,
     borrowerId: borrower.id,
@@ -306,7 +309,11 @@ function pcafFor(
     attributionFactor: af,
     attributedCo2eTonnes: Math.round(attributed),
     dataQualityScore: score,
-    qualityNote: note,
+    qualityNote: compute.method,
+    pcafOption: option,
+    pcafAssetClass: compute.assetClass,
+    pcafCitation: compute.citation,
+    pcafDataSource: compute.dataSource,
   };
 }
 
@@ -700,6 +707,29 @@ function buildPortfolio(): BfiDemoData {
     if (hongshiLoans.length > 0) {
       const biggest = hongshiLoans.reduce((acc, l) =>
         l.outstandingNpr > acc.outstandingNpr ? l : acc
+      );
+      biggest.status = "under-review";
+    }
+  }
+
+  // Demo tour hook: ensure at least one SME brick-industry loan is
+  // under-review so the "small loan in critical sector" walkthrough
+  // path has a concrete loan to demonstrate. Brick is on NRB's
+  // critical-sector list per Circular 22 §5, so a small SME loan to a
+  // brick borrower should route through the full ESDD checklist (not
+  // the fast-path). Picks the largest SME term loan by NPR to the
+  // first brick-industry borrower for stable selection.
+  const brickBorrower = catalog.sme.find((b) =>
+    b.nrbSector.toLowerCase().includes("brick"),
+  );
+  if (brickBorrower) {
+    const brickSmeLoans = loans.filter(
+      (l) =>
+        l.borrowerId === brickBorrower.id && l.category === "sme-term-loan",
+    );
+    if (brickSmeLoans.length > 0) {
+      const biggest = brickSmeLoans.reduce((acc, l) =>
+        l.outstandingNpr > acc.outstandingNpr ? l : acc,
       );
       biggest.status = "under-review";
     }

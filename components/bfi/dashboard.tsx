@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import { DashboardHeader } from "@/components/bfi/header";
 import { TaxonomyTab } from "@/components/bfi/tabs/taxonomy-tab";
-import { NsrsTab } from "@/components/bfi/tabs/nsrs-tab";
+import { NfrsTab } from "@/components/bfi/tabs/nfrs-tab";
 import { EsrmTab } from "@/components/bfi/tabs/esrm-tab";
 import { LoansTab } from "@/components/bfi/tabs/loans-tab";
-import { TourProvider, useTour } from "@/lib/tour/tour-context";
-import { TourOverlay } from "@/components/bfi/tour/tour-overlay";
-import { TourControls } from "@/components/bfi/tour/tour-controls";
+import { MyWorkTab } from "@/components/bfi/tabs/my-work-tab";
+import { useTour } from "@/lib/tour/tour-context";
 import {
   BfiDemoMeta,
   Borrower,
@@ -17,6 +16,8 @@ import {
   PortfolioSummary,
 } from "@/lib/types/bfi";
 import { LoanRow } from "@/lib/data/portfolio-query";
+import type { Officer } from "@/lib/tenants";
+import type { ClimatePortfolioSummary } from "@/lib/regulatory/climate/infer";
 
 export type DashboardSsrData = {
   meta: BfiDemoMeta;
@@ -28,6 +29,13 @@ export type DashboardSsrData = {
   facilityBorrowers: Borrower[]; // borrowers with facility data (for ESRM/maps)
   /** Pre-computed screenings keyed by borrower ID (covers the applications queue). */
   screenings: Record<string, BorrowerScreening>;
+  /**
+   * Portfolio-level climate risk summary (NRB ESRM 2022 §4.4).
+   * Powers the NFRS "above threshold without target" callout and any
+   * other portfolio-level climate metric. Always present — computed from
+   * the in-memory synthesized borrower catalogue.
+   */
+  climateSummary: ClimatePortfolioSummary;
   /** True when EDGAR / OpenAQ screening enrichments were fetched live. */
   liveEnrichment?: {
     edgar: boolean;
@@ -39,9 +47,13 @@ export type DashboardSsrData = {
     businessUnits: string[];
     branches: Array<{ code: string; name: string }>;
   };
+  /** Current tenant's officer roster (surfaced in the header picker). */
+  officers: Officer[];
+  /** Currently signed-in officer, or null when none is selected. */
+  currentOfficer: Officer | null;
 };
 
-type TabId = "loans" | "esrm" | "taxonomy" | "nsrs";
+type TabId = "mywork" | "loans" | "esrm" | "taxonomy" | "nfrs";
 
 const TABS: Array<{
   id: TabId;
@@ -49,14 +61,19 @@ const TABS: Array<{
   description: string;
 }> = [
   {
+    id: "mywork",
+    label: "My Work",
+    description: "Your review queue · Assigned loans, in-progress checklists, follow-ups",
+  },
+  {
     id: "loans",
     label: "Loan Book",
     description: "Simulated 80K-loan portfolio · Search, filter, inspect any record",
   },
   {
     id: "esrm",
-    label: "ESRM",
-    description: "Credit Decision · Screen new loans (2018 NRB Directive)",
+    label: "Manager",
+    description: "All loans under review · ESRM · PF screening · CAP · PCAF (NRB Circular 22)",
   },
   {
     id: "taxonomy",
@@ -64,27 +81,32 @@ const TABS: Array<{
     description: "Portfolio Classification · Green / Amber / Red (Oct 2024)",
   },
   {
-    id: "nsrs",
-    label: "NSRS",
-    description: "Disclosure · Financed emissions, PCAF (2026-27)",
+    id: "nfrs",
+    label: "NFRS",
+    description: "Disclosure · Financed emissions, PCAF (ICAN exposure draft)",
   },
 ];
 
 const VALID_TABS: ReadonlySet<TabId> = new Set([
+  "mywork",
   "loans",
   "esrm",
   "taxonomy",
-  "nsrs",
+  "nfrs",
 ]);
 
-function tabFromHash(): TabId {
-  if (typeof window === "undefined") return "loans";
+function tabFromHash(fallback: TabId): TabId {
+  if (typeof window === "undefined") return fallback;
   const h = window.location.hash.replace(/^#/, "");
-  return VALID_TABS.has(h as TabId) ? (h as TabId) : "loans";
+  return VALID_TABS.has(h as TabId) ? (h as TabId) : fallback;
 }
 
 function DashboardInner({ data }: { data: DashboardSsrData }) {
-  const [tab, setTab] = useState<TabId>("loans");
+  // Default tab depends on identity: signed-in officers land on their
+  // work queue; unsigned visitors land on the loan book (the natural
+  // demo intro). Explicit URL hash always wins.
+  const defaultTab: TabId = data.currentOfficer ? "mywork" : "loans";
+  const [tab, setTab] = useState<TabId>(defaultTab);
   const [liveData, setLiveData] = useState<DashboardSsrData | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -93,11 +115,11 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
 
   // Resolve initial tab from URL hash after hydration
   useEffect(() => {
-    setTab(tabFromHash());
-    const onHash = () => setTab(tabFromHash());
+    setTab(tabFromHash(defaultTab));
+    const onHash = () => setTab(tabFromHash(defaultTab));
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
-  }, []);
+  }, [defaultTab]);
 
   // When the tour wants a different tab, drive ours
   useEffect(() => {
@@ -152,7 +174,12 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
 
   return (
     <div className="min-h-screen bg-surface text-slate-100">
-      <DashboardHeader meta={active.meta} isLive={isLive} />
+      <DashboardHeader
+        meta={active.meta}
+        isLive={isLive}
+        officers={data.officers}
+        currentOfficer={data.currentOfficer}
+      />
 
       <nav className="border-b border-line bg-panel/40" data-tour="tab-strip">
         <div className="mx-auto flex max-w-[1500px] gap-1 px-6">
@@ -165,9 +192,14 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
                 onClick={() => setTabAndHash(t.id)}
                 className={`relative -mb-px border-b-2 px-4 py-3 text-sm transition-colors ${
                   isActive
-                    ? "border-accent text-white"
+                    ? "text-white"
                     : "border-transparent text-slate-400 hover:text-slate-200"
                 }`}
+                style={
+                  isActive
+                    ? { borderColor: "var(--brand-primary)" }
+                    : undefined
+                }
                 aria-current={isActive ? "page" : undefined}
               >
                 <span className="font-semibold">{t.label}</span>
@@ -181,7 +213,14 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
       </nav>
 
       {liveLoading && (
-        <div className="border-b border-emerald-500/30 bg-emerald-500/5 px-6 py-2 text-xs text-emerald-300">
+        <div
+          className="border-b px-6 py-2 text-xs"
+          style={{
+            borderColor: "var(--brand-primary)",
+            backgroundColor: "var(--brand-primary-soft)",
+            color: "var(--brand-primary)",
+          }}
+        >
           Loading live Climate TRACE data...
         </div>
       )}
@@ -192,27 +231,27 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
       )}
 
       <main className="mx-auto max-w-[1500px] px-6 py-6">
+        {tab === "mywork" && <MyWorkTab data={active} />}
         {tab === "loans" && <LoansTab data={active} />}
         {tab === "esrm" && <EsrmTab data={active} />}
         {tab === "taxonomy" && <TaxonomyTab data={active} />}
-        {tab === "nsrs" && <NsrsTab data={active} />}
+        {tab === "nfrs" && <NfrsTab data={active} />}
       </main>
 
       <footer className="border-t border-line bg-panel/30 py-4 text-center text-xs text-slate-500">
-        First Bank of Nepal demo dashboard · Synthesized portfolio · Real facility data from Climate TRACE &amp; Global Cement and Concrete Tracker
+        {data.meta.bankName} demo dashboard · Synthesized portfolio · Real facility data from Climate TRACE &amp; Global Cement and Concrete Tracker
       </footer>
     </div>
   );
 }
 
 export function Dashboard({ data }: { data: DashboardSsrData }) {
+  // TourProvider + TourOverlay + TourControls now mount at layout level
+  // via components/bfi/tour/tour-shell.tsx so tour state survives when
+  // a step navigates into a wizard route.
   return (
     <AuthProvider>
-      <TourProvider>
-        <DashboardInner data={data} />
-        <TourOverlay />
-        <TourControls />
-      </TourProvider>
+      <DashboardInner data={data} />
     </AuthProvider>
   );
 }
