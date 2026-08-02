@@ -243,6 +243,26 @@ function pickSmeBorrower(
 // ---------------------------------------------------------------------------
 
 /**
+ * Retail sector-average emissions factor (tCO2e per NPR of outstanding).
+ *
+ * Retail loans (mortgages, personal, education, vehicle) don't have
+ * borrower-specific facility data — the bank lends to the retail pool, not
+ * to a corporate emitter. PCAF Part A 3rd Edition §5.5.3 (mortgages) and
+ * §5.6.3 (motor vehicles) allow a Score-5 revenue/economic-value proxy:
+ * outstanding × sector-average emissions per unit of economic activity.
+ *
+ * Calibrated so the ~330B NPR retail book contributes ~2M tCO2e/yr to the
+ * financed-emissions total (roughly the Score 5 bucket already shown in the
+ * Data Quality Distribution panel — keeps the NFRS trend chart and the DQ
+ * panel telling the same story).
+ *
+ * If this factor is ever re-tuned, sanity-check by running the demo and
+ * confirming (a) the KPI "Total financed emissions" stays under 10M tCO2e
+ * and (b) the trend chart's Unclassified band is visible but not dominant.
+ */
+const RETAIL_TCO2E_PER_NPR = 6e-6;
+
+/**
  * PCAF attribution for one loan.  Delegates the score / option / citation
  * decision to `lib/regulatory/pcaf/scoring.ts` — the PCAF Part A 3rd
  * Edition (Dec 2025) rubric — and keeps the attribution-factor and
@@ -258,13 +278,40 @@ function pcafFor(loan: Loan, borrower: Borrower): PcafAttribution {
   const score = compute.score;
   const option = compute.option;
 
-  // 3. Out-of-scope short-circuit — retail personal / education loans.
-  //    Score is still populated (Score 5) so the disclosure histogram
-  //    can include them, but attribution factor + attributed tCO2e are
-  //    zero because the borrower is the retail pool.
-  const isOutOfScope =
-    compute.assetClass === "out-of-scope" || borrower.kind === "retail-pool";
-  if (isOutOfScope) {
+  // 3. Retail short-circuit — retail-pool borrower (mortgage / personal /
+  //    education / vehicle). PCAF Part A §5.5.3 / §5.6.3 / §5.2.3 permits a
+  //    Score-5 revenue/economic-value proxy when borrower-specific data is
+  //    unavailable. We use attribution factor = 1.0 (the bank fully finances
+  //    a personal loan) and per-loan attributed emissions =
+  //    outstandingNpr × RETAIL_TCO2E_PER_NPR. Emissions are broadly flat
+  //    year-over-year — retail portfolios don't have year-varying facility
+  //    data — so the trend aggregators below apply the same value to every
+  //    year. This keeps the multi-year trend chart's Unclassified band
+  //    consistent with the Data Quality Distribution panel's Score 5 total.
+  if (borrower.kind === "retail-pool") {
+    const attributed = loan.outstandingNpr * RETAIL_TCO2E_PER_NPR;
+    return {
+      loanId: loan.id,
+      borrowerId: borrower.id,
+      methodology: "revenue-based-estimate",
+      attributionFactor: 1.0,
+      attributedCo2eTonnes: Math.round(attributed),
+      dataQualityScore: 5,
+      qualityNote:
+        "Retail sector-average revenue proxy (PCAF Part A §5.5.3 / §5.6.3 fallback)",
+      pcafOption: "3b",
+      pcafAssetClass: assetClass,
+      pcafCitation:
+        "PCAF Part A 3rd Edition §5.5 / §5.6 — economic-activity-based proxy",
+      pcafDataSource: "sector-average (retail proxy)",
+    };
+  }
+
+  // 3a. Non-retail out-of-scope short-circuit — kept for defensive completeness.
+  //     Any non-retail loan that computePcafScore flagged as out-of-scope
+  //     keeps a zero attribution (score still populated so it appears in the
+  //     disclosure histogram).
+  if (compute.assetClass === "out-of-scope") {
     return {
       loanId: loan.id,
       borrowerId: borrower.id,
@@ -434,6 +481,14 @@ function emptyTaxonomy(): TaxonomyBreakdown {
   return { green: 0, amber: 0, red: 0, unclassified: 0 };
 }
 
+// AGGREGATOR-PAIR: this function mirrors recomputeSummary() in lib/api/bfi.ts.
+// The two share ~90% of aggregation logic (taxonomy breakdown, sector breakdown,
+// data-quality distribution, multi-year trend). Any change to attribution shape,
+// sector bucketing, taxonomy bucketing, or trend-per-year logic MUST be applied
+// in BOTH functions or mock-mode and live-mode paths will silently diverge.
+// The ~10% difference between them handles mock synthesis vs. live overlay
+// specifics — do not consolidate without cataloguing each intentional divergence.
+// Track consolidation in a post-demo issue.
 function buildSummary(
   loans: Loan[],
   borrowers: Borrower[],
@@ -578,12 +633,26 @@ function buildSummary(
   for (const year of TREND_YEARS) {
     trendMap.set(year, { ...emptyTaxonomy(), total: 0 });
   }
+  // Index attributions by loanId once — .find() per loan is O(N*M) and became
+  // hot after retail loans (70k) were folded into the trend below.
+  const attrByLoanId = new Map(attributions.map((a) => [a.loanId, a]));
   for (const loan of loans) {
     const b = borrowerMap.get(loan.borrowerId);
     if (!b) continue;
-    if (b.kind === "retail-pool") continue;
-    const a = attributions.find((x) => x.loanId === loan.id);
+    const a = attrByLoanId.get(loan.id);
     if (!a) continue;
+    // Retail (retail-pool) borrowers are attributed via the revenue-proxy in
+    // pcafFor() above — flat year-over-year emissions. Include them in the
+    // trend so the Unclassified band matches the Data Quality Distribution
+    // panel's Score 5 total.
+    if (b.kind === "retail-pool") {
+      for (const year of TREND_YEARS) {
+        const ye = trendMap.get(year)!;
+        ye.total += a.attributedCo2eTonnes;
+        ye[loan.nrbTaxonomy] += a.attributedCo2eTonnes;
+      }
+      continue;
+    }
     const fac = b.facilities[0];
     const series = fac?.emissionsByYear ?? null;
     for (const year of TREND_YEARS) {

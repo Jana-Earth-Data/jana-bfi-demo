@@ -19,6 +19,7 @@ const TOUR_LABELS: Record<TourName, string> = {
   manager: "Manager",
   "pf-screening": "PF screening",
   pcaf: "PCAF scoring",
+  nfrs: "NFRS",
 };
 
 export function DashboardHeader({

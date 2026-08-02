@@ -1,10 +1,10 @@
 {
   "version": "1.0-draft",
-  "totalDurationSecondsApprox": 490,
+  "totalDurationSecondsApprox": 580,
   "voice": "onyx",
   "model": "tts-1-hd",
   "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
-  "notesForRegeneration": "Draft — reframed to lead with the full NRB regulatory stack. Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour dashboard --force",
+  "notesForRegeneration": "Reframed to lead with the full NRB regulatory stack. P38 pass beefs up the NFRS section (expanded steps 10 + 12, new NRBSIS step 11). Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour dashboard --force",
   "steps": [
     {
       "id": "intro",
@@ -101,8 +101,17 @@
       "target": "[data-tour='nfrs-headline']",
       "calloutTitle": "Annual NFRS disclosure · assembled, not reconstructed",
       "calloutText": "Total financed emissions across the book, with a multi-year trend. Feeds the annual sustainability report under NFRS S1 and S2.",
-      "narration": "Fast forward to year-end. Laxmi Sunrise Bank has to file its annual sustainability report under NFRS. Nepal's IFRS S two aligned climate disclosure standard, currently in exposure draft with comments open through June twenty twenty six. This is what the CFO and the CRO see. Total financed emissions across the book, the most recent fully reported year, the multi-year trend, and the PCAF methodology stack underneath. The number on this page is the number that goes into the annual report. It is not reconstructed from a spreadsheet at year-end. It is assembled continuously from the loan by loan work the officers were already doing.",
+      "narration": "Fast forward to year-end. Laxmi Sunrise Bank has to file its annual sustainability report under NFRS. That is Nepal's Financial Reporting Standard for sustainability, published in exposure draft by the Accounting Standards Board of Nepal, aligned with IFRS S two. The public comment period closed in June and the standard is now being finalised for pronouncement by ICAN. This is what the CFO and the CRO see. Total financed emissions across the book, the most recent fully reported year, the multi-year trend, and the PCAF methodology stack underneath. The number on this page is the number that goes into the annual report. That is the point of everything you have seen so far. The disclosure is not reconstructed from a spreadsheet at year-end. It is assembled continuously from the loan by loan work the officers were already doing. Every ESDD screening, every taxonomy classification, every corrective action captured on the Manager tab feeds this page. When the CFO signs the annual report, the audit trail behind the number goes back to the officer keystroke.",
       "audioFile": "/audio/laxmi_sunrise/dashboard/tour-10-nfrs-disclosure.mp3"
+    },
+    {
+      "id": "nrbsis-filing",
+      "tab": "nfrs",
+      "target": "[data-tour='nrbsis-green-statement']",
+      "calloutTitle": "NRBSIS Green Statement · what the bank actually files",
+      "calloutText": "Annex 4b · seventeen sectors · green-amber-red allocation. One click, bank-branded Excel or PDF.",
+      "narration": "Below the headline sits the NRBSIS Green Finance Statement. This is the file the bank actually submits every year under Annex four b of the twenty twenty four Green Finance Taxonomy. Seventeen sectors. Green amber red allocation. Aggregate exposure by rupee value. One click generates it in the bank's own branding, as either Excel or PDF. The classifications on every loan roll straight into the format the regulator expects. What used to be a year-end assembly project is now a button.",
+      "audioFile": "/audio/laxmi_sunrise/dashboard/tour-11-nrbsis-filing.mp3"
     },
     {
       "id": "pcaf-data-quality",
@@ -110,8 +119,8 @@
       "target": "[data-tour='data-quality']",
       "calloutTitle": "PCAF data quality · the honest picture",
       "calloutText": "Without facility data: Score 5 across the book. With Jana: Score 3 on the slice that carries the emissions risk. Score 2 and 1 need the borrower itself to disclose.",
-      "narration": "Underneath the headline sits the PCAF data quality distribution. PCAF requires every bank to score every loan from one to five, with one being best. Without facility level data, a bank defaults to Score five, revenue based estimates using national averages. With Jana, the highest emission slice of the portfolio moves to Score three, physical activity data multiplied by a sector emission factor, backed by Climate TRACE and facility inventory records. Score two and Score one need the borrower itself to publish assured emissions, which almost no Nepal borrower does today. Score three is the honest ceiling. It is also a two notch improvement on the loans that carry the risk. That is the trade the auditor sees.",
-      "audioFile": "/audio/laxmi_sunrise/dashboard/tour-11-pcaf-data-quality.mp3"
+      "narration": "Underneath the headline sits the PCAF data quality distribution. PCAF requires every bank to score every loan from one to five, with one being best. This is the panel the NFRS auditor opens first. The question the auditor asks is simple. How much of the number is measured, and how much is estimated. Without facility level data, a bank defaults to Score five across the entire book. Revenue multiplied by a sector average using national factors. That is the industry baseline for any book without facility-level data. With Jana, the highest emission slice of the portfolio moves to Score three. Physical activity data multiplied by a sector emission factor, backed by Climate TRACE and facility inventory records. Score two and Score one need the borrower itself to publish assured emissions, which almost no Nepal borrower does today. So Score three is the honest ceiling. It is also a two notch improvement on the loans that actually carry the risk. That is the trade the auditor sees. A defensible number on the slice that matters, backed by data the bank can point to, rather than an average dressed up as a measurement.",
+      "audioFile": "/audio/laxmi_sunrise/dashboard/tour-12-pcaf-data-quality.mp3"
     },
     {
       "id": "closing",
@@ -120,7 +129,7 @@
       "calloutTitle": "One platform · every layer of the framework",
       "calloutText": "Circular 22 screening. Annex 5b PF layer. Green Taxonomy classification. CAP plus covenants plus monitoring. PCAF disclosure. All on the same audit trail.",
       "narration": "That is the full stack. Circular twenty-two environmental risk screening on every commercial loan. Annex five b project finance screening on the project finance subset. Green Finance Taxonomy classification for the portfolio filing. Corrective action plans, covenants, and monitoring for every medium and high risk loan. And PCAF financed emissions for the annual NFRS disclosure. Jana is the workflow surface that lets the bank execute the framework and the data layer that lets the bank defend it. The book in front of you is synthetic. Every emissions number is real. Thanks for watching.",
-      "audioFile": "/audio/laxmi_sunrise/dashboard/tour-12-closing.mp3"
+      "audioFile": "/audio/laxmi_sunrise/dashboard/tour-13-closing.mp3"
     }
   ]
 }

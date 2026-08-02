@@ -7,7 +7,8 @@ export type TourName =
   | "loan-officer"
   | "manager"
   | "pf-screening"
-  | "pcaf";
+  | "pcaf"
+  | "nfrs";
 
 export type TourStep = {
   id: string;
