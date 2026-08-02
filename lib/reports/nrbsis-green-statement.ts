@@ -268,12 +268,28 @@ export type GreenStatementRow = {
 
   // ---- Green-finance labeling (Table 4 p. 32) -----------------------
   loanCount: number;
+  /**
+   * Portfolio total outstanding in **full NPR** (not millions). Kept in
+   * full NPR because the portfolio green-labeling summary page prints
+   * this value directly via `fmtNpr()` and the PDF table itself does
+   * not display this field.
+   */
   totalOutstandingNpr: number;
-  greenOutstandingNpr: number;
-  amberOutstandingNpr: number;
-  redOutstandingNpr: number;
-  unclassifiedOutstandingNpr: number;
-  /** greenOutstandingNpr / totalOutstandingNpr, 0..1; 0 when totals are 0 */
+  /**
+   * Colour-labeled outstandings in **NPR million** (rounded), matching
+   * the Annex 4b unit convention used by the BFI-class columns so the
+   * table's column widths line up. The field name carries the unit
+   * (`...NprMillion`); consumers that want full-NPR display must
+   * multiply by 1,000,000 (see `fmtNprFromMillion`). Ratios
+   * (`greenShare`) are computed before conversion in
+   * `buildGreenStatementReport`, so they remain correct regardless of
+   * this unit.
+   */
+  greenOutstandingNprMillion: number;
+  amberOutstandingNprMillion: number;
+  redOutstandingNprMillion: number;
+  unclassifiedOutstandingNprMillion: number;
+  /** greenOutstandingNprMillion / totalOutstandingNpr, 0..1; 0 when totals are 0 */
   greenShare: number;
 };
 
@@ -326,10 +342,10 @@ function emptyStatementRow(def: Annex4bRowDefinition): GreenStatementRow {
     grandTotalNprMillion: 0,
     loanCount: 0,
     totalOutstandingNpr: 0,
-    greenOutstandingNpr: 0,
-    amberOutstandingNpr: 0,
-    redOutstandingNpr: 0,
-    unclassifiedOutstandingNpr: 0,
+    greenOutstandingNprMillion: 0,
+    amberOutstandingNprMillion: 0,
+    redOutstandingNprMillion: 0,
+    unclassifiedOutstandingNprMillion: 0,
     greenShare: 0,
   };
 }
@@ -410,18 +426,21 @@ export function buildGreenStatementReport(
 
     row.loanCount += 1;
     row.totalOutstandingNpr += loan.outstandingNpr;
+    // Accumulate in full NPR; the final `toNprMillion` pass below
+    // converts each colour bucket to NPR million before we hand the
+    // row out. The field name reflects the post-conversion unit.
     switch (color) {
       case "green":
-        row.greenOutstandingNpr += loan.outstandingNpr;
+        row.greenOutstandingNprMillion += loan.outstandingNpr;
         break;
       case "amber":
-        row.amberOutstandingNpr += loan.outstandingNpr;
+        row.amberOutstandingNprMillion += loan.outstandingNpr;
         break;
       case "red":
-        row.redOutstandingNpr += loan.outstandingNpr;
+        row.redOutstandingNprMillion += loan.outstandingNpr;
         break;
       default:
-        row.unclassifiedOutstandingNpr += loan.outstandingNpr;
+        row.unclassifiedOutstandingNprMillion += loan.outstandingNpr;
         break;
     }
   }
@@ -429,6 +448,8 @@ export function buildGreenStatementReport(
   // Finalise Annex 4b column values from the totals we just accumulated.
   // Only ONE class column is populated per-bank submission — the class
   // of the submitting BFI. Every other class column stays at zero.
+  // NOTE: greenShare is computed with the pre-conversion full-NPR values
+  // so the ratio remains correct after we convert the colour amounts.
   for (const row of rowByRowId.values()) {
     const grandNprMillion = toNprMillion(row.totalOutstandingNpr);
     if (bankClass === "A") row.classA = grandNprMillion;
@@ -438,13 +459,14 @@ export function buildGreenStatementReport(
     row.grandTotalNprMillion = grandNprMillion;
     row.greenShare =
       row.totalOutstandingNpr > 0
-        ? row.greenOutstandingNpr / row.totalOutstandingNpr
+        ? row.greenOutstandingNprMillion / row.totalOutstandingNpr
         : 0;
   }
 
   const rows = ANNEX_4B_ROWS.map((def) => rowByRowId.get(def.id)!);
 
-  // Portfolio totals.
+  // Portfolio totals — accumulated in full NPR first so we can compute
+  // totals.greenShare correctly before the unit conversion below.
   const totals: GreenStatementTotals = {
     classA: 0,
     classB: 0,
@@ -453,10 +475,10 @@ export function buildGreenStatementReport(
     grandTotalNprMillion: 0,
     loanCount: 0,
     totalOutstandingNpr: 0,
-    greenOutstandingNpr: 0,
-    amberOutstandingNpr: 0,
-    redOutstandingNpr: 0,
-    unclassifiedOutstandingNpr: 0,
+    greenOutstandingNprMillion: 0,
+    amberOutstandingNprMillion: 0,
+    redOutstandingNprMillion: 0,
+    unclassifiedOutstandingNprMillion: 0,
     greenShare: 0,
   };
   for (const r of rows) {
@@ -467,15 +489,45 @@ export function buildGreenStatementReport(
     totals.grandTotalNprMillion += r.grandTotalNprMillion;
     totals.loanCount += r.loanCount;
     totals.totalOutstandingNpr += r.totalOutstandingNpr;
-    totals.greenOutstandingNpr += r.greenOutstandingNpr;
-    totals.amberOutstandingNpr += r.amberOutstandingNpr;
-    totals.redOutstandingNpr += r.redOutstandingNpr;
-    totals.unclassifiedOutstandingNpr += r.unclassifiedOutstandingNpr;
+    totals.greenOutstandingNprMillion += r.greenOutstandingNprMillion;
+    totals.amberOutstandingNprMillion += r.amberOutstandingNprMillion;
+    totals.redOutstandingNprMillion += r.redOutstandingNprMillion;
+    totals.unclassifiedOutstandingNprMillion += r.unclassifiedOutstandingNprMillion;
   }
   totals.greenShare =
     totals.totalOutstandingNpr > 0
-      ? totals.greenOutstandingNpr / totals.totalOutstandingNpr
+      ? totals.greenOutstandingNprMillion / totals.totalOutstandingNpr
       : 0;
+
+  // Convert the green-labeling amounts from full NPR to NPR million so
+  // they match the Annex 4b unit convention. This is what fixes the
+  // Annex 4b table layout — the right-block columns were sized for
+  // NPR-million-scale numbers but were receiving full-NPR values,
+  // causing the Total row (and any high-value sector) to bleed
+  // rightward-into-leftward across columns.
+  // `totalOutstandingNpr` stays in full NPR because the portfolio
+  // summary page renders it via `fmtNpr()` and the Annex 4b table
+  // itself does not display that field.
+  for (const r of rows) {
+    r.greenOutstandingNprMillion = toNprMillion(r.greenOutstandingNprMillion);
+    r.amberOutstandingNprMillion = toNprMillion(r.amberOutstandingNprMillion);
+    r.redOutstandingNprMillion = toNprMillion(r.redOutstandingNprMillion);
+    r.unclassifiedOutstandingNprMillion = toNprMillion(
+      r.unclassifiedOutstandingNprMillion,
+    );
+  }
+  totals.greenOutstandingNprMillion = toNprMillion(
+    totals.greenOutstandingNprMillion,
+  );
+  totals.amberOutstandingNprMillion = toNprMillion(
+    totals.amberOutstandingNprMillion,
+  );
+  totals.redOutstandingNprMillion = toNprMillion(
+    totals.redOutstandingNprMillion,
+  );
+  totals.unclassifiedOutstandingNprMillion = toNprMillion(
+    totals.unclassifiedOutstandingNprMillion,
+  );
 
   const asOfIso = demoData.meta.asOfDate ?? demoData.meta.generatedAt;
   const asOfDate = asOfIso.split("T")[0];
@@ -515,6 +567,16 @@ function fmtNpr(v: number): string {
 
 function fmtNprMillion(v: number): string {
   return `${new Intl.NumberFormat("en-US").format(Math.round(v))}`;
+}
+
+/**
+ * Formats a value stored in NPR million as a full-NPR string (multiplies
+ * by 1,000,000 then formats via `fmtNpr`). Use this when a field like
+ * `greenOutstandingNprMillion` needs to render alongside a full-NPR
+ * figure (e.g. `totalOutstandingNpr`) on the same page.
+ */
+function fmtNprFromMillion(v: number): string {
+  return fmtNpr(v * 1_000_000);
 }
 
 function fmtDateShort(iso: string): string {
@@ -622,10 +684,10 @@ export async function buildGreenStatementXlsx(
     { header: "Other Total Loans", key: "otherTotal", width: 16 },
     { header: "Grand Total (in NPR million)", key: "grandTotal", width: 22 },
     { header: "Loan count", key: "loanCount", width: 12 },
-    { header: "Green outstanding (NPR)", key: "green", width: 22 },
-    { header: "Amber outstanding (NPR)", key: "amber", width: 22 },
-    { header: "Red outstanding (NPR)", key: "red", width: 22 },
-    { header: "Unclassified outstanding (NPR)", key: "unclassified", width: 26 },
+    { header: "Green outstanding (NPR million)", key: "green", width: 24 },
+    { header: "Amber outstanding (NPR million)", key: "amber", width: 24 },
+    { header: "Red outstanding (NPR million)", key: "red", width: 22 },
+    { header: "Unclassified outstanding (NPR million)", key: "unclassified", width: 30 },
     { header: "Green share (%)", key: "greenShare", width: 16 },
   ];
 
@@ -637,7 +699,7 @@ export async function buildGreenStatementXlsx(
   superHeader.getCell(2).value = "";
   superHeader.getCell(3).value = "Annex 4b (NPR million)";
   superHeader.getCell(8).value =
-    "Green finance labeling per Table 4 (SIS separately labels green finance for lending areas)";
+    "Green finance labeling · NPR million · per Table 4 (SIS separately labels green finance for lending areas)";
   s2.mergeCells(1, 3, 1, 7);
   s2.mergeCells(1, 8, 1, 13);
   superHeader.eachCell((cell, colNumber) => {
@@ -668,10 +730,10 @@ export async function buildGreenStatementXlsx(
       otherTotal: row.otherTotalLoans,
       grandTotal: row.grandTotalNprMillion,
       loanCount: row.loanCount,
-      green: row.greenOutstandingNpr,
-      amber: row.amberOutstandingNpr,
-      red: row.redOutstandingNpr,
-      unclassified: row.unclassifiedOutstandingNpr,
+      green: row.greenOutstandingNprMillion,
+      amber: row.amberOutstandingNprMillion,
+      red: row.redOutstandingNprMillion,
+      unclassified: row.unclassifiedOutstandingNprMillion,
       greenShare: row.greenShare,
     });
   }
@@ -685,10 +747,10 @@ export async function buildGreenStatementXlsx(
     otherTotal: report.totals.otherTotalLoans,
     grandTotal: report.totals.grandTotalNprMillion,
     loanCount: report.totals.loanCount,
-    green: report.totals.greenOutstandingNpr,
-    amber: report.totals.amberOutstandingNpr,
-    red: report.totals.redOutstandingNpr,
-    unclassified: report.totals.unclassifiedOutstandingNpr,
+    green: report.totals.greenOutstandingNprMillion,
+    amber: report.totals.amberOutstandingNprMillion,
+    red: report.totals.redOutstandingNprMillion,
+    unclassified: report.totals.unclassifiedOutstandingNprMillion,
     greenShare: report.totals.greenShare,
   });
   total.font = { bold: true };
@@ -1082,13 +1144,16 @@ export async function buildGreenStatementPdf(
     { key: "classC", header: "Class C", x: MARGIN_X + 296, align: "right", width: 44 },
     { key: "otherTotal", header: "Other", x: MARGIN_X + 344, align: "right", width: 40 },
     { key: "grandTotal", header: "Grand Total", x: MARGIN_X + 388, align: "right", width: 56 },
-    // Green labeling block (NPR — full precision, not million)
+    // Green labeling block (NPR million — matches BFI-class block unit).
+    // Positions tightened so the rightmost column (greenShare) fits within
+    // CONTENT_W (712 pt). Previous layout overflowed by 32 pt, which pulled
+    // the right-align of greenShare into the unclassified column.
     { key: "loanCount", header: "Loans", x: MARGIN_X + 448, align: "right", width: 38 },
-    { key: "green", header: "Green", x: MARGIN_X + 490, align: "right", width: 52 },
-    { key: "amber", header: "Amber", x: MARGIN_X + 546, align: "right", width: 52 },
-    { key: "red", header: "Red", x: MARGIN_X + 602, align: "right", width: 46 },
-    { key: "unclassified", header: "Unclass.", x: MARGIN_X + 652, align: "right", width: 46 },
-    { key: "greenShare", header: "Green %", x: MARGIN_X + 702, align: "right", width: 42 },
+    { key: "green", header: "Green", x: MARGIN_X + 490, align: "right", width: 44 },
+    { key: "amber", header: "Amber", x: MARGIN_X + 538, align: "right", width: 44 },
+    { key: "red", header: "Red", x: MARGIN_X + 586, align: "right", width: 44 },
+    { key: "unclassified", header: "Unclass.", x: MARGIN_X + 634, align: "right", width: 44 },
+    { key: "greenShare", header: "Green %", x: MARGIN_X + 682, align: "right", width: 30 },
   ];
 
   /**
@@ -1118,9 +1183,11 @@ export async function buildGreenStatementPdf(
       font: helvBold,
       color: rgb(1, 1, 1),
     });
-    // Right label — green finance labeling
+    // Right label — green finance labeling (NPR million to match the
+    // Annex 4b unit; matters for column-width fit, see the buildGreen-
+    // StatementReport conversion block).
     page.drawText(
-      "Green finance labeling (NPR) · Table 4 (p. 32)",
+      "Green labeling · NPR million · Table 4 (p. 32)",
       {
         x: cols[7].x,
         y: rowTop - 12,
@@ -1292,10 +1359,10 @@ export async function buildGreenStatementPdf(
           otherTotal: r.otherTotalLoans,
           grandTotal: r.grandTotalNprMillion,
           loanCount: r.loanCount,
-          green: r.greenOutstandingNpr,
-          amber: r.amberOutstandingNpr,
-          red: r.redOutstandingNpr,
-          unclassified: r.unclassifiedOutstandingNpr,
+          green: r.greenOutstandingNprMillion,
+          amber: r.amberOutstandingNprMillion,
+          red: r.redOutstandingNprMillion,
+          unclassified: r.unclassifiedOutstandingNprMillion,
           greenShare: r.greenShare,
         },
       );
@@ -1329,10 +1396,10 @@ export async function buildGreenStatementPdf(
         otherTotal: report.totals.otherTotalLoans,
         grandTotal: report.totals.grandTotalNprMillion,
         loanCount: report.totals.loanCount,
-        green: report.totals.greenOutstandingNpr,
-        amber: report.totals.amberOutstandingNpr,
-        red: report.totals.redOutstandingNpr,
-        unclassified: report.totals.unclassifiedOutstandingNpr,
+        green: report.totals.greenOutstandingNprMillion,
+        amber: report.totals.amberOutstandingNprMillion,
+        red: report.totals.redOutstandingNprMillion,
+        unclassified: report.totals.unclassifiedOutstandingNprMillion,
         greenShare: report.totals.greenShare,
       },
       true,
@@ -1343,7 +1410,7 @@ export async function buildGreenStatementPdf(
     y -= 8;
     y = drawParagraph(
       page,
-      "Column definitions: Class A / B / C / Other Total Loans are the verbatim Annex 4b BFI-class columns (values in NPR million); this bank fills its own class column only. Green / Amber / Red / Unclassified split the same total by NRB Green Finance Taxonomy classification (values in NPR, per Table 4 p. 32 which requires SIS to separately label green finance for the lending areas).",
+      "Column definitions: Class A / B / C / Other Total Loans are the verbatim Annex 4b BFI-class columns (values in NPR million); this bank fills its own class column only. Green / Amber / Red / Unclassified split the same total by NRB Green Finance Taxonomy classification (values also in NPR million, per Table 4 p. 32 which requires SIS to separately label green finance for the lending areas). All monetary amounts in this table are reported in NPR million.",
       {
         x: MARGIN_X,
         topY: y,
@@ -1404,10 +1471,13 @@ export async function buildGreenStatementPdf(
     });
     y -= 24;
 
-    // Roll-up counts
+    // Summary paragraph. The colour buckets on `report.totals` are in
+    // NPR million (see field JSDoc); `fmtNprFromMillion` handles the
+    // display conversion so the paragraph reads in full NPR alongside
+    // `totalOutstandingNpr` (which is already full NPR).
     y = drawParagraph(
       page,
-      `The bank's book totals ${report.totals.loanCount.toLocaleString()} loans and advances at ${fmtNpr(report.totals.totalOutstandingNpr)} outstanding as of ${report.reportingPeriod.asOfDate}. Of that, ${fmtNpr(report.totals.greenOutstandingNpr)} (${(report.totals.greenShare * 100).toFixed(1)}%) is classified Green (transformative), ${fmtNpr(report.totals.amberOutstandingNpr)} Amber (transitional), and ${fmtNpr(report.totals.redOutstandingNpr)} Red (not aligned). ${fmtNpr(report.totals.unclassifiedOutstandingNpr)} remains unclassified pending officer review.`,
+      `The bank's book totals ${report.totals.loanCount.toLocaleString()} loans and advances at ${fmtNpr(report.totals.totalOutstandingNpr)} outstanding as of ${report.reportingPeriod.asOfDate}. Of that, ${fmtNprFromMillion(report.totals.greenOutstandingNprMillion)} (${(report.totals.greenShare * 100).toFixed(1)}%) is classified Green (transformative), ${fmtNprFromMillion(report.totals.amberOutstandingNprMillion)} Amber (transitional), and ${fmtNprFromMillion(report.totals.redOutstandingNprMillion)} Red (not aligned). ${fmtNprFromMillion(report.totals.unclassifiedOutstandingNprMillion)} remains unclassified pending officer review.`,
       {
         x: S_MARGIN,
         topY: y,
@@ -1420,12 +1490,36 @@ export async function buildGreenStatementPdf(
     );
     y -= 10;
 
-    // Colour swatch table (4 rows)
-    const buckets: Array<{ color: NrbTaxonomyColor; label: string; value: number }> = [
-      { color: "green", label: "Green (transformative)", value: report.totals.greenOutstandingNpr },
-      { color: "amber", label: "Amber (transitional)", value: report.totals.amberOutstandingNpr },
-      { color: "red", label: "Red (not aligned)", value: report.totals.redOutstandingNpr },
-      { color: "unclassified", label: "Unclassified", value: report.totals.unclassifiedOutstandingNpr },
+    // Colour swatch table (4 rows). `nprMillion` is the field's native
+    // unit (see `GreenStatementRow` JSDoc); display uses
+    // `fmtNprFromMillion` and the percentage denominator is
+    // `totalOutstandingNpr` (full NPR), so the ratio math converts by
+    // multiplying the numerator into full NPR inline.
+    const buckets: Array<{
+      color: NrbTaxonomyColor;
+      label: string;
+      nprMillion: number;
+    }> = [
+      {
+        color: "green",
+        label: "Green (transformative)",
+        nprMillion: report.totals.greenOutstandingNprMillion,
+      },
+      {
+        color: "amber",
+        label: "Amber (transitional)",
+        nprMillion: report.totals.amberOutstandingNprMillion,
+      },
+      {
+        color: "red",
+        label: "Red (not aligned)",
+        nprMillion: report.totals.redOutstandingNprMillion,
+      },
+      {
+        color: "unclassified",
+        label: "Unclassified",
+        nprMillion: report.totals.unclassifiedOutstandingNprMillion,
+      },
     ];
     const totalDenom = Math.max(1, report.totals.totalOutstandingNpr);
     for (const b of buckets) {
@@ -1444,7 +1538,7 @@ export async function buildGreenStatementPdf(
         font: helv,
         color: black,
       });
-      page.drawText(fmtNpr(b.value), {
+      page.drawText(fmtNprFromMillion(b.nprMillion), {
         x: S_MARGIN + 280,
         y: y - 11,
         size: 11,
@@ -1453,7 +1547,7 @@ export async function buildGreenStatementPdf(
       });
       drawRight(
         page,
-        `${((b.value / totalDenom) * 100).toFixed(1)}%`,
+        `${(((b.nprMillion * 1_000_000) / totalDenom) * 100).toFixed(1)}%`,
         S_MARGIN + S_CONTENT_W,
         y - 11,
         11,
@@ -1506,8 +1600,10 @@ export async function buildGreenStatementPdf(
     });
     y -= 20;
     const topGreen = [...report.rows]
-      .filter((r) => r.greenOutstandingNpr > 0)
-      .sort((a, b) => b.greenOutstandingNpr - a.greenOutstandingNpr)
+      .filter((r) => r.greenOutstandingNprMillion > 0)
+      .sort(
+        (a, b) => b.greenOutstandingNprMillion - a.greenOutstandingNprMillion,
+      )
       .slice(0, 6);
     if (topGreen.length === 0) {
       page.drawText("No sectors currently classified Green.", {
@@ -1527,9 +1623,11 @@ export async function buildGreenStatementPdf(
           font: helv,
           color: black,
         });
+        // Field is NPR million; convert for full-NPR display so it
+        // matches the paragraph above.
         drawRight(
           page,
-          fmtNpr(r.greenOutstandingNpr),
+          fmtNprFromMillion(r.greenOutstandingNprMillion),
           S_MARGIN + S_CONTENT_W,
           y - 11,
           10,

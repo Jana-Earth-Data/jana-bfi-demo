@@ -223,6 +223,14 @@ function overlayLive(
   };
 }
 
+// AGGREGATOR-PAIR: this function mirrors buildSummary() in lib/data/portfolio.ts.
+// The two share ~90% of aggregation logic (taxonomy breakdown, sector breakdown,
+// data-quality distribution, multi-year trend). Any change to attribution shape,
+// sector bucketing, taxonomy bucketing, or trend-per-year logic MUST be applied
+// in BOTH functions or mock-mode and live-mode paths will silently diverge.
+// The ~10% difference between them handles mock synthesis vs. live overlay
+// specifics — do not consolidate without cataloguing each intentional divergence.
+// Track consolidation in a post-demo issue.
 function recomputeSummary(
   loans: Loan[],
   borrowers: Borrower[],
@@ -364,11 +372,16 @@ function recomputeSummary(
     };
     for (const loan of loans) {
       const b = borrowerMap.get(loan.borrowerId);
-      if (!b || b.kind === "retail-pool") continue;
+      if (!b) continue;
       const a = attrByLoan.get(loan.id);
       if (!a) continue;
       let yearTotal = 0;
-      if (b.facilities.length > 0) {
+      if (b.kind === "retail-pool") {
+        // Retail loans use the revenue-proxy attribution from pcafFor() —
+        // flat year-over-year. Include them so the trend chart's
+        // Unclassified band matches the Data Quality Distribution panel.
+        yearTotal = a.attributedCo2eTonnes;
+      } else if (b.facilities.length > 0) {
         let perFacility = 0;
         for (const f of b.facilities) {
           const pt = f.emissionsByYear?.find((p) => p.year === y);

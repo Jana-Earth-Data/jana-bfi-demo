@@ -15,6 +15,7 @@ import defaultLoanOfficer from "@/data/tour-scripts/default/loan-officer.json";
 import defaultManager from "@/data/tour-scripts/default/manager.json";
 import defaultPfScreening from "@/data/tour-scripts/default/pf-screening.json";
 import defaultPcaf from "@/data/tour-scripts/default/pcaf.json";
+import defaultNfrs from "@/data/tour-scripts/default/nfrs.json";
 
 // Laxmi Sunrise Bank.
 import laxmiDashboard from "@/data/tour-scripts/laxmi_sunrise/dashboard.json";
@@ -22,6 +23,7 @@ import laxmiLoanOfficer from "@/data/tour-scripts/laxmi_sunrise/loan-officer.jso
 import laxmiManager from "@/data/tour-scripts/laxmi_sunrise/manager.json";
 import laxmiPfScreening from "@/data/tour-scripts/laxmi_sunrise/pf-screening.json";
 import laxmiPcaf from "@/data/tour-scripts/laxmi_sunrise/pcaf.json";
+import laxmiNfrs from "@/data/tour-scripts/laxmi_sunrise/nfrs.json";
 
 type TourMap = Partial<Record<TourName, TourScript>>;
 
@@ -32,6 +34,7 @@ const REGISTRY: Record<TenantId, TourMap> = {
     manager: defaultManager as TourScript,
     "pf-screening": defaultPfScreening as TourScript,
     pcaf: defaultPcaf as TourScript,
+    nfrs: defaultNfrs as TourScript,
   },
   laxmi_sunrise: {
     dashboard: laxmiDashboard as TourScript,
@@ -39,6 +42,7 @@ const REGISTRY: Record<TenantId, TourMap> = {
     manager: laxmiManager as TourScript,
     "pf-screening": laxmiPfScreening as TourScript,
     pcaf: laxmiPcaf as TourScript,
+    nfrs: laxmiNfrs as TourScript,
   },
 };
 
