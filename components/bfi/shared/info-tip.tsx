@@ -256,10 +256,9 @@ export function PcafScoreInfoTip({
   if (methodology === "out-of-scope") {
     return <InfoTip id="pcaf-out-of-scope" side={side} />;
   }
-  // Score 1 is rare in practice — falls through to score-2 content.
   const id =
     score === 1
-      ? "pcaf-score-2"
+      ? "pcaf-score-1"
       : score === 2
         ? "pcaf-score-2"
         : score === 3

@@ -98,9 +98,20 @@ export function FacilityMapInner({
         scrollWheelZoom={false}
         style={{ height: "100%", width: "100%", background: "#0b1220" }}
       >
+        {/*
+          Two-layer tile stack: dark base (no labels) + labels-only
+          overlay. Lets us keep the dark aesthetic that matches the
+          surrounding UI while boosting the labels via CSS filter
+          (native CARTO dark labels are ~#333 on ~#0b1220 which is
+          unreadable). The overlay's zIndex ensures markers sit on top.
+        */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+        />
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+          className="facility-map-labels"
         />
         {valid.map((p, i) => (
           <Marker

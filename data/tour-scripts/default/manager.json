@@ -1,0 +1,136 @@
+{
+  "version": "1.0-draft",
+  "totalDurationSecondsApprox": 420,
+  "voice": "onyx",
+  "model": "tts-1-hd",
+  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "Draft — reframed to showcase the new Manager tab in depth (sub-tabs, portfolio-wide banners, CAP oversight). Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant default --tour manager --force",
+  "steps": [
+    {
+      "id": "intro",
+      "tab": "esrm",
+      "target": "[data-tour='application-queue']",
+      "calloutTitle": "The Manager tab · every commercial loan, every regulatory obligation",
+      "calloutText": "Rebuilt to cover the full NRB stack — screening, CAP, covenants, monitoring, PCAF, taxonomy roll-up. Not just ESRM.",
+      "narration": "The Manager tab at First Bank of Nepal. NRB Circular twenty-two environmental screening is only the first layer of what happens here. On top of that sit corrective action plans, covenants, monitoring, project finance screening for Annex five b loans, PCAF data availability, and taxonomy classification. The compliance lead runs the whole portfolio from this tab. Over the next five minutes I will walk you through how.",
+      "audioFile": "/audio/default/manager/tour-01-intro.mp3"
+    },
+    {
+      "id": "application-queue",
+      "tab": "esrm",
+      "target": "[data-tour='application-queue']",
+      "calloutTitle": "Application queue · everything under review · one row per loan",
+      "calloutText": "Owner. ESDD status. Risk class. Taxonomy classification. CAP status. Sortable and filterable.",
+      "narration": "The application queue lists every commercial loan currently under compliance review. On each row the manager sees the assigned officer, the ESDD checklist progress, the computed risk class once a screening has been saved, the taxonomy classification if the sector is eligible, and the corrective action plan status. Sortable and filterable so the manager can pull up all high risk loans, or all loans with overdue actions, or all loans owned by a particular officer without leaving the tab.",
+      "audioFile": "/audio/default/manager/tour-02-application-queue.mp3"
+    },
+    {
+      "id": "collapsed-queue",
+      "tab": "esrm",
+      "target": "[data-tour='application-queue']",
+      "calloutTitle": "Queue collapsed · the 64-pixel rail",
+      "calloutText": "QUEUE · N at top. Initials for each borrower. Left-edge stripe = risk class. Red dot = escalated. Chevron to expand.",
+      "narration": "Once a manager opens a loan, the queue collapses to this slim sixty-four-pixel rail on the left so the workbench has room to breathe. At the top, the label QUEUE and the count of loans currently under review — so Riya always knows how deep the book is without expanding. Each tile is one loan. The two-letter initials are the borrower shorthand — Hongshi Shivam Cement becomes H S. The colored stripe running down the left edge of every tile is the risk class from the Circular twenty-two screening — amber is medium, orange is high, rose is extreme, and slate means the loan has not been screened yet. A red dot in the top-right corner of a tile means the loan has been escalated to the credit committee. Click any tile to jump to that loan's workbench. Click the chevron at the top to expand the rail back to the full queue with all the columns visible.",
+      "audioFile": "/audio/default/manager/tour-02b-collapsed-queue.mp3"
+    },
+    {
+      "id": "escalation-banner",
+      "tab": "esrm",
+      "target": "[data-tour='escalation-banner']",
+      "targetOptional": true,
+      "calloutTitle": "Escalation banner · surfaces itself automatically",
+      "calloutText": "Any loan with a 'c' answer in the Circular 22 checklist appears here with the driving questions listed inline.",
+      "narration": "When any of the officers records a c answer on the Circular twenty-two checklist, the loan appears in this escalation banner automatically. The manager clicks a pill to jump into the borrower's screening. There is no separate escalation queue to maintain and no manual triage step. If the banner is not visible in the current demo state, it means no loans have hit the escalation trigger yet.",
+      "audioFile": "/audio/default/manager/tour-03-escalation-banner.mp3"
+    },
+    {
+      "id": "overdue-caps",
+      "tab": "esrm",
+      "target": "[data-tour='overdue-caps-banner']",
+      "targetOptional": true,
+      "calloutTitle": "Portfolio-wide overdue CAPs · §7.3.5 monitoring made visible",
+      "calloutText": "Every corrective action past its deadline, across the whole book, surfaces at the top of the Manager tab.",
+      "narration": "Below the escalation banner sits the overdue corrective actions banner. Circular twenty-two section seven point three point five requires time-bound corrective actions on every medium and high risk loan. Section seven point three point seven requires periodic monitoring against those actions. When a deadline slips anywhere in the portfolio, the loan surfaces here with the borrower name and the overdue count. This is the piece almost every Nepal bank is missing today. Without a follow-up surface, screenings become paperwork the bank filed once and never revisited. The overdue banner is how a bank shows a supervisor that the corrective action plan is a living document.",
+      "audioFile": "/audio/default/manager/tour-04-overdue-caps.mp3"
+    },
+    {
+      "id": "compliance-stripe",
+      "tab": "esrm",
+      "target": "[data-tour='compliance-stripe']",
+      "workbenchSubtab": "overview",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "One loan · every decision on one strip",
+      "calloutText": "ESDD chip · Taxonomy chip · CAP status · escalation callout — the manager reads the loan in three seconds.",
+      "narration": "Open any single loan and the compliance state is right at the top of the workbench. The ESDD chip on the left with the risk class. The taxonomy chip on the right with the classification color and the activity name. The corrective action status if a plan is in flight. If the loan escalated, the driving questions are listed inline so the manager knows exactly what triggered it. No drawers to open, no need to click into a per-question detail view to understand where the loan stands.",
+      "audioFile": "/audio/default/manager/tour-05-compliance-stripe.mp3"
+    },
+    {
+      "id": "workbench-subtabs",
+      "tab": "esrm",
+      "target": "[data-tour='workbench-subtabs']",
+      "workbenchSubtab": "overview",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "Workbench sub-tabs · every obligation, one loan",
+      "calloutText": "Overview · CAP + Covenants · PCAF · Hydropower docs · Facility map.",
+      "narration": "Below the strip the workbench splits into sub-tabs. Overview holds the ESDD screening and the taxonomy result. CAP and Covenants holds the corrective action plan, the financial clause covenants, and the monitoring schedule. PCAF holds the data availability panel that feeds the financed emissions score for this loan. Hydropower docs holds the sector specific evidence matrix. And Facility map holds the geolocated emissions dot. The manager moves between sub-tabs without leaving the loan.",
+      "audioFile": "/audio/default/manager/tour-06-workbench-subtabs.mp3"
+    },
+    {
+      "id": "cap-oversight",
+      "tab": "esrm",
+      "target": "[data-tour='cap-panel']",
+      "workbenchSubtab": "cap",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "CAP + Covenants + Monitoring · the manager's oversight surface",
+      "calloutText": "Every corrective action, every covenant, every monitoring report — with deadlines, owners, and status.",
+      "narration": "The CAP and Covenants sub-tab is where the manager exercises oversight over what the officers captured. Every corrective action lists its deadline, owner, and status. Every covenant appears as it was written into the facility agreement, with the financial clause verbatim. Every monitoring report is scheduled on its cadence and marked as received or outstanding. When a deadline slips, the loan surfaces on the portfolio banner we saw earlier. Nothing sits in an inbox. Nothing waits for a quarterly meeting.",
+      "audioFile": "/audio/default/manager/tour-07-cap-oversight.mp3"
+    },
+    {
+      "id": "assignment",
+      "tab": "esrm",
+      "target": "[data-tour='assignment-control']",
+      "workbenchSubtab": "overview",
+      "calloutTitle": "Assign or reassign · one click, no email",
+      "calloutText": "Change the owner and the loan moves to the receiving officer's queue on the next refresh.",
+      "narration": "At the top of every workbench sits the ownership control. The manager can assign an unassigned loan to any officer on the roster, or reassign an already-owned loan with a single click. The change lands in the audit trail and appears in the receiving officer's My Work queue on the next refresh. No email, no ticket, no lost handoff.",
+      "audioFile": "/audio/default/manager/tour-08-assignment.mp3"
+    },
+    {
+      "id": "taxonomy-rollup",
+      "tab": "nfrs",
+      "target": "[data-tour='taxonomy-breakdown']",
+      "calloutTitle": "Portfolio taxonomy roll-up · Green, Amber, Red, Unclassified",
+      "calloutText": "Every officer classification rolls up automatically. Amber transitional bucket separated per NRB reporting treatment.",
+      "narration": "Every taxonomy classification the officers save rolls up automatically into the annual NFRS view. Four buckets. Green, amber, red, and unclassified, with outstanding rupee totals and per-activity breakdown. The amber transitional bucket is separated on its own terms per NRB's October twenty twenty four reporting treatment. Loans in taxonomy-eligible sectors that have not been classified yet are flagged so nothing slips through the annual filing.",
+      "audioFile": "/audio/default/manager/tour-09-taxonomy-rollup.mp3"
+    },
+    {
+      "id": "nrbsis-statement",
+      "tab": "nfrs",
+      "target": "[data-tour='nrbsis-green-statement']",
+      "calloutTitle": "NRBSIS Annex 4b · the actual regulatory filing",
+      "calloutText": "Aggregate seventeen-sector Green Finance Statement in the exact NRB submission format.",
+      "narration": "The NRBSIS Green Finance Statement is the actual filing that goes to NRB. Aggregate seventeen-sector totals in the format prescribed by Annex four b of the October twenty twenty four directive. Every row is derived from the per-loan classifications the officers saved. The manager reviews the aggregate, confirms the totals reconcile, and submits.",
+      "audioFile": "/audio/default/manager/tour-10-nrbsis-statement.mp3"
+    },
+    {
+      "id": "exports",
+      "tab": "nfrs",
+      "target": "[data-tour='regulatory-exports']",
+      "calloutTitle": "Regulatory exports · bank-branded",
+      "calloutText": "Excel and PDF in NRB submission format. JSON for downstream systems. Every export carries the bank's logo, colours, and letterhead.",
+      "narration": "Below the aggregate sits the per-loan report. Excel or PDF in the NRB submission format, JSON for the bank's own downstream systems. Every export carries First Bank of Nepal's logo, primary colour, and letterhead — the report looks like the bank produced it. One click from the Manager tab.",
+      "audioFile": "/audio/default/manager/tour-11-exports.mp3"
+    },
+    {
+      "id": "closing",
+      "tab": "esrm",
+      "target": "[data-tour='application-queue']",
+      "calloutTitle": "Whole book · every regulatory layer · one view",
+      "calloutText": "Officer captures roll up. Escalations surface. Overdue CAPs surface. Portfolio filing is one click.",
+      "narration": "That is the manager workflow. Every loan, every officer's captures, every escalation, every overdue corrective action, every taxonomy classification, every PCAF availability confirmation, visible in a single view and rolled up to the regulatory filing without a spreadsheet or a batch job in sight. Thanks for watching.",
+      "audioFile": "/audio/default/manager/tour-12-closing.mp3"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "version": "1.0-draft",
+  "totalDurationSecondsApprox": 290,
+  "voice": "onyx",
+  "model": "tts-1-hd",
+  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "Draft — reframed: PCAF is one piece of the NFRS disclosure. Tighter on the Score 1-5 story, opens and closes with the broader framework. Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour pcaf --force",
+  "steps": [
+    {
+      "id": "intro",
+      "tab": "nfrs",
+      "target": "[data-tour='data-quality']",
+      "calloutTitle": "PCAF · one piece of the NFRS filing",
+      "calloutText": "PCAF Global GHG Standard Part A is the financed-emissions methodology that sits underneath the annual NFRS disclosure. Not the whole disclosure. One layer of it.",
+      "narration": "This is the PCAF data quality panel on the NFRS tab. Before we drill in, a quick frame. PCAF is one piece of the NFRS filing, not the whole thing. The full NFRS disclosure also covers taxonomy classification, sector concentrations, transition risk, and the sustainability governance narrative. PCAF is the financed emissions layer. The Partnership for Carbon Accounting Financials Global GHG Standard Part A defines a one-to-five data quality scale, with one being best. Every loan in the bank's book gets scored individually based on what data is actually available for that borrower. This tour walks through how that scoring works and where it fits in the wider filing.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-01-intro.mp3",
+      "navigateTo": "/"
+    },
+    {
+      "id": "distribution",
+      "tab": "nfrs",
+      "target": "[data-tour='data-quality']",
+      "calloutTitle": "The distribution across eighty thousand loans",
+      "calloutText": "Five loans at Score 1 · thirty-nine at Score 2 · nine hundred and ninety-one at Score 3 · seventy-nine thousand at Score 5. Right-hand tail is where the audit risk lives.",
+      "narration": "Here is the actual distribution across an eighty thousand loan portfolio. Five loans at Score one where the borrower publishes verified GHG Protocol emissions. Thirty-nine loans at Score two with unverified borrower emissions. Roughly a thousand loans at Score three, computed from physical activity data multiplied by a sector emission factor. That's the slice where Jana's Climate TRACE and Global Cement Tracker data does the work. Seventy-nine thousand loans at Score five, mostly retail plus SME loans with no facility-level attribution. This distribution replaces the industry-standard practice of averaging one number across the whole book.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-02-distribution.mp3",
+      "navigateTo": "/"
+    },
+    {
+      "id": "per-loan-panel",
+      "tab": "esrm",
+      "target": "[data-tour='pcaf-panel']",
+      "targetOptional": true,
+      "workbenchSubtab": "pcaf",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "Per-loan PCAF · Hongshi cement",
+      "calloutText": "Every loan carries its own PCAF score. The workbench shows the computed score below and the availability panel above.",
+      "narration": "Drill into a single loan. Hongshi Shivam Cement. The workbench PCAF sub-tab shows two panels for this loan. The lower panel, data quality, shows the computed score. Above it, the PCAF Data Availability panel is where the analyst confirms what data actually exists for this borrower. That is the panel we walk through next, because it is what the NFRS auditor asks about first.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-03-per-loan-panel.mp3",
+      "navigateTo": "/"
+    },
+    {
+      "id": "availability-panel",
+      "tab": "esrm",
+      "target": "[data-tour='pcaf-availability-panel']",
+      "workbenchSubtab": "pcaf",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "PCAF Data Availability · four flag rows",
+      "calloutText": "Verified · Unverified · Physical activity · Revenue-only. Higher flag ON moves the loan up the PCAF ladder.",
+      "narration": "Every borrower gets four flag rows on this panel, one for each option in the PCAF ladder. Verified reported emissions moves the loan to Score one. Unverified reported moves it to Score two. Physical activity data moves it to Score three, the row where our Climate TRACE and facility inventory data does the work. Revenue-only is the fallback that puts the loan at Score four. The starting state is auto-inferred from the borrower record. When Sujata toggles a flag away from the auto-inferred state, the badge flips from AUTO to MANUAL so the audit trail records who changed what.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-04-availability-panel.mp3"
+    },
+    {
+      "id": "evidence",
+      "tab": "esrm",
+      "target": "[data-tour='pcaf-availability-panel']",
+      "workbenchSubtab": "pcaf",
+      "selectBorrowerNameContains": "Hongshi",
+      "calloutTitle": "Evidence field · what the auditor reads first",
+      "calloutText": "URL to the sustainability report, page range, verifier name. Attach the source PDF directly on the field.",
+      "narration": "The evidence field is what makes this defensible. On Hongshi, the seeded evidence references the twenty twenty four Sustainability and GHG Report pages forty-two to forty-six, plus the KPMG assurance opinion under ISAE thirty four ten. Sujata can attach the underlying source document directly on the field. When the NFRS auditor asks how the bank got to a Score one for this loan, the auditor reads the evidence text and opens the attached PDF. Same story for every borrower in the book.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-05-evidence.mp3"
+    },
+    {
+      "id": "asset-classes",
+      "tab": "nfrs",
+      "target": "[data-tour='data-quality']",
+      "calloutTitle": "Ten asset classes · PCAF 3rd Edition",
+      "calloutText": "Business loans · project finance · mortgages · motor vehicles · listed equity · corporate bonds · sovereign · CRE · sub-sovereign · securitisation.",
+      "narration": "PCAF third edition expanded to ten asset classes. Business loans, project finance, motor vehicle loans, mortgages, listed equity, corporate bonds, sovereign debt, commercial real estate, and two newer categories added in the twenty twenty five edition, sub-sovereign debt and securitisation. Every loan in the book maps to one of these classes and the scoring rubric adjusts accordingly. Project finance uses a slightly different option list than business loans. Sovereign debt uses country level data rather than facility level. The scoring engine handles the differences automatically.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-06-asset-classes.mp3",
+      "navigateTo": "/"
+    },
+    {
+      "id": "score-three-ceiling",
+      "tab": "nfrs",
+      "target": "[data-tour='data-quality']",
+      "calloutTitle": "Score 3 is the honest ceiling for Nepal facilities",
+      "calloutText": "Score 1-2 require borrower disclosure. Almost no Nepal borrower publishes assured GHG data today.",
+      "narration": "The takeaway on scoring. Score one or two requires the borrower to publish their own GHG Protocol emissions. Almost no Nepal borrower does that today. So Score three, physical activity data multiplied by a sector emission factor, is the honest ceiling with our data on the loans that carry the emissions risk. Without facility level data at all, the entire book collapses to Score five, revenue based estimates using national averages. Score three is where the meaningful gain is. It is a two notch improvement on the slice that matters, and it is defensible in front of an auditor.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-07-score-three-ceiling.mp3",
+      "navigateTo": "/"
+    },
+    {
+      "id": "closing",
+      "tab": "nfrs",
+      "target": "[data-tour='nfrs-headline']",
+      "calloutTitle": "PCAF is one layer · the full NFRS disclosure has more",
+      "calloutText": "Financed emissions is one section. Taxonomy allocation, transition risk, and governance narrative sit alongside it. All feed from the same audit trail.",
+      "narration": "One last thing. PCAF financed emissions is one section of the NFRS filing. Alongside it sit the Green Finance Taxonomy allocation, the sector concentration and transition risk narrative, and the sustainability governance disclosure. Every one of those sections reads from the same underlying audit trail that the officers build loan by loan on the My Work and Manager tabs. That is the point. The bank does not reconstruct the disclosure at year-end. The disclosure is a projection of work that already happened. Thanks for watching.",
+      "audioFile": "/audio/laxmi_sunrise/pcaf/tour-08-closing.mp3",
+      "navigateTo": "/"
+    }
+  ]
+}

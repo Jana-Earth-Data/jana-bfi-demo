@@ -4,7 +4,7 @@
  * Models the loan officer view: loans on the left, matched Climate TRACE
  * facilities on the right, PCAF attribution calculation connecting them.
  *
- * Extended for the three-tier dashboard (ESRM / Taxonomy / NSRS) on top of
+ * Extended for the three-tier dashboard (ESRM / Taxonomy / NFRS) on top of
  * a full ~80K-loan synthesized portfolio rooted in real Nepal entities.
  */
 
@@ -81,7 +81,7 @@ export type MatchedFacility = {
   annualCo2eTonnes: number;
   /** Year of the most-recent emissions figure */
   emissionsYear: number;
-  /** Optional multi-year time series for NSRS trend disclosure */
+  /** Optional multi-year time series for NFRS trend disclosure */
   emissionsByYear?: { year: number; co2eTonnes: number }[];
   /** Geographic context */
   municipality?: string | null;
@@ -192,6 +192,34 @@ export type PcafAttribution = {
   dataQualityScore: 1 | 2 | 3 | 4 | 5;
   /** Explanation of the quality score */
   qualityNote: string;
+  /**
+   * PCAF option letter (1a, 1b, 2a, 2b, 3a, 3b, 3c) per §4/§5 rubric.
+   * Populated by `lib/regulatory/pcaf/scoring.ts` compute engine.
+   */
+  pcafOption?: "1a" | "1b" | "2a" | "2b" | "3a" | "3b" | "3c";
+  /**
+   * PCAF Part A 3rd Edition §5.x asset class this loan was routed to.
+   * See `lib/regulatory/pcaf/types.ts` for the enum.
+   */
+  pcafAssetClass?:
+    | "listed-equity-corporate-bonds"
+    | "business-loans-unlisted-equity"
+    | "project-finance"
+    | "commercial-real-estate"
+    | "mortgages"
+    | "motor-vehicle-loans"
+    | "use-of-proceeds-structures"
+    | "securitisation-structured-products"
+    | "sovereign-debt"
+    | "sub-sovereign-debt"
+    | "out-of-scope";
+  /**
+   * PCAF paragraph citation — surfaced in tooltips + auditor exports.
+   * Format: "PCAF Part A 3rd Edition §5.2 · Option 2b (physical production × sector EF)"
+   */
+  pcafCitation?: string;
+  /** Data source lineage that unlocked this score. */
+  pcafDataSource?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -293,6 +321,13 @@ export type BfiDemoMeta = {
   generatedAt: string;
   pcafMethodologyNote: string;
   asOfDate?: string;
+  /**
+   * Runtime tenant identity injected by app/page.tsx from the current
+   * tenant cookie. Everything downstream reads these fields to render the
+   * correct bank name, logo, and brand palette.
+   */
+  tenantId?: string;
+  tenantLogoPath?: string;
 };
 
 export type BfiDemoData = {

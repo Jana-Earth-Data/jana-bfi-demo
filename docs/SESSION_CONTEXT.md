@@ -8,7 +8,7 @@ Use this document to quickly brief a new Claude Cowork session on this project. 
 
 A **Next.js 15 / React 19** single-page dashboard that demonstrates Jana Earth Data's financed emissions product for Nepal's banking sector (BFIs - Banks and Financial Institutions). It shows a loan officer view of a bank's commercial/industrial loan portfolio with PCAF (Partnership for Carbon Accounting Financials) Scope 3 Category 15 attribution calculations.
 
-This is a **sales demo tool** - shown to bankers to illustrate what Jana's data can do for their ESRM, Green Taxonomy, and NSRS compliance workflows.
+This is a **sales demo tool** - shown to bankers to illustrate what Jana's data can do for their ESRM, Green Taxonomy, and NFRS compliance workflows.
 
 ---
 
@@ -124,9 +124,10 @@ Attributed Emissions = Attribution Factor x Borrower Total CO2e
 ```
 
 Data quality score (1-5, 1=best):
-- Score 2: public-filing EV + high-confidence match (>0.9)
-- Score 3: public-filing EV + lower confidence
-- Score 4: estimated or proxy EV
+- Score 2: borrower publishes GHG-Protocol-conformant emissions (unverified is fine). Rare for Nepal SPVs today.
+- Score 3: physical production data × sector emission factor (Option 2b). Realistic ceiling with Jana for Nepal cement and hydropower borrowers.
+- Score 4: sector-average intensity × borrower revenue
+- Score 5: sector-average intensity × outstanding amount (no borrower data)
 
 ### NRB Taxonomy Colors
 
@@ -208,17 +209,19 @@ This demo lives in the broader Jana sales ecosystem:
 
 ### Key business context for the demo
 
-- Nepal has 20 Class A commercial banks, all under NRB regulatory mandates (ESRM, Green Taxonomy, NSRS)
+- Nepal has 20 Class A commercial banks. Two NRB regulations bind them directly (ESRM 2022 and the Green Finance Taxonomy 2024); NFRS S1/S2 is issued by ICAN and is currently in exposure draft (comment period through June 2026). NRB is expected to reference NFRS for bank climate disclosure once ICAN finalises.
 - Banks have 80K-100K loans each but 60-70% are retail mortgages - emissions measurement applies to the commercial/industrial slice
 - Climate TRACE covers 323 facilities in Nepal (cement, brick, steel, mining) - these are the biggest emitters and biggest loan values
-- PCAF data quality: Jana moves banks from Score 5 (guesswork) to Score 2 (verified facility data) for their highest-risk exposures
+- PCAF data quality: Jana moves banks from Score 5 (outstanding × sector-average intensity) to Score 3 (borrower physical production data × sector emission factor — Option 2b) for their highest-risk exposures. Score 2 requires the borrower to publish GHG-Protocol-conformant emissions, which almost no Nepal SPV does today.
 - The demo is designed to show a loan officer exactly how this works loan-by-loan
 
-### NRB Regulatory Framework (what drives the sale)
+### Nepal sustainability frameworks (what drives the sale)
 
-1. **ESRM (2018):** Environmental and Social Risk Management - screen every commercial loan before approval
-2. **Green Finance Taxonomy (Oct 2024):** Classify lending as green/amber/red
-3. **NSRS (coming 2026-27):** Nepal Sustainability Reporting Standards aligned with IFRS S1/S2 - requires financed emissions disclosure
+Three frameworks shape Nepal bank sustainability compliance — two from NRB, one from ICAN with NRB supervisory oversight:
+
+1. **NRB ESRM (2022, supersedes 2018):** Environmental and Social Risk Management - screen every commercial loan before approval. Adds climate as a sub-category of environmental risk (Q2.5) and the Annex 5b Project Finance Screening Questionnaire.
+2. **NRB Green Finance Taxonomy (Oct 2024):** Classify lending as green/amber/red/unclassified. Chapter 3.2.2 requires ESRM to be applied before the taxonomy is used to classify.
+3. **NFRS S1 / S2 (ICAN, exposure draft April 2026):** Nepal's IFRS S1/S2-aligned sustainability and climate disclosure standards. Comment period closes 6 June 2026; mandatory application date is a placeholder (`XX XX 202X`) pending ICAN finalisation. Year 1 waives Scope 3 (including financed emissions). NFRS does not cite ESRM, the Taxonomy, or PCAF by name — the ESRM → Taxonomy → NFRS → PCAF chain is Jana editorial framing, not a regulator-mandated crosswalk.
 
 ---
 

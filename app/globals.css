@@ -24,3 +24,26 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Keyboard-visible focus ring. Uses the current tenant's brand primary
+   colour so it matches whichever bank is theming the page. Mouse focus
+   (via :focus without :focus-visible) stays invisible to avoid the
+   click-outline noise. */
+:focus-visible {
+  outline: 2px solid var(--brand-primary, #ff8a1e);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Facility map — brighten CARTO dark_only_labels overlay so place names
+   are actually readable against the dark base. Native tiles render
+   labels at ~#333 which disappears on our dark UI. The filter stack
+   inverts + hue-rotates + brightens to produce near-white labels while
+   keeping the map background dark. */
+.facility-map-labels {
+  filter: invert(1) hue-rotate(180deg) brightness(1.2) contrast(1.1);
+  mix-blend-mode: screen;
+}

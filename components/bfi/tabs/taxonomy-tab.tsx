@@ -54,7 +54,7 @@ export function TaxonomyTab({ data }: { data: DashboardSsrData }) {
         <KpiCard
           label="Total outstanding"
           value={formatNpr(totalValue)}
-          sublabel={`First Bank of Nepal · ${data.meta.asOfDate ?? ""}`}
+          sublabel={`${data.meta.bankName} · ${data.meta.asOfDate ?? ""}`}
         />
         <KpiCard
           label="In scope for taxonomy"
@@ -253,7 +253,7 @@ function Funnel({ data }: { data: DashboardSsrData }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-sm" style={{ background: "#34d399" }} />
-            Facility-tier data: PCAF Score 2-3 from Climate TRACE, GCCT, or capacity-derived.
+            Facility-tier data: PCAF Score 3 (Option 2b — physical production data × sector EF) from Climate TRACE, GCCT, or capacity-derived.
           </div>
         </div>
       </div>
