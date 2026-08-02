@@ -144,10 +144,10 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
 
       {/* Charts row 1: multi-year trend + data quality */}
       <div className="grid gap-4 lg:grid-cols-3">
+        <div data-tour="multi-year-trend" className="lg:col-span-2">
         <Panel
           title="Multi-year trend"
           subtitle="Attributed emissions by NRB taxonomy color"
-          className="lg:col-span-2"
         >
           {trend.length > 0 ? (
             <EmissionsTrendChart data={trend} />
@@ -155,6 +155,7 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
             <p className="text-sm text-slate-500">No trend data available.</p>
           )}
         </Panel>
+        </div>
         <div data-tour="data-quality">
         <Panel
           title="Data quality distribution"
@@ -186,20 +187,24 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
       </div>
 
       {/* Sector emissions chart — full width */}
+      <div data-tour="sector-breakdown">
       <Panel
         title="Emissions by sector"
         subtitle="Attributed CO₂e for the disclosure year"
       >
         <SectorEmissionsChart data={s.sectorBreakdown} />
       </Panel>
+      </div>
 
       {/* Disclosure preview */}
+      <div data-tour="disclosure-preview">
       <Panel
         title="Annual report disclosure preview"
         subtitle="IFRS S2 / NFRS-aligned excerpt"
       >
         <DisclosurePreview data={data} />
       </Panel>
+      </div>
 
       {/* Taxonomy portfolio breakdown — reads latest saved assessments */}
       <div data-tour="taxonomy-breakdown">
@@ -212,12 +217,14 @@ export function NfrsTab({ data }: { data: DashboardSsrData }) {
       </div>
 
       {/* Top contributors — detail table at the bottom of the page */}
+      <div data-tour="top-contributors">
       <Panel
         title="Top contributors"
         subtitle="Loans driving the largest attributed emissions"
       >
         <TopContributorsTable data={data} />
       </Panel>
+      </div>
     </div>
   );
 }
