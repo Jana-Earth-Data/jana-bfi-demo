@@ -1,0 +1,158 @@
+# ============================================================================
+# Offline demo stack — Nepal BFI demo with zero internet dependencies
+# ============================================================================
+# Runs Postgres + PostgREST + the Next.js web app on a private Docker network
+# so the entire demo works with the host disconnected from the internet.
+#
+# Boot:
+#   docker compose -f docker-compose.offline.yml up -d --build
+#
+# Reset (wipes the postgres volume):
+#   docker compose -f docker-compose.offline.yml down -v
+#
+# Points of interest:
+#   * PostgREST speaks the Supabase REST wire format, so the existing
+#     @supabase/supabase-js client works with only NEXT_PUBLIC_SUPABASE_URL /
+#     ANON_KEY / SERVICE_ROLE_KEY overrides.  No app code changes.
+#   * The JWT secret below is intentionally hardcoded — this compose file is
+#     for LOCAL, AIR-GAPPED demos only.  Never point production or a
+#     public-network deployment at it.
+#   * `env_file: .env.local` is INTENTIONALLY OMITTED for the web service so
+#     the cloud Supabase credentials in that file don't leak into offline
+#     mode.  Everything the app needs is in the `environment:` block below.
+#   * Regenerate the two JWTs below with:
+#       node -e '
+#         const c=require("crypto"),s="bfi-demo-offline-postgrest-jwt-secret-do-not-use-in-prod-32ch";
+#         const b=x=>Buffer.from(x).toString("base64").replace(/=+$/,"").replace(/\+/g,"-").replace(/\//g,"_");
+#         const sign=p=>{const d=b(JSON.stringify({alg:"HS256",typ:"JWT"}))+"."+b(JSON.stringify(p));
+#           return d+"."+b(require("crypto").createHmac("sha256",s).update(d).digest());};
+#         console.log("anon:",sign({role:"anon"}));
+#         console.log("service_role:",sign({role:"service_role"}));'
+# ============================================================================
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: bfi-demo-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bfi_demo
+    volumes:
+      - bfi_demo_pgdata:/var/lib/postgresql/data
+      # Everything under ./docker/postgres/initdb.d/ is run in lexical order
+      # by postgres on FIRST BOOT only.  Bringing the stack up on an existing
+      # volume skips these — use `down -v` to wipe and re-run.
+      - ./docker/postgres/initdb.d:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bfi_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    # 5432 is exposed for optional host-side debugging with psql.  Comment
+    # out if you want the DB reachable only from inside the compose network.
+    ports:
+      - "5432:5432"
+    networks:
+      - bfi_offline
+
+  postgrest:
+    image: postgrest/postgrest:latest
+    container_name: bfi-demo-postgrest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres:postgres@postgres:5432/bfi_demo
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      # HMAC-SHA256 secret used to verify the two JWTs below.  Must match
+      # what was used to sign them.  Regenerate BOTH tokens if you change it.
+      PGRST_JWT_SECRET: "bfi-demo-offline-postgrest-jwt-secret-do-not-use-in-prod-32ch"
+      # OpenAPI advertises this URL back to callers hitting the root path.
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:3010
+    # 3010 exposes PostgREST to the host for debugging (curl, Postman).
+    # The web container reaches PostgREST via supabase-gateway (nginx),
+    # which strips the /rest/v1/ prefix the @supabase/* client appends.
+    ports:
+      - "3010:3000"
+    networks:
+      - bfi_offline
+
+  # ------------------------------------------------------------------------
+  # Nginx gateway — makes PostgREST look like Supabase to @supabase/* clients
+  # ------------------------------------------------------------------------
+  # The @supabase/supabase-js client appends /rest/v1/ to SUPABASE_URL when
+  # calling its backend. PostgREST serves at the root (/table_name), not
+  # /rest/v1/table_name. This nginx sidecar strips the prefix so the app
+  # code stays identical between cloud-Supabase and offline-PostgREST.
+  supabase-gateway:
+    image: nginx:alpine
+    container_name: bfi-demo-supabase-gateway
+    depends_on:
+      postgrest:
+        condition: service_started
+    volumes:
+      - ./docker/nginx/supabase-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    # 3020 exposes the gateway to the host for debugging.
+    ports:
+      - "3020:80"
+    networks:
+      - bfi_offline
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Force mock mode: no upstream Jana / Climate TRACE calls.  The
+        # portfolio synthesizer + snapshot data in ./data/ is fully offline.
+        NEXT_PUBLIC_API_URL: http://localhost:0
+        NEXT_PUBLIC_AUTH_URL: http://localhost:0
+        NEXT_PUBLIC_DEMO_USE_MOCKS: "true"
+    container_name: bfi-demo-web
+    depends_on:
+      supabase-gateway:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      # Force mock mode at runtime too — belt-and-suspenders vs the build ARG.
+      NEXT_PUBLIC_API_URL: http://localhost:0
+      NEXT_PUBLIC_AUTH_URL: http://localhost:0
+      NEXT_PUBLIC_DEMO_USE_MOCKS: "true"
+
+      # === Supabase-compatible env vars pointing at the LOCAL gateway =======
+      # The gateway strips /rest/v1/ and forwards to postgrest. That path
+      # translation is why the @supabase/* client works unchanged against
+      # the offline stack.
+      NEXT_PUBLIC_SUPABASE_URL: http://supabase-gateway:80
+
+      # anon JWT:  {"role":"anon"}  signed HS256 with PGRST_JWT_SECRET above.
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.t_M7rAew4rWlnHxBQTEoJRx5oxDWRIHX_ODDoHhhhuo"
+
+      # service_role JWT:  {"role":"service_role"}  signed HS256 with the
+      # same secret.  Bypasses RLS by virtue of the service_role postgres
+      # role having BYPASSRLS (see docker/postgres/initdb.d/00-init-roles.sql).
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.65h0pGUarIuEinvkFUfuVvW8kDYngvVqI2G_xJpuZW8"
+
+      # Gate for the /api/admin/seed*, /api/admin/reset endpoints.
+      # Pulls SEED_ADMIN_TOKEN from your shell if set (matches dev workflow —
+      # same `curl ...?token=$SEED_ADMIN_TOKEN` works in both modes).
+      # Falls back to a hardcoded local default if the env var isn't exported.
+      SEED_ADMIN_TOKEN: "${SEED_ADMIN_TOKEN:-offline-demo-seed-token}"
+    ports:
+      - "3001:3000"
+    networks:
+      - bfi_offline
+
+volumes:
+  bfi_demo_pgdata:
+    name: bfi_demo_pgdata
+
+networks:
+  bfi_offline:
+    name: bfi_offline
+    driver: bridge
