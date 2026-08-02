@@ -188,6 +188,27 @@ export function TourProvider({
   }, [step?.id, step?.navigateTo]);
 
   // ------------------------------------------------------------------
+  // Workbench sub-tab request
+  // ------------------------------------------------------------------
+  //
+  // When a step declares workbenchSubtab, publish a small window event
+  // so the ESRM tab can switch its internal sub-tab state before the
+  // overlay tries to measure the target. Using a bus (rather than
+  // threading state through) keeps the tour engine ignorant of ESRM
+  // internals — anything else that later grows a nested tab strip can
+  // subscribe to its own event name.
+  useEffect(() => {
+    if (!step?.workbenchSubtab) return;
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("bfi:workbench-subtab", {
+        detail: step.workbenchSubtab,
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step?.id, step?.workbenchSubtab]);
+
+  // ------------------------------------------------------------------
   // Optional-target auto-advance
   // ------------------------------------------------------------------
   //

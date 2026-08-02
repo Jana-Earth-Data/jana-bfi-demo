@@ -63,7 +63,7 @@ const TABS: Array<{
   {
     id: "mywork",
     label: "My Work",
-    description: "Your ESRM queue · Assigned loans, in-progress checklists",
+    description: "Your review queue · Assigned loans, in-progress checklists, follow-ups",
   },
   {
     id: "loans",
@@ -72,8 +72,8 @@ const TABS: Array<{
   },
   {
     id: "esrm",
-    label: "ESRM",
-    description: "Manager view · All loans under review (NRB Circular 22 · ESRM 2022)",
+    label: "Manager",
+    description: "All loans under review · ESRM · PF screening · CAP · PCAF (NRB Circular 22)",
   },
   {
     id: "taxonomy",

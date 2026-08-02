@@ -36,6 +36,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/bfi/shared/primitives";
+import { EvidenceAttachments } from "@/components/bfi/shared/evidence-attachments";
+import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
+import { LockedByBanner } from "@/components/bfi/shared/locked-by-banner";
 import type { Borrower } from "@/lib/types/bfi";
 import type {
   PcafComputationResult,
@@ -130,6 +133,14 @@ type ApiResponse = {
 };
 
 export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
+  // Loan-lock context — P36. PCAF availability is per-BORROWER (not per
+  // loan), but the workbench mounts this panel with a LoanLockProvider
+  // scoped to the currently selected loan. When that lock says the
+  // current officer is not the owner we disable every toggle / textarea
+  // / save button. Non-loan surfaces just get isOwner=true from the
+  // default context.
+  const { isOwner, ownerOfficerName, loanId: lockedLoanId } = useLoanLock();
+  const readOnly = !isOwner;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -230,6 +241,10 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
             flags: localFlags,
             evidence: localEvidence,
             loanCategory: state.loanCategory,
+            // P36 — pass the currently-selected loan id from context so
+            // the API can enforce the owner check. Falls back to null
+            // when this panel is mounted outside a loan-scoped surface.
+            loanId: lockedLoanId || undefined,
           }),
         },
       );
@@ -271,6 +286,7 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
       subtitle="Which data does the borrower publish? What did we find? Officer confirms the auto-suggested flags, or sets them manually with evidence."
     >
       <div data-tour="pcaf-availability-panel" className="space-y-3">
+        {readOnly && <LockedByBanner ownerName={ownerOfficerName} />}
         {loading && (
           <div className="rounded-md border border-line/60 bg-panel/40 p-3 text-sm text-slate-400">
             Loading availability flags…
@@ -293,6 +309,8 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
                   evidence={localEvidence[row.key] ?? ""}
                   onToggle={() => toggleFlag(row.key)}
                   onEvidenceChange={(v) => updateEvidence(row.key, v)}
+                  borrowerId={borrower.id}
+                  readOnly={readOnly}
                 />
               ))}
             </div>
@@ -326,27 +344,29 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
                 {saveError && (
                   <span className="text-xs text-rose-300">{saveError}</span>
                 )}
-                <button
-                  type="button"
-                  disabled={!dirty || saving}
-                  onClick={handleSave}
-                  className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{
-                    borderColor: dirty
-                      ? "var(--brand-primary)"
-                      : "rgba(148, 163, 184, 0.3)",
-                    color: dirty ? "var(--brand-primary)" : "#94a3b8",
-                    backgroundColor: dirty
-                      ? "rgba(var(--brand-primary-rgb, 59, 130, 246), 0.08)"
-                      : "transparent",
-                  }}
-                >
-                  {saving
-                    ? "Saving…"
-                    : dirty
-                      ? "Save flags + evidence"
-                      : "No changes"}
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    disabled={!dirty || saving}
+                    onClick={handleSave}
+                    className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{
+                      borderColor: dirty
+                        ? "var(--brand-primary)"
+                        : "rgba(148, 163, 184, 0.3)",
+                      color: dirty ? "var(--brand-primary)" : "#94a3b8",
+                      backgroundColor: dirty
+                        ? "rgba(var(--brand-primary-rgb, 59, 130, 246), 0.08)"
+                        : "transparent",
+                    }}
+                  >
+                    {saving
+                      ? "Saving…"
+                      : dirty
+                        ? "Save flags + evidence"
+                        : "No changes"}
+                  </button>
+                )}
               </div>
             </div>
           </>
@@ -407,6 +427,8 @@ function FlagRow({
   evidence,
   onToggle,
   onEvidenceChange,
+  borrowerId,
+  readOnly = false,
 }: {
   meta: FlagMeta;
   value: boolean;
@@ -414,7 +436,17 @@ function FlagRow({
   evidence: string;
   onToggle: () => void;
   onEvidenceChange: (v: string) => void;
+  borrowerId: string;
+  readOnly?: boolean;
 }) {
+  // Derive a stable field_key from the PCAF option letter (e.g.
+  // "Option 1a" → "row_1a"). Matches the spec's `row_<option>` pattern.
+  const optionKey = meta.option
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/^option_/, "");
+  const fieldKey = `row_${optionKey}`;
   return (
     <div className="rounded-md border border-line/60 bg-panel/40 p-3">
       <div className="flex items-start justify-between gap-3">
@@ -433,9 +465,10 @@ function FlagRow({
           <button
             type="button"
             role="switch"
+            disabled={readOnly}
             aria-checked={value}
             onClick={onToggle}
-            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
               value
                 ? "border-transparent"
                 : "border-line/60 bg-panelAlt"
@@ -476,8 +509,17 @@ function FlagRow({
           value={evidence}
           onChange={(e) => onEvidenceChange(e.target.value)}
           rows={2}
+          readOnly={readOnly}
+          disabled={readOnly}
           placeholder="e.g. https://borrower.example.com/sustainability-2024.pdf · pp. 42-46 (KPMG assurance opinion)"
-          className="mt-1 w-full rounded-md border border-line/60 bg-panel/60 px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:border-line focus:outline-none"
+          className="mt-1 w-full rounded-md border border-line/60 bg-panel/60 px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:border-line focus:outline-none disabled:opacity-60"
+        />
+        <EvidenceAttachments
+          entityType="pcaf_availability"
+          entityId={borrowerId}
+          fieldKey={fieldKey}
+          compact
+          readOnly={readOnly}
         />
       </div>
       <div className="mt-1 text-[10px] text-slate-500">{meta.citation}</div>

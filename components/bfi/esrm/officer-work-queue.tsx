@@ -57,11 +57,36 @@ type LoanCard = {
     reductionTargetOnFile: boolean;
     estimatedAnnualTco2e: number;
   };
+  /**
+   * NRB ESRM 2022 Annex 5b — Project Finance Screening Questionnaire.
+   * Rendered as a CTA only when `required` is true.
+   */
+  pfScreening?: {
+    required: boolean;
+    itemsAnswered: number;
+    itemsTotal: number;
+    riskClass: "low" | "medium" | "high" | "critical" | null;
+    completed: boolean;
+  };
+  /**
+   * PCAF Global GHG Standard Part A §5 data-availability confirmation.
+   * Required on every loan under NFRS — always rendered as a CTA.
+   */
+  pcafAvailability?: {
+    flagsConfirmed: number;
+    flagsTotal: 4;
+    completed: boolean;
+  };
 };
 
 type QueueBody = {
   ok: true;
   officer: { id: string; name: string; role: string };
+  /** P36 split: assigned-or-touched loans (full compliance CTAs). */
+  myLoans?: LoanCard[];
+  /** P36 split: unassigned loans (single Open CTA that auto-claims). */
+  availableToClaim?: LoanCard[];
+  // Legacy fields (still returned for backward compatibility).
   needsAttention: LoanCard[];
   inReview: LoanCard[];
   recentlyClosed: LoanCard[];
@@ -128,6 +153,14 @@ export function OfficerWorkQueue({
 
   if (!currentOfficer) return null;
 
+  // Prefer the P36 split fields when the API returns them; fall back
+  // to the legacy needsAttention/inReview if it hasn't been redeployed.
+  const myLoans = data?.myLoans ?? [
+    ...(data?.needsAttention ?? []),
+    ...(data?.inReview ?? []),
+  ];
+  const availableToClaim = data?.availableToClaim ?? [];
+
   return (
     <div className="rounded-2xl border border-line bg-panel">
       <div className="border-b border-line/60 px-6 py-4">
@@ -140,8 +173,8 @@ export function OfficerWorkQueue({
           </div>
           {data && (
             <div className="text-xs text-slate-400">
-              {data.needsAttention.length} need attention ·{" "}
-              {data.inReview.length} in review
+              {myLoans.length} assigned to you ·{" "}
+              {availableToClaim.length} available to claim
             </div>
           )}
         </div>
@@ -157,18 +190,20 @@ export function OfficerWorkQueue({
       )}
       {data && !loading && !error && (
         <div className="divide-y divide-line/60">
+          {/* -------- My loans -------- */}
           <QueueSection
-            title="Needs your attention"
-            rows={data.needsAttention}
-            emptyLabel="Nothing needs your attention right now."
+            title={`My loans (${myLoans.length})`}
+            rows={myLoans}
+            emptyLabel="You have no assigned loans yet. Pick one below."
           />
-          {data.inReview.length > 0 && (
-            <QueueSection
-              title="In review"
-              rows={data.inReview}
-              emptyLabel=""
-            />
-          )}
+
+          {/* -------- Available to claim --------
+              Simple row per loan: borrower · loan id · category ·
+              single Open CTA. Clicking navigates to the ESDD wizard,
+              which auto-claims on load (P36). No "Claim" button — the
+              first click IS the claim. */}
+          <AvailableClaimSection rows={availableToClaim} />
+
           {data.recentlyClosed.length > 0 && (
             <QueueSection
               title="Recently closed"
@@ -179,6 +214,63 @@ export function OfficerWorkQueue({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Simpler section for the unassigned loans below the officer's own
+ * work. Each row is a single tap-target — clicking anywhere on it
+ * navigates to /esdd/{loanId}, which server-side auto-claims the loan
+ * for the current officer.
+ */
+function AvailableClaimSection({ rows }: { rows: LoanCard[] }) {
+  return (
+    <div className="px-6 py-4">
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Available to claim ({rows.length})
+      </div>
+      {rows.length === 0 ? (
+        <div className="text-sm text-slate-500">
+          No loans currently available to claim. New applications will
+          appear here as underwriting sends them.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((row) => (
+            <AvailableClaimRow key={row.loanId} card={row} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AvailableClaimRow({ card }: { card: LoanCard }) {
+  // Clicking the Open link auto-claims the loan on page load (P36 —
+  // resolveLoanLock upserts the assignment for the current officer).
+  return (
+    <a
+      href={`/esdd/${encodeURIComponent(card.loanId)}`}
+      className="group flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3 transition hover:bg-white/5"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="text-sm font-semibold text-white">
+            {card.borrowerName}
+          </span>
+          <span className="text-xs text-slate-500">{card.loanId}</span>
+        </div>
+        <div className="text-xs text-slate-400">
+          {card.sector} · {formatNpr(card.outstandingNpr)} outstanding
+        </div>
+      </div>
+      <span
+        className="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition group-hover:opacity-90"
+        style={{ backgroundColor: "var(--brand-primary)" }}
+      >
+        Open →
+      </span>
+    </a>
   );
 }
 
@@ -246,6 +338,29 @@ function LoanCardRow({
         : "Start ESDD";
   const taxLabel = taxDone ? "Review taxonomy" : "Classify taxonomy";
 
+  // PF-screening label mirrors ESDD's start/continue/review states.
+  // Only rendered when card.pfScreening?.required is true (see below).
+  const pfScreening = card.pfScreening;
+  const pfLabel = pfScreening
+    ? pfScreening.itemsAnswered === 0
+      ? "Start PF screening"
+      : pfScreening.completed
+        ? "Review PF screening"
+        : `Continue ${pfScreening.itemsAnswered}/${pfScreening.itemsTotal}`
+    : "Start PF screening";
+
+  // PCAF is always shown — flagsConfirmed is 0 or 4 in the current
+  // schema (the four flags save together as a single row), so the
+  // "Continue N/4" branch is defensive against future partial-save UX.
+  const pcaf = card.pcafAvailability;
+  const pcafLabel = pcaf
+    ? pcaf.flagsConfirmed === 0
+      ? "Start PCAF"
+      : pcaf.completed
+        ? "Review PCAF"
+        : `Continue ${pcaf.flagsConfirmed}/4`
+    : "Start PCAF";
+
   return (
     <div
       className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3"
@@ -293,10 +408,12 @@ function LoanCardRow({
         </div>
       </div>
 
-      {/* Two independent CTAs — officer picks the flow they want to
-          work on next. Primary flow is filled brand; the other is a
-          plain outline link. Taxonomy CTA is hidden entirely when the
-          borrower's sector is not taxonomy-eligible. */}
+      {/* Independent CTAs — officer picks the flow they want to work
+          on next. Primary flow is filled brand; the others are plain
+          outline links. Taxonomy CTA is hidden when the borrower's
+          sector is not taxonomy-eligible; PF CTA is hidden unless the
+          loan is Project Finance; PCAF CTA is always shown (required
+          on every loan under NFRS). Order: ESDD → Taxonomy → PF → PCAF. */}
       <div className="flex shrink-0 flex-col items-stretch gap-1.5 text-xs">
         <CardCta
           href={`/esdd/${encodeURIComponent(card.loanId)}`}
@@ -310,6 +427,20 @@ function LoanCardRow({
             primary={primaryFlow === "taxonomy"}
           />
         )}
+        {card.pfScreening?.required && (
+          <CardCta
+            href={`/pf-screening/${encodeURIComponent(card.loanId)}`}
+            label={pfLabel}
+            primary={false}
+            title="Annex 5b · 148 items across 8 IFC Performance Standards (NRB Circular 22 §5)"
+          />
+        )}
+        <CardCta
+          href={`/pcaf/${encodeURIComponent(card.loanId)}`}
+          label={pcafLabel}
+          primary={false}
+          title="PCAF Global GHG Standard Part A · 4 flag rows per loan"
+        />
       </div>
     </div>
   );
@@ -319,15 +450,18 @@ function CardCta({
   href,
   label,
   primary,
+  title,
 }: {
   href: string;
   label: string;
   primary: boolean;
+  title?: string;
 }) {
   if (primary) {
     return (
       <a
         href={href}
+        title={title}
         className="rounded-md px-3 py-1.5 text-center text-xs font-semibold text-white transition hover:opacity-90"
         style={{ backgroundColor: "var(--brand-primary)" }}
       >
@@ -338,6 +472,7 @@ function CardCta({
   return (
     <a
       href={href}
+      title={title}
       className="rounded-md border px-3 py-1.5 text-center text-xs font-semibold transition hover:bg-white/5"
       style={{
         borderColor: "var(--brand-primary)",

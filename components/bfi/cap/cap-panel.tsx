@@ -22,6 +22,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/bfi/shared/primitives";
+import { EvidenceAttachments } from "@/components/bfi/shared/evidence-attachments";
+import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
+import { LockedByBanner } from "@/components/bfi/shared/locked-by-banner";
 import {
   ANNEX10_CHECKLIST_ITEMS,
   COVENANT_LIBRARY,
@@ -134,6 +137,15 @@ export function CapPanel({
   loanId: string;
   borrowerId: string;
 }) {
+  // Loan-lock context — P36. When the current officer is not the loan's
+  // owner every editable input in this panel is disabled (buttons, row
+  // fields, monitoring submit). Enforcement lives in the API too.
+  const { isOwner, ownerOfficerName, loanId: lockLoanId } = useLoanLock();
+  // Only respect the lock when the surrounding provider is scoped to
+  // this loan. Prevents a mismatched context from another loan bleeding
+  // through when this panel is briefly mounted during a switch.
+  const readOnly = !isOwner && lockLoanId === loanId;
+
   const [data, setData] = useState<CapBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -260,17 +272,24 @@ export function CapPanel({
             : "NRB Circular 22 §7.3.5 requires a time-bound CAP + covenants for medium/high risk. §7.3.7 requires periodic monitoring."
         }
         action={
-          <button
-            type="button"
-            onClick={() => void saveAll()}
-            disabled={saving || loading}
-            className="rounded-md px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-            style={{ backgroundColor: "var(--brand-primary)" }}
-          >
-            {saving ? "Saving…" : "Save CAP + covenants"}
-          </button>
+          readOnly ? null : (
+            <button
+              type="button"
+              onClick={() => void saveAll()}
+              disabled={saving || loading}
+              className="rounded-md px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: "var(--brand-primary)" }}
+            >
+              {saving ? "Saving…" : "Save CAP + covenants"}
+            </button>
+          )
         }
       >
+        {readOnly && (
+          <div className="mb-3">
+            <LockedByBanner ownerName={ownerOfficerName} />
+          </div>
+        )}
         {err && (
           <div className="mb-3 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
             {err}
@@ -301,6 +320,7 @@ export function CapPanel({
                     prev.filter((r) => !("id" in r && r.id === id)),
                   );
                 }}
+                readOnly={readOnly}
               />
             </Subsection>
 
@@ -321,6 +341,7 @@ export function CapPanel({
                     prev.filter((r) => !("id" in r && r.id === id)),
                   );
                 }}
+                readOnly={readOnly}
               />
             </Subsection>
 
@@ -336,6 +357,7 @@ export function CapPanel({
                 monitoring={data.monitoring}
                 riskClass={data.riskClass}
                 onOpenSubmit={() => setMonitoringOpen(true)}
+                readOnly={readOnly}
               />
             </Subsection>
 
@@ -413,10 +435,12 @@ function CapItemsTable({
   drafts,
   onChange,
   onDelete,
+  readOnly = false,
 }: {
   drafts: CapDraft[];
   onChange: (next: CapDraft[]) => void;
   onDelete: (id: string) => void;
+  readOnly?: boolean;
 }) {
   function updateAt(idx: number, patch: Partial<CapDraft>) {
     onChange(drafts.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -461,56 +485,66 @@ function CapItemsTable({
               <LabeledField label="Area of concern">
                 <textarea
                   value={row.areaOfConcern}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, { areaOfConcern: e.target.value })
                   }
                   rows={2}
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
               <LabeledField label="Corrective action required">
                 <textarea
                   value={row.correctiveAction}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, { correctiveAction: e.target.value })
                   }
                   rows={2}
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
               <LabeledField label="Deadline">
                 <input
                   type="date"
                   value={row.deadlineDate ?? ""}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, { deadlineDate: e.target.value || null })
                   }
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
               <LabeledField label="Completion indicator">
                 <input
                   type="text"
                   value={row.completionIndicator ?? ""}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, {
                       completionIndicator: e.target.value || null,
                     })
                   }
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
               <LabeledField label="Responsible party">
                 <input
                   type="text"
                   value={row.responsibleParty ?? ""}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, {
                       responsibleParty: e.target.value || null,
                     })
                   }
                   placeholder="e.g. Client HR + third-party auditor"
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
               <LabeledField label="Cost involved (NPR — optional)">
@@ -519,13 +553,15 @@ function CapItemsTable({
                   min={0}
                   step={1000}
                   value={row.costNpr ?? ""}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, {
                       costNpr:
                         e.target.value === "" ? null : Number(e.target.value),
                     })
                   }
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
             </div>
@@ -540,12 +576,13 @@ function CapItemsTable({
                 </span>
                 <select
                   value={row.status}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, {
                       status: e.target.value as CapItemStatus,
                     })
                   }
-                  className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200"
+                  className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200 disabled:opacity-60"
                 >
                   <option value="not_started">Not started</option>
                   <option value="in_progress">In progress</option>
@@ -564,32 +601,50 @@ function CapItemsTable({
                 {row.costNpr != null && (
                   <span>{formatNpr(row.costNpr)}</span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (row.id) onDelete(row.id);
-                    else
-                      onChange(
-                        drafts.filter((_, i) => i !== idx),
-                      );
-                  }}
-                  className="text-rose-300 hover:text-rose-200"
-                >
-                  Remove
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (row.id) onDelete(row.id);
+                      else
+                        onChange(
+                          drafts.filter((_, i) => i !== idx),
+                        );
+                    }}
+                    className="text-rose-300 hover:text-rose-200"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
+
+            {row.id ? (
+              <EvidenceAttachments
+                entityType="cap_item"
+                entityId={row.id}
+                fieldKey="evidence"
+                compact
+                readOnly={readOnly}
+              />
+            ) : (
+              <div className="mt-2 text-[10px] italic text-slate-500">
+                Save this row before uploading supporting evidence.
+              </div>
+            )}
           </div>
         );
       })}
 
-      <button
-        type="button"
-        onClick={addRow}
-        className="self-start rounded-md border border-dashed border-line px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
-      >
-        + Add CAP item
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={addRow}
+          className="self-start rounded-md border border-dashed border-line px-3 py-1.5 text-xs text-slate-300 hover:bg-white/5"
+        >
+          + Add CAP item
+        </button>
+      )}
     </div>
   );
 }
@@ -602,10 +657,12 @@ function CovenantsTable({
   drafts,
   onChange,
   onDelete,
+  readOnly = false,
 }: {
   drafts: CovenantDraft[];
   onChange: (next: CovenantDraft[]) => void;
   onDelete: (id: string) => void;
+  readOnly?: boolean;
 }) {
   const [addFromLibrary, setAddFromLibrary] = useState<string>("");
 
@@ -644,30 +701,32 @@ function CovenantsTable({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-panelAlt px-2 py-1.5 text-xs">
-        <span className="text-slate-400">Add from library:</span>
-        <select
-          value={addFromLibrary}
-          onChange={(e) => {
-            if (e.target.value) addFromTemplate(e.target.value);
-          }}
-          className="flex-1 rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200"
-        >
-          <option value="">Choose a template…</option>
-          {COVENANT_LIBRARY.map((c) => (
-            <option key={c.id} value={c.id}>
-              [{COVENANT_TYPE_LABEL[c.type]}] {c.title}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={addCustom}
-          className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200 hover:bg-white/5"
-        >
-          + Custom
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-panelAlt px-2 py-1.5 text-xs">
+          <span className="text-slate-400">Add from library:</span>
+          <select
+            value={addFromLibrary}
+            onChange={(e) => {
+              if (e.target.value) addFromTemplate(e.target.value);
+            }}
+            className="flex-1 rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200"
+          >
+            <option value="">Choose a template…</option>
+            {COVENANT_LIBRARY.map((c) => (
+              <option key={c.id} value={c.id}>
+                [{COVENANT_TYPE_LABEL[c.type]}] {c.title}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={addCustom}
+            className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200 hover:bg-white/5"
+          >
+            + Custom
+          </button>
+        </div>
+      )}
 
       {drafts.length === 0 && (
         <div className="rounded-md border border-line bg-panelAlt px-3 py-4 text-center text-xs text-slate-400">
@@ -689,12 +748,13 @@ function CovenantsTable({
             </span>
             <select
               value={row.covenantType}
+              disabled={readOnly}
               onChange={(e) =>
                 updateAt(idx, {
                   covenantType: e.target.value as CovenantType,
                 })
               }
-              className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200"
+              className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200 disabled:opacity-60"
             >
               {(
                 [
@@ -712,10 +772,11 @@ function CovenantsTable({
             </select>
             <select
               value={row.status}
+              disabled={readOnly}
               onChange={(e) =>
                 updateAt(idx, { status: e.target.value as CovenantStatus })
               }
-              className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200"
+              className="rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-200 disabled:opacity-60"
             >
               {(Object.keys(COVENANT_STATUS_LABEL) as CovenantStatus[]).map(
                 (s) => (
@@ -731,16 +792,18 @@ function CovenantsTable({
               </span>
             )}
             <div className="ml-auto">
-              <button
-                type="button"
-                onClick={() => {
-                  if (row.id) onDelete(row.id);
-                  else onChange(drafts.filter((_, i) => i !== idx));
-                }}
-                className="text-xs text-rose-300 hover:text-rose-200"
-              >
-                Remove
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (row.id) onDelete(row.id);
+                    else onChange(drafts.filter((_, i) => i !== idx));
+                  }}
+                  className="text-xs text-rose-300 hover:text-rose-200"
+                >
+                  Remove
+                </button>
+              )}
             </div>
           </div>
           <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
@@ -748,11 +811,13 @@ function CovenantsTable({
               <LabeledField label="Clause text">
                 <textarea
                   value={row.clauseText}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, { clauseText: e.target.value })
                   }
                   rows={3}
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
             </div>
@@ -761,14 +826,30 @@ function CovenantsTable({
                 <input
                   type="date"
                   value={row.deadlineDate ?? ""}
+                  readOnly={readOnly}
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateAt(idx, { deadlineDate: e.target.value || null })
                   }
-                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100"
+                  className="w-full rounded-md border border-line bg-panel px-2 py-1 text-xs text-slate-100 disabled:opacity-60"
                 />
               </LabeledField>
             </div>
           </div>
+
+          {row.id ? (
+            <EvidenceAttachments
+              entityType="covenant"
+              entityId={row.id}
+              fieldKey="evidence"
+              compact
+              readOnly={readOnly}
+            />
+          ) : (
+            <div className="mt-2 text-[10px] italic text-slate-500">
+              Save this covenant before uploading supporting evidence.
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -783,10 +864,12 @@ function MonitoringSection({
   monitoring,
   riskClass,
   onOpenSubmit,
+  readOnly = false,
 }: {
   monitoring: MonitoringReport[];
   riskClass: CapBundle["riskClass"];
   onOpenSubmit: () => void;
+  readOnly?: boolean;
 }) {
   const latest = monitoring[0] ?? null;
   const defaultFreq = frequencyForRiskClass(riskClass);
@@ -824,16 +907,18 @@ function MonitoringSection({
         />
       </div>
 
-      <div>
-        <button
-          type="button"
-          onClick={onOpenSubmit}
-          className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
-          style={{ backgroundColor: "var(--brand-primary)" }}
-        >
-          Submit monitoring report
-        </button>
-      </div>
+      {!readOnly && (
+        <div>
+          <button
+            type="button"
+            onClick={onOpenSubmit}
+            className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
+            style={{ backgroundColor: "var(--brand-primary)" }}
+          >
+            Submit monitoring report
+          </button>
+        </div>
+      )}
 
       {monitoring.length > 0 && (
         <div className="rounded-md border border-line bg-panel">
@@ -878,6 +963,13 @@ function MonitoringSection({
                     {r.notes}
                   </div>
                 )}
+                <EvidenceAttachments
+                  entityType="monitoring_report"
+                  entityId={r.id}
+                  fieldKey="evidence"
+                  compact
+                  readOnly={readOnly}
+                />
               </li>
             ))}
           </ul>

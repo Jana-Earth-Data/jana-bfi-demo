@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DashboardSsrData } from "@/components/bfi/dashboard";
 import {
   Badge,
@@ -41,6 +42,7 @@ import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 import { HydroDocMatrixPanel } from "@/components/bfi/hydro/doc-matrix-panel";
 import { PcafAvailabilityPanel } from "@/components/bfi/pcaf/availability-panel";
 import { CapPanel } from "@/components/bfi/cap/cap-panel";
+import { LoanLockProvider } from "@/components/bfi/shared/loan-lock-context";
 import type {
   PcafComputationResult,
   PcafOption,
@@ -70,11 +72,61 @@ type ManagerRow = {
 
 type OwnerFilter = "all" | "unassigned" | { officerId: string };
 
+/** Workbench sub-tab identifiers (see P30 refactor). */
+export type WorkbenchSubtab = "overview" | "cap" | "pcaf" | "hydro" | "map";
+
+const VALID_WORKBENCH_SUBTABS: ReadonlySet<WorkbenchSubtab> = new Set([
+  "overview",
+  "cap",
+  "pcaf",
+  "hydro",
+  "map",
+]);
+
+const QUEUE_COLLAPSED_STORAGE_KEY = "bfi.esrm.queueCollapsed";
+
 export function EsrmTab({ data }: { data: DashboardSsrData }) {
   const apps = data.applications;
-  const [selectedLoanId, setSelectedLoanId] = useState<string | null>(
-    apps[0]?.loan.id ?? null
-  );
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // ---- URL params (?loan=…&section=…) ---------------------------------
+  //
+  // Deep-links let follow-up pills and notifications jump straight to a
+  // specific loan + sub-tab combo. Read once on mount from the query
+  // string — the sub-tab itself is owned by the workbench render below.
+  const initialLoanParam = searchParams?.get("loan") ?? null;
+  const initialSectionParam = (() => {
+    const raw = searchParams?.get("section");
+    if (raw && VALID_WORKBENCH_SUBTABS.has(raw as WorkbenchSubtab)) {
+      return raw as WorkbenchSubtab;
+    }
+    return null;
+  })();
+
+  const [selectedLoanId, setSelectedLoanId] = useState<string | null>(() => {
+    // Deep-link wins over "first app" default when present and valid.
+    if (initialLoanParam && apps.some((r) => r.loan.id === initialLoanParam)) {
+      return initialLoanParam;
+    }
+    return apps[0]?.loan.id ?? null;
+  });
+
+  // ---- Loan-lock state (P36) -----------------------------------------
+  //
+  // The workbench mounts CAP + PCAF panels, both of which mutate loan-
+  // scoped state. When the officer picks a loan we POST to
+  // /api/loans/[loanId]/claim which will either auto-claim (loan was
+  // unassigned) or report the existing owner (so we can render read-only
+  // for non-owners). The response also drives the LoanLockProvider that
+  // wraps the workbench so the panels know whether to disable inputs.
+  const [loanLock, setLoanLock] = useState<{
+    loanId: string;
+    isOwner: boolean;
+    ownerOfficerId: string | null;
+    ownerOfficerName: string | null;
+  } | null>(null);
 
   // Manager-view aggregate data. Loaded once on mount; refetched when an
   // assignment change happens (via bumpVersion).
@@ -151,7 +203,120 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
     };
   }, [version]);
 
+  // Auto-claim (or lookup owner) whenever the selected loan changes.
+  // Same first-toucher semantics as the wizard pages — opening a loan
+  // in the workbench claims it if it's unassigned; if another officer
+  // owns it, the panels below render read-only via LoanLockProvider.
+  useEffect(() => {
+    if (!selectedLoanId) {
+      setLoanLock(null);
+      return;
+    }
+    // Optimistically null out the previous loan's lock so the panels
+    // don't briefly show the wrong owner while the new fetch is in
+    // flight. Panels fall back to isOwner=true from the default
+    // context, which is fine — the API also enforces the lock.
+    setLoanLock(null);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/loans/${encodeURIComponent(selectedLoanId)}/claim`,
+          { method: "POST" },
+        );
+        if (cancelled) return;
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          ok: boolean;
+          isOwner?: boolean;
+          ownerOfficerId?: string | null;
+          ownerOfficerName?: string | null;
+          autoClaimed?: boolean;
+        };
+        if (!body.ok) return;
+        setLoanLock({
+          loanId: selectedLoanId,
+          isOwner: !!body.isOwner,
+          ownerOfficerId: body.ownerOfficerId ?? null,
+          ownerOfficerName: body.ownerOfficerName ?? null,
+        });
+        // When the endpoint reported an auto-claim, refresh the
+        // manager view so the queue's assignment display catches up.
+        if (body.autoClaimed) bumpVersion();
+      } catch {
+        /* silent — API enforces the lock as defence-in-depth */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLoanId]);
+
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
+
+  // ---- Queue collapse (P30) ------------------------------------------
+  //
+  // Officer preference persists across sessions via localStorage. First
+  // loan selection auto-collapses the queue (giving the workbench 250px
+  // more horizontal breathing room). Explicit toggle in either
+  // direction overrides the auto behavior AND writes the preference.
+  const [queueCollapsed, setQueueCollapsed] = useState<boolean>(false);
+  const [queueCollapseHydrated, setQueueCollapseHydrated] = useState(false);
+  useEffect(() => {
+    // Read persisted preference once after mount.
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(QUEUE_COLLAPSED_STORAGE_KEY);
+      if (stored === "true") setQueueCollapsed(true);
+      else if (stored === "false") setQueueCollapsed(false);
+    } catch {
+      /* localStorage blocked — fall back to default expanded */
+    }
+    setQueueCollapseHydrated(true);
+  }, []);
+
+  // Auto-collapse the first time a loan is selected in a session where
+  // the officer has NOT expressed an explicit preference. Only fires
+  // once, on the null→truthy transition.
+  const [autoCollapseArmed, setAutoCollapseArmed] = useState(true);
+  useEffect(() => {
+    if (!queueCollapseHydrated) return;
+    if (!autoCollapseArmed) return;
+    if (!selectedLoanId) return;
+    // Only auto-collapse if no persisted preference exists.
+    if (typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem(
+          QUEUE_COLLAPSED_STORAGE_KEY,
+        );
+        if (stored === null) {
+          setQueueCollapsed(true);
+        }
+      } catch {
+        setQueueCollapsed(true);
+      }
+    }
+    setAutoCollapseArmed(false);
+  }, [selectedLoanId, autoCollapseArmed, queueCollapseHydrated]);
+
+  const handleQueueCollapseToggle = () => {
+    setQueueCollapsed((prev) => {
+      const next = !prev;
+      setAutoCollapseArmed(false);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(
+            QUEUE_COLLAPSED_STORAGE_KEY,
+            String(next),
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+      return next;
+    });
+  };
 
   const filteredApps = useMemo(() => {
     if (ownerFilter === "all") return apps;
@@ -266,28 +431,78 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-2" data-tour="application-queue">
-          <Panel
-            title="Application queue"
-            subtitle={`${filteredApps.length} of ${apps.length} loans · newest first`}
-          >
-            <OwnerFilterBar
-              value={ownerFilter}
-              officers={data.officers}
-              onChange={setOwnerFilter}
-            />
-            <ApplicationsList
+      <div
+        className={
+          queueCollapsed
+            ? "grid gap-4 lg:grid-cols-[64px_1fr]"
+            : "grid gap-4 lg:grid-cols-5"
+        }
+      >
+        <div
+          className={queueCollapsed ? "" : "lg:col-span-2"}
+          data-tour="application-queue"
+        >
+          {queueCollapsed ? (
+            <CollapsedApplicationQueue
               apps={filteredApps}
               selectedLoanId={selectedLoanId}
               onSelect={setSelectedLoanId}
               managerRows={managerRows}
+              onExpand={handleQueueCollapseToggle}
             />
-          </Panel>
+          ) : (
+            <Panel
+              title="Application queue"
+              subtitle={`${filteredApps.length} of ${apps.length} loans · newest first`}
+              action={
+                <QueueCollapseToggle
+                  collapsed={false}
+                  onToggle={handleQueueCollapseToggle}
+                />
+              }
+            >
+              <OwnerFilterBar
+                value={ownerFilter}
+                officers={data.officers}
+                onChange={setOwnerFilter}
+              />
+              <ApplicationsList
+                apps={filteredApps}
+                selectedLoanId={selectedLoanId}
+                onSelect={setSelectedLoanId}
+                managerRows={managerRows}
+              />
+            </Panel>
+          )}
         </div>
 
-        <div className="grid gap-4 lg:col-span-3" data-tour="screening-workbench">
+        <div
+          className={
+            queueCollapsed ? "grid gap-4" : "grid gap-4 lg:col-span-3"
+          }
+          data-tour="screening-workbench"
+        >
           {selectedRow ? (
+            <LoanLockProvider
+              value={{
+                loanId: selectedRow.loan.id,
+                // Only respect the lock when the fetched lock's loanId
+                // matches — a stale value from the prior loan should
+                // NOT block editing on the newly-selected one.
+                isOwner:
+                  loanLock && loanLock.loanId === selectedRow.loan.id
+                    ? loanLock.isOwner
+                    : true,
+                ownerOfficerId:
+                  loanLock && loanLock.loanId === selectedRow.loan.id
+                    ? loanLock.ownerOfficerId
+                    : null,
+                ownerOfficerName:
+                  loanLock && loanLock.loanId === selectedRow.loan.id
+                    ? loanLock.ownerOfficerName
+                    : null,
+              }}
+            >
             <ScreeningWorkbench
               row={selectedRow}
               prebuiltScreening={data.screenings[selectedRow.borrower.id]}
@@ -297,7 +512,28 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
               officers={data.officers}
               currentOfficer={data.currentOfficer}
               onAssignmentChanged={handleAssignmentChange}
+              initialSubtab={initialSectionParam}
+              onSubtabChange={(next) => {
+                // Reflect the current sub-tab into the URL so pills and
+                // notifications can deep-link. Preserve other params
+                // (loan, bank, etc) and the hash (#esrm).
+                if (typeof window === "undefined") return;
+                const usp = new URLSearchParams(
+                  searchParams?.toString() ?? "",
+                );
+                usp.set("section", next);
+                // Keep the loan param synced with the current selection
+                // for the same reason.
+                if (selectedLoanId) usp.set("loan", selectedLoanId);
+                const hash = window.location.hash || "";
+                const qs = usp.toString();
+                router.replace(
+                  `${pathname ?? "/"}${qs ? `?${qs}` : ""}${hash}`,
+                  { scroll: false },
+                );
+              }}
             />
+            </LoanLockProvider>
           ) : (
             <Panel title="Screening workbench">
               <p className="text-sm text-slate-500">
@@ -312,8 +548,188 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
 }
 
 // ---------------------------------------------------------------------------
-// Application queue (left rail)
+// Application queue (left rail) — expanded + collapsed variants
 // ---------------------------------------------------------------------------
+
+/** Small chevron toggle used at the top of the queue panel. */
+function QueueCollapseToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={collapsed ? "Expand application queue" : "Collapse application queue"}
+      aria-label={
+        collapsed ? "Expand application queue" : "Collapse application queue"
+      }
+      className="rounded-md border border-line bg-panelAlt p-1.5 text-slate-300 transition hover:bg-white/5 hover:text-white"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        {collapsed ? (
+          <>
+            <polyline points="13 17 18 12 13 7" />
+            <polyline points="6 17 11 12 6 7" />
+          </>
+        ) : (
+          <>
+            <polyline points="11 17 6 12 11 7" />
+            <polyline points="18 17 13 12 18 7" />
+          </>
+        )}
+      </svg>
+    </button>
+  );
+}
+
+const RISK_STRIP_COLOR: Record<
+  "low" | "medium" | "high" | "extreme",
+  string
+> = {
+  low: "#64748b", // slate
+  medium: "#f59e0b", // amber
+  high: "#f97316", // orange
+  extreme: "#f43f5e", // rose
+};
+
+function borrowerInitials(name: string): string {
+  const clean = name.replace(/[^A-Za-z0-9\s]/g, "").trim();
+  if (!clean) return "??";
+  const parts = clean.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function CollapsedApplicationQueue({
+  apps,
+  selectedLoanId,
+  onSelect,
+  managerRows,
+  onExpand,
+}: {
+  apps: LoanRow[];
+  selectedLoanId: string | null;
+  onSelect: (id: string) => void;
+  managerRows: Map<string, ManagerRow>;
+  onExpand: () => void;
+}) {
+  const anyEscalated = apps.some(
+    (r) => managerRows.get(r.loan.id)?.escalated
+  );
+  return (
+    <div
+      className="flex flex-col items-stretch gap-1 rounded-2xl border border-line bg-panelAlt p-1.5"
+      title={`Application queue · ${apps.length} loan${apps.length === 1 ? "" : "s"} under review · Click any tile to open its workbench · Click the chevron to expand for full detail`}
+    >
+      <div className="flex justify-center pt-0.5 pb-1">
+        <QueueCollapseToggle collapsed onToggle={onExpand} />
+      </div>
+      {/*
+        Compact header so a first-time viewer immediately understands what
+        this slim strip represents. Text is intentionally tiny so it fits
+        the 64-px collapsed column without wrapping.
+      */}
+      <div className="px-1 pb-1 text-center">
+        <div className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">
+          Queue
+        </div>
+        <div className="text-[13px] font-semibold text-white leading-tight">
+          {apps.length}
+        </div>
+      </div>
+      <div className="max-h-[600px] overflow-y-auto">
+        <ul className="flex flex-col gap-1">
+          {apps.map((r) => {
+            const isSel = r.loan.id === selectedLoanId;
+            const m = managerRows.get(r.loan.id);
+            const risk = m?.riskClass ?? null;
+            const stripColor = risk ? RISK_STRIP_COLOR[risk] : "#334155";
+            const riskLabel = risk ? risk[0].toUpperCase() + risk.slice(1) : "Not screened";
+            return (
+              <li key={r.loan.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(r.loan.id)}
+                  title={`${r.borrower.name} · ${r.loan.id}\nRisk: ${riskLabel}${m?.escalated ? " · Escalated" : ""}`}
+                  aria-label={`Select loan ${r.loan.id} for ${r.borrower.name}`}
+                  className={`relative flex h-12 w-full items-center justify-center rounded-md border transition-colors ${
+                    isSel
+                      ? "border-accent bg-accent/10 ring-2 ring-accent/50"
+                      : "border-line bg-panel/60 hover:border-line/80"
+                  }`}
+                >
+                  <span
+                    className="absolute left-0 top-1 bottom-1 w-1 rounded-r"
+                    style={{ backgroundColor: stripColor }}
+                    aria-hidden
+                  />
+                  <span className="text-[11px] font-semibold text-slate-200">
+                    {borrowerInitials(r.borrower.name)}
+                  </span>
+                  {m?.escalated && (
+                    <span
+                      title="Escalated"
+                      className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_0_2px_rgba(15,23,42,1)]"
+                      aria-hidden
+                    />
+                  )}
+                </button>
+              </li>
+            );
+          })}
+          {apps.length === 0 && (
+            <li className="px-2 py-6 text-center text-[10px] text-slate-500">
+              None
+            </li>
+          )}
+        </ul>
+      </div>
+      {/*
+        Legend footer — orients a first-time viewer to what the color
+        stripe and red dot mean. Uses miniature sample glyphs so the
+        legend visually matches the tiles above it.
+      */}
+      <div className="mt-1 border-t border-line/50 pt-1.5 pb-0.5 space-y-1">
+        <div className="flex items-center gap-1.5 px-1" title="Left stripe color = NRB Circular 22 risk class (low → extreme)">
+          <span
+            className="h-3 w-1 rounded-r"
+            style={{ backgroundColor: "#f43f5e" }}
+            aria-hidden
+          />
+          <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">
+            Risk
+          </span>
+        </div>
+        {anyEscalated && (
+          <div className="flex items-center gap-1.5 px-1" title="Red dot = escalated to credit committee (any 'c' answer in NRB Circular 22 Annex 5)">
+            <span
+              className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_0_2px_rgba(15,23,42,1)]"
+              aria-hidden
+            />
+            <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">
+              Esc.
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ApplicationsList({
   apps,
@@ -993,6 +1409,69 @@ function AssignmentControl({
 // Workbench (right pane)
 // ---------------------------------------------------------------------------
 
+/**
+ * Horizontal sub-tab strip inside the workbench. Style matches the main
+ * dashboard tab strip (brand-primary underline for the active tab) but
+ * scoped and slightly smaller — this is a "second-tier" navigation
+ * inside the ESRM tab, not top-level.
+ */
+function WorkbenchSubtabStrip({
+  active,
+  onChange,
+  showHydro,
+  showMap,
+}: {
+  active: WorkbenchSubtab;
+  onChange: (next: WorkbenchSubtab) => void;
+  showHydro: boolean;
+  showMap: boolean;
+}) {
+  const items: Array<{ id: WorkbenchSubtab; label: string; show: boolean }> = [
+    { id: "overview", label: "Overview", show: true },
+    { id: "cap", label: "CAP + Covenants", show: true },
+    { id: "pcaf", label: "PCAF", show: true },
+    { id: "hydro", label: "Hydropower docs", show: showHydro },
+    { id: "map", label: "Facility map", show: showMap },
+  ];
+  return (
+    <nav
+      className="rounded-2xl border border-line bg-panel/60"
+      data-tour="workbench-subtabs"
+      role="tablist"
+      aria-label="Workbench section"
+    >
+      <div className="flex flex-wrap gap-1 px-3">
+        {items
+          .filter((it) => it.show)
+          .map((it) => {
+            const isActive = active === it.id;
+            return (
+              <button
+                key={it.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => onChange(it.id)}
+                className={`relative -mb-px border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
+                  isActive
+                    ? "text-white"
+                    : "border-transparent text-slate-400 hover:text-white"
+                }`}
+                style={
+                  isActive
+                    ? { borderColor: "var(--brand-primary)" }
+                    : undefined
+                }
+              >
+                {it.label}
+              </button>
+            );
+          })}
+      </div>
+    </nav>
+  );
+}
+
 function ScreeningWorkbench({
   row,
   prebuiltScreening,
@@ -1002,6 +1481,8 @@ function ScreeningWorkbench({
   officers,
   currentOfficer,
   onAssignmentChanged,
+  initialSubtab,
+  onSubtabChange,
 }: {
   row: LoanRow;
   prebuiltScreening?: import("@/lib/types/bfi").BorrowerScreening;
@@ -1014,6 +1495,10 @@ function ScreeningWorkbench({
     loanId: string,
     assignment: { officerId: string; officerName: string } | null,
   ) => void;
+  /** Deep-link seed: ?section= param resolved by the outer tab. */
+  initialSubtab: WorkbenchSubtab | null;
+  /** Fired on every user-initiated sub-tab change so the URL can update. */
+  onSubtabChange: (next: WorkbenchSubtab) => void;
 }) {
   const { loan, borrower, attribution: baseAttribution } = row;
   const screening = useMemo(
@@ -1024,6 +1509,46 @@ function ScreeningWorkbench({
   const openaqLive = !!liveEnrichment?.openaq;
   const [esddOpen, setEsddOpen] = useState(false);
   const [sanityOpen, setSanityOpen] = useState(false);
+
+  // ---- Sub-tab state (P30) -------------------------------------------
+  //
+  // Each domain gets its own real estate inside the workbench. The
+  // "hydro" sub-tab is only exposed when the borrower's sector is
+  // hydropower; if the deep-link asks for it on a non-hydro loan we
+  // fall back to "overview" (the auditor-friendly default).
+  const showHydroSubtab = isHydroBorrower(borrower.nrbSector);
+  const [subTab, setSubTab] = useState<WorkbenchSubtab>(() => {
+    if (initialSubtab === "hydro" && !showHydroSubtab) return "overview";
+    return initialSubtab ?? "overview";
+  });
+
+  // Reset to overview whenever the loan changes — a sibling borrower's
+  // PCAF panel shouldn't stay open when the officer clicks a new row.
+  useEffect(() => {
+    setSubTab("overview");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loan.id]);
+
+  // Listen for tour-driven sub-tab switches (see TourStep.workbenchSubtab).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (evt: Event) => {
+      const detail = (evt as CustomEvent<WorkbenchSubtab>).detail;
+      if (!detail || !VALID_WORKBENCH_SUBTABS.has(detail)) return;
+      // Guard against switching to hydro on a non-hydro loan.
+      if (detail === "hydro" && !showHydroSubtab) return;
+      setSubTab(detail);
+    };
+    window.addEventListener("bfi:workbench-subtab", handler);
+    return () => window.removeEventListener("bfi:workbench-subtab", handler);
+  }, [showHydroSubtab]);
+
+  const handleSubTabChange = (next: WorkbenchSubtab) => {
+    setSubTab(next);
+    onSubtabChange(next);
+  };
+
+  const hasFacilityMap = borrower.facilities.length > 0;
 
   // Live-refresh source of truth for the "PCAF data quality for this loan"
   // panel below the availability collection panel.  Seeded from the SSR
@@ -1113,6 +1638,14 @@ function ScreeningWorkbench({
 
   return (
     <>
+      <WorkbenchSubtabStrip
+        active={subTab}
+        onChange={handleSubTabChange}
+        showHydro={showHydroSubtab}
+        showMap={hasFacilityMap}
+      />
+
+      {subTab === "overview" && (
       <Panel
         title="Borrower screening"
         subtitle="ESRM data sources: Climate TRACE · Global Cement and Concrete Tracker · OpenAQ · EDGAR · GEM ownership"
@@ -1204,19 +1737,8 @@ function ScreeningWorkbench({
               />
             </div>
 
-            {/* Hydropower documentation matrix — NRB Circular 22 Annex 2.
-                Pre-approval documentation gate for hydro loans. Rendered
-                ABOVE the ESDD compliance stripe since it's a hard
-                pre-disbursement checklist, not a risk-scored screening.
-                Only mounted for hydro-sector borrowers. */}
-            {isHydroBorrower(borrower.nrbSector) && (
-              <div className="mt-3">
-                <HydroDocMatrixPanel
-                  loanId={loan.id}
-                  borrowerId={borrower.id}
-                />
-              </div>
-            )}
+            {/* Hydropower documentation matrix moved to its own
+                "Hydropower docs" sub-tab (P30). See render below. */}
 
             {/* Compliance status stripe — live ESDD + Taxonomy for this loan.
                 Renders inline in the workbench so the manager doesn't have
@@ -1449,23 +1971,31 @@ function ScreeningWorkbench({
           </div>
         </div>
       </Panel>
+      )}
+
+      {/* Hydropower documentation matrix — NRB Circular 22 Annex 2.
+          Pre-approval documentation gate for hydro loans. Own sub-tab
+          per P30 refactor; conditional on borrower sector = hydropower. */}
+      {subTab === "hydro" && showHydroSubtab && (
+        <HydroDocMatrixPanel loanId={loan.id} borrowerId={borrower.id} />
+      )}
 
       {/* Corrective Action Plan + E&S Covenants + Monitoring — NRB
           Circular 22 §7.3.5 (Annex 8 CAP + Annex 9 covenants) + §7.3.7
           (Annex 10 monitoring). The panel fetches the loan's latest
           saved ESRM screening and returns null when the risk class is
-          Low (Low-risk loans don't require a CAP per §7.3.5). Rendered
-          ABOVE the PCAF availability panel so escalated loans get the
-          mitigation-planning surface before the disclosure surface. */}
-      <CapPanel loanId={loan.id} borrowerId={borrower.id} />
+          Low (Low-risk loans don't require a CAP per §7.3.5). */}
+      {subTab === "cap" && (
+        <CapPanel loanId={loan.id} borrowerId={borrower.id} />
+      )}
 
-      {/* PCAF Data Availability — analyst confirmation.  Renders ABOVE
-          the "PCAF data quality for this loan" panel so the officer
-          confirms / overrides the flags first, then sees the resulting
-          score refresh in place.  Save propagates a fresh compute up
-          via `handlePcafAvailabilitySaved` so the neighbour panel below
-          re-renders with the new score / option / citation without any
-          route hop. */}
+      {/* PCAF Data Availability + Data Quality — analyst confirmation
+          stacked over the computed score. Save on the top panel
+          propagates a fresh compute up via `handlePcafAvailabilitySaved`
+          so the neighbour panel below re-renders with the new score /
+          option / citation without any route hop. */}
+      {subTab === "pcaf" && (
+      <>
       <PcafAvailabilityPanel
         borrower={borrower}
         onSaved={handlePcafAvailabilitySaved}
@@ -1535,8 +2065,10 @@ function ScreeningWorkbench({
           </div>
         </div>
       </Panel>
+      </>
+      )}
 
-      {borrower.facilities.length > 0 && (
+      {subTab === "map" && hasFacilityMap && (
         <div data-tour="facility-map">
           <Panel
             title="Facility locations"
@@ -1561,6 +2093,15 @@ function ScreeningWorkbench({
             </div>
           </Panel>
         </div>
+      )}
+
+      {subTab === "map" && !hasFacilityMap && (
+        <Panel title="Facility locations">
+          <p className="text-sm text-slate-500">
+            No geolocated facility data for this borrower. Climate TRACE
+            and GCCT registry lookups returned no matches.
+          </p>
+        </Panel>
       )}
 
       {esddOpen && (

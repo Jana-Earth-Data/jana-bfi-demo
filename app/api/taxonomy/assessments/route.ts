@@ -17,6 +17,7 @@ import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
+import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Owner-only edit (P36). Reject writes from a non-owner.
+  const denied = await assertOwnerOrRespond(loanId, officer, tenant);
+  if (denied) return denied;
+
   const derivation = activity.classify(answers);
 
   const { data: inserted, error } = await supabase
@@ -86,6 +91,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: `Assessment insert failed: ${error.message}` },
       { status: 500 },
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // First-toucher owns it: after a successful taxonomy save, upsert an
+  // assignment row IFF none exists yet. Without this, the Manager view
+  // (which reads only from bfi_loan_assignments) shows the loan as
+  // unassigned even though the officer is clearly working on it. This
+  // path is deliberately non-blocking — any failure here MUST NOT fail
+  // the primary assessment insert, which the officer's UI depends on.
+  // ------------------------------------------------------------------
+  try {
+    const { data: existing } = await supabase
+      .from("bfi_loan_assignments")
+      .select("id")
+      .eq("bank_id", tenant.id)
+      .eq("loan_id", loanId)
+      .maybeSingle();
+    if (!existing) {
+      const { error: assignErr } = await supabase
+        .from("bfi_loan_assignments")
+        .insert({
+          bank_id: tenant.id,
+          loan_id: loanId,
+          officer_id: officer.id,
+          assigned_by: officer.id,
+          assigned_at: new Date().toISOString(),
+        });
+      if (assignErr) {
+        console.warn(
+          "[taxonomy/assessments] auto-claim assignment insert failed (non-fatal):",
+          assignErr.message,
+        );
+      }
+    }
+  } catch (err) {
+    console.warn(
+      "[taxonomy/assessments] auto-claim assignment lookup failed (non-fatal):",
+      err,
     );
   }
 
@@ -193,6 +237,10 @@ export async function DELETE(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Owner-only edit (P36).
+  const denied = await assertOwnerOrRespond(loanId, officer, tenant);
+  if (denied) return denied;
 
   const { error, count } = await supabase
     .from("bfi_taxonomy_assessments")

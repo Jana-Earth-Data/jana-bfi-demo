@@ -14,10 +14,12 @@ import { notFound, redirect } from "next/navigation";
 import { TaxonomyWizard } from "@/components/bfi/taxonomy/wizard";
 import { TaxonomyGateScreen } from "@/components/bfi/taxonomy/gate-screen";
 import { TenantThemeProvider } from "@/components/bfi/tenant-theme";
+import { LoanLockProvider } from "@/components/bfi/shared/loan-lock-context";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { getBorrowerDetail } from "@/lib/data/portfolio-query";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
+import { resolveLoanLockFor } from "@/lib/officers/loan-lock";
 import { suggestActivitiesForSector } from "@/lib/regulatory/taxonomy/applicability";
 import { checkEsrmBeforeTaxonomyGate } from "@/lib/regulatory/taxonomy/gate";
 
@@ -64,15 +66,29 @@ export default async function TaxonomyWizardPage({
     detail.borrower.nrbSector,
   ).map((a) => a.id);
 
+  // First-toucher owns it (P36): auto-claim on load if the loan is
+  // currently unassigned; otherwise resolve the existing owner so the
+  // wizard can render read-only for non-owners.
+  const lock = await resolveLoanLockFor(loan.id, tenant, officer);
+
   return (
     <TenantThemeProvider tenant={tenant}>
-      <TaxonomyWizard
-        tenantName={tenant.branding.displayName}
-        officer={officer}
-        loan={loan}
-        borrower={detail.borrower}
-        suggestedActivityIds={suggestedActivityIds}
-      />
+      <LoanLockProvider
+        value={{
+          loanId: loan.id,
+          isOwner: lock.isOwner,
+          ownerOfficerId: lock.ownerOfficerId,
+          ownerOfficerName: lock.ownerOfficerName,
+        }}
+      >
+        <TaxonomyWizard
+          tenantName={tenant.branding.displayName}
+          officer={officer}
+          loan={loan}
+          borrower={detail.borrower}
+          suggestedActivityIds={suggestedActivityIds}
+        />
+      </LoanLockProvider>
     </TenantThemeProvider>
   );
 }

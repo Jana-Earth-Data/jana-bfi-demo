@@ -17,10 +17,12 @@
 import { notFound, redirect } from "next/navigation";
 import { PfScreeningWizard } from "@/components/bfi/pf-screening/wizard";
 import { TenantThemeProvider } from "@/components/bfi/tenant-theme";
+import { LoanLockProvider } from "@/components/bfi/shared/loan-lock-context";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { getBorrowerDetail } from "@/lib/data/portfolio-query";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
+import { resolveLoanLockFor } from "@/lib/officers/loan-lock";
 import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
 
 export const dynamic = "force-dynamic";
@@ -58,14 +60,28 @@ export default async function PfScreeningWizardPage({
     redirect(`/esdd/${loanId}?notice=not-project-finance`);
   }
 
+  // First-toucher owns it (P36): auto-claim on load if the loan is
+  // currently unassigned; otherwise resolve the existing owner so the
+  // wizard can render read-only for non-owners.
+  const lock = await resolveLoanLockFor(loan.id, tenant, officer);
+
   return (
     <TenantThemeProvider tenant={tenant}>
-      <PfScreeningWizard
-        tenantName={tenant.branding.displayName}
-        officer={officer}
-        loan={loan}
-        borrower={detail.borrower}
-      />
+      <LoanLockProvider
+        value={{
+          loanId: loan.id,
+          isOwner: lock.isOwner,
+          ownerOfficerId: lock.ownerOfficerId,
+          ownerOfficerName: lock.ownerOfficerName,
+        }}
+      >
+        <PfScreeningWizard
+          tenantName={tenant.branding.displayName}
+          officer={officer}
+          loan={loan}
+          borrower={detail.borrower}
+        />
+      </LoanLockProvider>
     </TenantThemeProvider>
   );
 }

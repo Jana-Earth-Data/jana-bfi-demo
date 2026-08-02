@@ -76,13 +76,30 @@ export type LoanCard = {
   };
   /**
    * NRB ESRM 2022 Annex 5b — Project Finance Screening Questionnaire
-   * status. Populated only when the loan is a Project Finance loan; null
-   * on all other loans.
+   * status. `required` is true only for Project Finance loans; on all
+   * other loans the whole flow is skipped and the values are inert.
+   *
+   * `itemsTotal` is emitted as a constant (148 = ANNEX5B_ALL.length)
+   * so the client doesn't have to import the catalog just to render
+   * "Continue N/148" on the loan card.
    */
   pfScreening: {
     required: boolean;
     itemsAnswered: number;
+    itemsTotal: number;
     riskClass: "low" | "medium" | "high" | "critical" | null;
+    completed: boolean;
+  };
+  /**
+   * PCAF Global GHG Standard Part A §5 data-availability confirmation.
+   * Required on every loan under NFRS. The demo represents the four
+   * flags as a single row in bfi_pcaf_availability (per-borrower); once
+   * the row exists the four flags have been confirmed together, so
+   * flagsConfirmed jumps 0 → 4 on first save.
+   */
+  pcafAvailability: {
+    flagsConfirmed: number;
+    flagsTotal: 4;
     completed: boolean;
   };
 };
@@ -318,6 +335,39 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
+  // 5c. PCAF data-availability confirmation (per BORROWER, not per
+  // loan). One row in bfi_pcaf_availability means the officer has
+  // saved the four §5 flags together for that borrower. Batched into a
+  // single tenant-scoped query for every borrower in the candidate set
+  // to avoid an N+1.
+  // ------------------------------------------------------------------
+  const candidateBorrowerIds = Array.from(
+    new Set(
+      Array.from(candidateLoanIds)
+        .map((id) => loanById.get(id)?.borrowerId)
+        .filter((v): v is string => typeof v === "string"),
+    ),
+  );
+  const { data: pcafRows, error: pcafErr } =
+    candidateBorrowerIds.length > 0
+      ? await supabase
+          .from("bfi_pcaf_availability")
+          .select("borrower_id")
+          .eq("bank_id", tenant.id)
+          .in("borrower_id", candidateBorrowerIds)
+      : { data: [], error: null };
+  if (pcafErr) {
+    return NextResponse.json(
+      { error: `PCAF availability query failed: ${pcafErr.message}` },
+      { status: 500 },
+    );
+  }
+  const pcafConfirmedBorrowerIds = new Set<string>();
+  for (const row of pcafRows ?? []) {
+    pcafConfirmedBorrowerIds.add(row.borrower_id);
+  }
+
+  // ------------------------------------------------------------------
   // 6. Build a LoanCard for every candidate loan, then bucket.
   // ------------------------------------------------------------------
   const cards: LoanCard[] = [];
@@ -409,8 +459,16 @@ export async function GET() {
       pfScreening: {
         required: pfRequired,
         itemsAnswered: pfAnswered,
+        itemsTotal: pfTotalItems,
         riskClass: pfResult?.riskClass ?? null,
         completed: pfDone,
+      },
+      pcafAvailability: {
+        // The four §5 flags are saved as a single row per borrower —
+        // the row's presence means the officer has confirmed the set.
+        flagsConfirmed: pcafConfirmedBorrowerIds.has(borrower.id) ? 4 : 0,
+        flagsTotal: 4,
+        completed: pcafConfirmedBorrowerIds.has(borrower.id),
       },
     });
   }
@@ -454,9 +512,59 @@ export async function GET() {
     return bt.localeCompare(at);
   });
 
+  // ------------------------------------------------------------------
+  // P36 — split the cards into two officer-facing sections:
+  //
+  //   myLoans          = loans owned by this officer (assigned via
+  //                      bfi_loan_assignments) OR touched by this
+  //                      officer (has attributed ESDD activity). Every
+  //                      compliance CTA is available.
+  //   availableToClaim = loans currently unassigned and untouched by
+  //                      this officer. Renders as a simple row with an
+  //                      Open CTA — clicking navigates to the wizard,
+  //                      which auto-claims on load.
+  //
+  // A loan the officer has touched but not yet been auto-claimed for
+  // (should be rare given P34/P36) stays in myLoans.
+  // ------------------------------------------------------------------
+  const myLoans: LoanCard[] = [];
+  const availableToClaim: LoanCard[] = [];
+  for (const c of cards) {
+    const owned = myAssignedLoanIds.has(c.loanId);
+    const touched = byLoan.has(c.loanId);
+    if (owned || touched) {
+      myLoans.push(c);
+    } else if (!assignedLoanIds.has(c.loanId)) {
+      availableToClaim.push(c);
+    }
+    // Loans assigned to a different officer are intentionally excluded
+    // from both sections — the officer picker / manager reassignment
+    // paths are how those become visible.
+  }
+  // My loans: escalated first, then most-recently-active first.
+  myLoans.sort((a, b) => {
+    if (a.esdd.escalated !== b.esdd.escalated)
+      return a.esdd.escalated ? -1 : 1;
+    const at = a.lastActivityAt ?? "";
+    const bt = b.lastActivityAt ?? "";
+    return bt.localeCompare(at);
+  });
+  // Available: newest applications first (proxy via lastActivityAt);
+  // this is stable-ish for the demo without a loan-created timestamp.
+  availableToClaim.sort((a, b) => {
+    const at = a.lastActivityAt ?? "";
+    const bt = b.lastActivityAt ?? "";
+    return bt.localeCompare(at) || a.borrowerName.localeCompare(b.borrowerName);
+  });
+
   return NextResponse.json({
     ok: true,
     officer: { id: officer.id, name: officer.name, role: officer.role },
+    // New split view (P36).
+    myLoans,
+    availableToClaim,
+    // Legacy fields — kept for callers that haven't migrated to the
+    // split view. Compute unchanged.
     needsAttention,
     inReview,
     recentlyClosed,

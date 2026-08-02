@@ -19,6 +19,7 @@ import { getBfiDemoData } from "@/lib/api/bfi";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
+import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
 import type {
   CapBundle,
   CapItem,
@@ -371,6 +372,12 @@ export async function POST(request: NextRequest, { params }: Params) {
       { status: 400 },
     );
   }
+
+  // Owner-only edit (P36). CAP items, covenants, and monitoring reports
+  // are all loan-scoped writes — reject if the current officer is not
+  // the loan's assigned owner.
+  const denied = await assertOwnerOrRespond(loanId, officer, tenant);
+  if (denied) return denied;
 
   // 1) CAP items — insert (no id) or update (with id).
   const itemInserts: Array<Record<string, unknown>> = [];

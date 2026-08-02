@@ -40,6 +40,9 @@ import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
 import type { TenantSettings } from "@/lib/settings/types";
 import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { remarksRequiredForSection } from "@/lib/settings/schema";
+import { EvidenceAttachments } from "@/components/bfi/shared/evidence-attachments";
+import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
+import { LockedByBanner } from "@/components/bfi/shared/locked-by-banner";
 
 // Steps: 0 basics, 1 general, 2 ehs, 3 social, 4 review.
 // Circular 22 has no sector supplement — the wizard reduces to 5 steps.
@@ -74,6 +77,12 @@ export function EsddWizard({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Loan-lock context — P36. When the current officer is NOT the loan's
+  // owner every input on this wizard renders read-only and the top of
+  // the page shows a lock banner. The API also enforces this so a
+  // URL-crafter can't bypass it.
+  const { isOwner, ownerOfficerName } = useLoanLock();
+  const readOnly = !isOwner;
   // Guided-tour hook: when the URL carries ?tourStep=N, the wizard
   // renders that specific step and skips the auto-jump-to-Review
   // behavior that normally kicks in when a saved screening exists.
@@ -243,18 +252,25 @@ export function EsddWizard({
         borrower={borrower}
         onSaveExit={() => router.push("/")}
         onDiscardExit={() => router.push("/")}
+        readOnly={readOnly}
       />
       <div className="mx-auto flex max-w-5xl gap-6 p-6">
         <aside className="hidden w-56 shrink-0 md:block">
           <StepIndicator step={step} steps={steps} onJump={(s) => setStep(s as WizardStep)} />
         </aside>
-        <main className="flex-1">
+        <main className="flex-1 flex flex-col gap-4">
+          {readOnly && <LockedByBanner ownerName={ownerOfficerName} />}
           {loading ? (
             <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
               Loading existing answers…
             </div>
           ) : step === 0 ? (
-            <BasicInfoStep loan={loan} borrower={borrower} onContinue={() => setStep(1)} />
+            <BasicInfoStep
+              loan={loan}
+              borrower={borrower}
+              onContinue={() => setStep(1)}
+              readOnly={readOnly}
+            />
           ) : step === 1 ? (
             <SectionStep
               title="Section 1 — General Risk"
@@ -265,6 +281,8 @@ export function EsddWizard({
               onBack={() => setStep(0)}
               onContinue={() => setStep(2)}
               remarksRequired={remarksRequiredForSection("general", tenantSettings)}
+              loanId={loan.id}
+              readOnly={readOnly}
             />
           ) : step === 2 ? (
             <SectionStep
@@ -276,6 +294,8 @@ export function EsddWizard({
               onBack={() => setStep(1)}
               onContinue={() => setStep(3)}
               remarksRequired={remarksRequiredForSection("ehs", tenantSettings)}
+              loanId={loan.id}
+              readOnly={readOnly}
             />
           ) : step === 3 ? (
             <SectionStep
@@ -287,6 +307,8 @@ export function EsddWizard({
               onBack={() => setStep(2)}
               onContinue={advanceFromSocial}
               remarksRequired={remarksRequiredForSection("social", tenantSettings)}
+              loanId={loan.id}
+              readOnly={readOnly}
             />
           ) : (
             <ReviewStep
@@ -296,6 +318,7 @@ export function EsddWizard({
               priorScreening={priorScreening}
               onBack={backFromReview}
               onExit={() => router.push("/")}
+              readOnly={readOnly}
             />
           )}
         </main>
@@ -311,6 +334,7 @@ function TopBar({
   borrower,
   onSaveExit,
   onDiscardExit,
+  readOnly = false,
 }: {
   tenantName: string;
   officer: Officer;
@@ -318,6 +342,9 @@ function TopBar({
   borrower: Borrower;
   onSaveExit: () => void;
   onDiscardExit: () => void;
+  /** Hide destructive actions (Discard, Save & exit) when the current
+   *  officer does not own this loan. */
+  readOnly?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -364,21 +391,27 @@ function TopBar({
             <div className="text-slate-300">{officer.name}</div>
             <div className="text-slate-500">{ROLE_LABEL[officer.role]}</div>
           </div>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
-            title="Discard every answer you have recorded for this loan"
-          >
-            Exit without saving
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
+              title="Discard every answer you have recorded for this loan"
+            >
+              Exit without saving
+            </button>
+          )}
           <button
             type="button"
             onClick={onSaveExit}
             className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
-            title="Answers are auto-saved as you record them. This just closes the wizard."
+            title={
+              readOnly
+                ? "Close the wizard and return to the dashboard."
+                : "Answers are auto-saved as you record them. This just closes the wizard."
+            }
           >
-            Save & exit
+            {readOnly ? "Close" : "Save & exit"}
           </button>
         </div>
       </div>
@@ -505,10 +538,12 @@ function BasicInfoStep({
   loan,
   borrower,
   onContinue,
+  readOnly = false,
 }: {
   loan: Loan;
   borrower: Borrower;
   onContinue: () => void;
+  readOnly?: boolean;
 }) {
   // Loan Category is required per Circular 22 Excel B13 (dropdown
   // `Tempor!A1:A4`). Prefilled from the loan + borrower record so the
@@ -550,11 +585,12 @@ function BasicInfoStep({
           <select
             id="esdd-loan-category"
             required
+            disabled={readOnly}
             value={loanCategory}
             onChange={(e) =>
               setLoanCategory(e.target.value as EsddLoanCategory | "")
             }
-            className="mt-1 w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 focus:outline-none disabled:opacity-60"
           >
             <option value="" disabled>
               Select loan category…
@@ -615,6 +651,8 @@ function SectionStep({
   onBack,
   onContinue,
   remarksRequired,
+  loanId,
+  readOnly = false,
 }: {
   title: string;
   subtitle?: string;
@@ -628,6 +666,10 @@ function SectionStep({
    *  string before the "Continue" button will advance. Driven by
    *  tenant settings (see /settings → ESRM). */
   remarksRequired: boolean;
+  /** Loan id — required to key evidence attachments per question. */
+  loanId: string;
+  /** When true, disable every input in this section (non-owner view). */
+  readOnly?: boolean;
 }) {
   const answered = questions.filter((q) => responses[q.id]).length;
   // Tenant-setting-driven check: which answered questions are missing
@@ -686,6 +728,8 @@ function SectionStep({
           remarksMissing={
             showRemarksError && missingRemarksIds.includes(q.id)
           }
+          loanId={loanId}
+          readOnly={readOnly}
         />
       ))}
 
@@ -724,6 +768,8 @@ function QuestionCard({
   onAnswer,
   remarksRequired = false,
   remarksMissing = false,
+  loanId,
+  readOnly = false,
 }: {
   question: EsddQuestion;
   stored: StoredResponse | null;
@@ -736,6 +782,11 @@ function QuestionCard({
    *  error and this question is one of the offenders. Highlights the
    *  textarea. */
   remarksMissing?: boolean;
+  /** Loan id — used to key evidence attachments to (loan, question). */
+  loanId: string;
+  /** When true, disable radios / textarea / evidence upload — the
+   *  current officer does not own this loan. */
+  readOnly?: boolean;
 }) {
   const [remarks, setRemarks] = useState<string>(stored?.remarks ?? "");
   const current = stored?.answer;
@@ -754,10 +805,11 @@ function QuestionCard({
             <button
               key={letter}
               type="button"
+              disabled={readOnly}
               onClick={() =>
                 onAnswer(question, letter, remarks || undefined)
               }
-              className={`flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+              className={`flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
                 isSelected
                   ? "bg-white/5"
                   : "border-line bg-panelAlt hover:bg-white/5"
@@ -807,8 +859,10 @@ function QuestionCard({
           }}
           rows={2}
           required={remarksRequired && current !== undefined}
+          readOnly={readOnly}
+          disabled={readOnly}
           placeholder="Field notes, evidence references, mitigation commitments…"
-          className={`w-full rounded-md border bg-panelAlt px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none ${
+          className={`w-full rounded-md border bg-panelAlt px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none disabled:opacity-60 ${
             remarksMissing ? "border-rose-500/60" : "border-line"
           }`}
         />
@@ -817,6 +871,12 @@ function QuestionCard({
             Remarks required on this answered question.
           </div>
         )}
+        <EvidenceAttachments
+          entityType="esdd"
+          entityId={loanId}
+          fieldKey={question.id}
+          readOnly={readOnly}
+        />
       </div>
 
       {question.guidanceNotes && question.guidanceNotes.length > 0 && (
@@ -869,6 +929,7 @@ function ReviewStep({
   priorScreening,
   onBack,
   onExit,
+  readOnly = false,
 }: {
   loan: Loan;
   borrower: Borrower;
@@ -876,6 +937,8 @@ function ReviewStep({
   priorScreening: SavedScreening | null;
   onBack: () => void;
   onExit: () => void;
+  /** When true, hide the "Save screening" / "Re-run" buttons. */
+  readOnly?: boolean;
 }) {
   const totalAnswered = Object.keys(responses).length;
   const totalQuestions =
@@ -922,12 +985,16 @@ function ReviewStep({
         borrower={borrower}
         loan={loan}
         onExit={onExit}
-        onRerun={() => {
-          // Drop into the review form so the officer can re-compute
-          // against the current responses. The prior screening stays in
-          // the audit trail either way.
-          setSaved(null);
-        }}
+        onRerun={
+          readOnly
+            ? undefined
+            : () => {
+                // Drop into the review form so the officer can re-compute
+                // against the current responses. The prior screening
+                // stays in the audit trail either way.
+                setSaved(null);
+              }
+        }
       />
     );
   }
@@ -981,19 +1048,21 @@ function ReviewStep({
           >
             ← Back
           </button>
-          <button
-            type="button"
-            onClick={saveScreening}
-            disabled={saving || totalAnswered === 0}
-            className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
-            style={{ backgroundColor: "var(--brand-primary)" }}
-          >
-            {saving
-              ? "Saving screening…"
-              : isRerun
-                ? "Re-run screening with current answers"
-                : "Compute risk and save screening"}
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={saveScreening}
+              disabled={saving || totalAnswered === 0}
+              className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+              style={{ backgroundColor: "var(--brand-primary)" }}
+            >
+              {saving
+                ? "Saving screening…"
+                : isRerun
+                  ? "Re-run screening with current answers"
+                  : "Compute risk and save screening"}
+            </button>
+          )}
         </div>
       </div>
     </div>

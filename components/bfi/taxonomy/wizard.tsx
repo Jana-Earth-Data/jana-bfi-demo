@@ -30,6 +30,8 @@ import {
   type TaxonomyCriterion,
 } from "@/lib/regulatory/taxonomy/activities";
 import { formatNpr } from "@/components/bfi/ui";
+import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
+import { LockedByBanner } from "@/components/bfi/shared/locked-by-banner";
 
 type WizardStep = 0 | 1 | 2 | 3;
 
@@ -81,6 +83,11 @@ export function TaxonomyWizard({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Loan-lock context — P36. When the current officer is NOT the loan's
+  // owner every input on this wizard renders read-only and the top of
+  // the page shows a lock banner. The API also enforces this.
+  const { isOwner, ownerOfficerName } = useLoanLock();
+  const readOnly = !isOwner;
   // Guided-tour hook: when the URL carries ?tourStep=N the wizard
   // renders that step and suppresses the auto-jump-to-Review that
   // normally shows a saved assessment on mount. The loan-officer tour
@@ -231,6 +238,7 @@ export function TaxonomyWizard({
         hasPriorAssessment={savedFromApi !== null}
         onSaveExit={() => router.push("/")}
         onDiscardExit={() => router.push("/")}
+        readOnly={readOnly}
       />
       <div className="mx-auto flex max-w-5xl gap-6 p-6">
         <aside className="hidden w-56 shrink-0 md:block">
@@ -241,7 +249,8 @@ export function TaxonomyWizard({
             canJumpToCriteria={activity !== null}
           />
         </aside>
-        <main className="flex-1">
+        <main className="flex-1 flex flex-col gap-4">
+          {readOnly && <LockedByBanner ownerName={ownerOfficerName} />}
           {loading ? (
             <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
               Loading prior assessments…
@@ -249,10 +258,14 @@ export function TaxonomyWizard({
           ) : saved && !isTourDriven ? (
             <ResultCard
               saved={saved}
-              onEdit={() => {
-                setSaved(null);
-                setStep(2);
-              }}
+              onEdit={
+                readOnly
+                  ? undefined
+                  : () => {
+                      setSaved(null);
+                      setStep(2);
+                    }
+              }
               onExit={() => router.push("/")}
             />
           ) : step === 0 ? (
@@ -267,11 +280,13 @@ export function TaxonomyWizard({
               suggestedIds={suggestedActivityIds}
               currentId={activityId}
               onPick={(id) => {
+                if (readOnly) return;
                 setActivityId(id);
                 setAnswers({});
                 setStep(2);
               }}
               onBack={() => setStep(0)}
+              readOnly={readOnly}
             />
           ) : step === 2 ? (
             activity ? (
@@ -281,6 +296,7 @@ export function TaxonomyWizard({
                 onChange={setAnswers}
                 onBack={() => setStep(1)}
                 onContinue={() => setStep(3)}
+                readOnly={readOnly}
               />
             ) : (
               <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
@@ -302,6 +318,7 @@ export function TaxonomyWizard({
               error={error}
               onBack={() => setStep(2)}
               onSave={saveAssessment}
+              readOnly={readOnly}
             />
           )}
         </main>
@@ -318,6 +335,7 @@ function TopBar({
   hasPriorAssessment,
   onSaveExit,
   onDiscardExit,
+  readOnly = false,
 }: {
   tenantName: string;
   officer: Officer;
@@ -326,6 +344,8 @@ function TopBar({
   hasPriorAssessment: boolean;
   onSaveExit: () => void;
   onDiscardExit: () => void;
+  /** When true the destructive "Exit without saving" action is hidden. */
+  readOnly?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -372,25 +392,31 @@ function TopBar({
             <div className="text-slate-300">{officer.name}</div>
             <div className="text-slate-500">{ROLE_LABEL[officer.role]}</div>
           </div>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
-            title={
-              hasPriorAssessment
-                ? "Delete the prior taxonomy classification for this loan and discard any answers on this page"
-                : "Discard any answers on this page (nothing has been saved yet)"
-            }
-          >
-            Exit without saving
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
+              title={
+                hasPriorAssessment
+                  ? "Delete the prior taxonomy classification for this loan and discard any answers on this page"
+                  : "Discard any answers on this page (nothing has been saved yet)"
+              }
+            >
+              Exit without saving
+            </button>
+          )}
           <button
             type="button"
             onClick={onSaveExit}
             className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
-            title="Close the wizard. Any prior saved classification is preserved."
+            title={
+              readOnly
+                ? "Close the wizard and return to the dashboard."
+                : "Close the wizard. Any prior saved classification is preserved."
+            }
           >
-            Save & exit
+            {readOnly ? "Close" : "Save & exit"}
           </button>
         </div>
       </div>
@@ -623,11 +649,13 @@ function ActivityPickerStep({
   currentId,
   onPick,
   onBack,
+  readOnly = false,
 }: {
   suggestedIds: string[];
   currentId: string | null;
   onPick: (id: string) => void;
   onBack: () => void;
+  readOnly?: boolean;
 }) {
   const suggested = TAXONOMY_ACTIVITIES.filter((a) =>
     suggestedIds.includes(a.id),
@@ -659,6 +687,7 @@ function ActivityPickerStep({
                   activity={a}
                   selected={currentId === a.id}
                   onPick={onPick}
+                  disabled={readOnly}
                 />
               ))}
             </div>
@@ -699,16 +728,19 @@ function ActivityRow({
   activity,
   selected,
   onPick,
+  disabled = false,
 }: {
   activity: TaxonomyActivity;
   selected: boolean;
   onPick: (id: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => onPick(activity.id)}
-      className={`flex items-start justify-between gap-4 rounded-lg border bg-panelAlt px-4 py-3 text-left transition ${
+      className={`flex items-start justify-between gap-4 rounded-lg border bg-panelAlt px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
         selected ? "" : "border-line hover:bg-white/5"
       }`}
       style={selected ? { borderColor: "var(--brand-primary)" } : undefined}
@@ -735,12 +767,14 @@ function CriteriaStep({
   onChange,
   onBack,
   onContinue,
+  readOnly = false,
 }: {
   activity: TaxonomyActivity;
   answers: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
   onBack: () => void;
   onContinue: () => void;
+  readOnly?: boolean;
 }) {
   const setAnswer = (id: string, value: unknown) =>
     onChange({ ...answers, [id]: value });
@@ -769,6 +803,7 @@ function CriteriaStep({
           criterion={c}
           value={answers[c.id]}
           onChange={(v) => setAnswer(c.id, v)}
+          readOnly={readOnly}
         />
       ))}
 
@@ -797,10 +832,12 @@ function CriterionCard({
   criterion,
   value,
   onChange,
+  readOnly = false,
 }: {
   criterion: TaxonomyCriterion;
   value: unknown;
   onChange: (v: unknown) => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-line bg-panel p-5">
@@ -813,8 +850,9 @@ function CriterionCard({
               <button
                 key={String(b)}
                 type="button"
+                disabled={readOnly}
                 onClick={() => onChange(b)}
-                className={`rounded-md border px-3 py-1.5 text-sm transition ${
+                className={`rounded-md border px-3 py-1.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   selected ? "text-white" : "border-line bg-panelAlt text-slate-200 hover:bg-white/5"
                 }`}
                 style={
@@ -837,11 +875,13 @@ function CriterionCard({
             type="number"
             inputMode="decimal"
             value={typeof value === "number" ? value : ""}
+            readOnly={readOnly}
+            disabled={readOnly}
             onChange={(e) => {
               const v = e.target.value;
               onChange(v === "" ? undefined : Number(v));
             }}
-            className="w-32 rounded-md border border-line bg-panelAlt px-3 py-1.5 text-sm text-slate-100 focus:outline-none"
+            className="w-32 rounded-md border border-line bg-panelAlt px-3 py-1.5 text-sm text-slate-100 focus:outline-none disabled:opacity-60"
           />
           <span className="text-xs text-slate-400">{criterion.unit}</span>
         </div>
@@ -860,6 +900,7 @@ function ReviewStep({
   error,
   onBack,
   onSave,
+  readOnly = false,
 }: {
   activity: TaxonomyActivity;
   answers: Record<string, unknown>;
@@ -867,6 +908,7 @@ function ReviewStep({
   error: string | null;
   onBack: () => void;
   onSave: () => void;
+  readOnly?: boolean;
 }) {
   const preview: TaxonomyClassification = useMemo(
     () => activity.classify(answers),
@@ -951,15 +993,17 @@ function ReviewStep({
           >
             ← Back
           </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
-            style={{ backgroundColor: "var(--brand-primary)" }}
-          >
-            {saving ? "Saving…" : "Save classification"}
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+              style={{ backgroundColor: "var(--brand-primary)" }}
+            >
+              {saving ? "Saving…" : "Save classification"}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -972,7 +1016,9 @@ function ResultCard({
   onExit,
 }: {
   saved: SavedAssessment;
-  onEdit: () => void;
+  /** Undefined when the current officer is not the loan's owner —
+   *  hides the "Edit criteria" button. */
+  onEdit?: () => void;
   onExit: () => void;
 }) {
   return (
@@ -1014,13 +1060,17 @@ function ResultCard({
       )}
 
       <div className="mt-6 flex justify-between">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
-        >
-          Edit criteria
-        </button>
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md border border-line bg-panel px-4 py-2 text-sm text-slate-200 hover:bg-line/30"
+          >
+            Edit criteria
+          </button>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           onClick={onExit}

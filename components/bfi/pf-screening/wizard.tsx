@@ -30,6 +30,9 @@ import {
 } from "@/lib/regulatory/esdd/annex5b-pf-types";
 import { scorePfScreening } from "@/lib/regulatory/esdd/annex5b-pf-scoring";
 import { formatNpr } from "@/components/bfi/ui";
+import { EvidenceAttachments } from "@/components/bfi/shared/evidence-attachments";
+import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
+import { LockedByBanner } from "@/components/bfi/shared/locked-by-banner";
 
 const PS_ORDER: IfcPS[] = [
   "PS1",
@@ -91,6 +94,11 @@ export function PfScreeningWizard({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Loan-lock context — P36. When the current officer is NOT the loan's
+  // owner every input on this wizard renders read-only and the top of
+  // the page shows a lock banner. The API also enforces this.
+  const { isOwner, ownerOfficerName } = useLoanLock();
+  const readOnly = !isOwner;
   // Guided-tour hook — same pattern as EsddWizard. When the URL carries
   // ?tourStep=N (0..8), render that specific step and suppress the
   // auto-jump-to-Review that fires when a saved result exists. Lets the
@@ -225,6 +233,7 @@ export function PfScreeningWizard({
         borrower={borrower}
         onSaveExit={() => router.push("/")}
         onDiscardExit={() => router.push("/")}
+        readOnly={readOnly}
       />
       <div className="mx-auto flex max-w-6xl gap-6 p-6">
         <aside className="hidden w-56 shrink-0 md:block">
@@ -234,7 +243,8 @@ export function PfScreeningWizard({
             onJump={(s) => setStep(s as WizardStep)}
           />
         </aside>
-        <main className="flex-1">
+        <main className="flex-1 flex flex-col gap-4">
+          {readOnly && <LockedByBanner ownerName={ownerOfficerName} />}
           {loading ? (
             <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-slate-400">
               Loading existing answers…
@@ -248,6 +258,8 @@ export function PfScreeningWizard({
               onAnswer={recordAnswer}
               onBack={step > 0 ? () => setStep((step - 1) as WizardStep) : undefined}
               onContinue={() => setStep((step + 1) as WizardStep)}
+              loanId={loan.id}
+              readOnly={readOnly}
             />
           ) : (
             <ReviewStep
@@ -258,6 +270,7 @@ export function PfScreeningWizard({
               onBack={() => setStep(7)}
               onExit={() => router.push(`/esdd/${loan.id}`)}
               onSaved={(r) => setPriorResult(r)}
+              readOnly={readOnly}
             />
           )}
         </main>
@@ -273,6 +286,7 @@ function TopBar({
   borrower,
   onSaveExit,
   onDiscardExit,
+  readOnly = false,
 }: {
   tenantName: string;
   officer: Officer;
@@ -280,6 +294,7 @@ function TopBar({
   borrower: Borrower;
   onSaveExit: () => void;
   onDiscardExit: () => void;
+  readOnly?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -326,21 +341,27 @@ function TopBar({
             <div className="text-slate-300">{officer.name}</div>
             <div className="text-slate-500">{ROLE_LABEL[officer.role]}</div>
           </div>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
-            title="Discard every Annex 5b answer you have recorded for this loan"
-          >
-            Exit without saving
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15"
+              title="Discard every Annex 5b answer you have recorded for this loan"
+            >
+              Exit without saving
+            </button>
+          )}
           <button
             type="button"
             onClick={onSaveExit}
             className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
-            title="Answers auto-save. This just closes the wizard."
+            title={
+              readOnly
+                ? "Close the wizard and return to the dashboard."
+                : "Answers auto-save. This just closes the wizard."
+            }
           >
-            Save & exit
+            {readOnly ? "Close" : "Save & exit"}
           </button>
         </div>
       </div>
@@ -471,6 +492,8 @@ function PsStep({
   onAnswer,
   onBack,
   onContinue,
+  loanId,
+  readOnly = false,
 }: {
   ifcPS: IfcPS;
   items: Annex5bItem[];
@@ -479,6 +502,8 @@ function PsStep({
   onAnswer: (item: Annex5bItem, a: PfAnswer, remarks?: string) => void;
   onBack?: () => void;
   onContinue: () => void;
+  loanId: string;
+  readOnly?: boolean;
 }) {
   const answered = items.filter((it) => responses[it.id]).length;
   // Group by area so the wizard renders the sub-headings from the source.
@@ -521,6 +546,8 @@ function PsStep({
               stored={responses[it.id] ?? null}
               status={saveStatus[it.id] ?? "idle"}
               onAnswer={onAnswer}
+              loanId={loanId}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -553,11 +580,15 @@ function ItemCard({
   stored,
   status,
   onAnswer,
+  loanId,
+  readOnly = false,
 }: {
   item: Annex5bItem;
   stored: StoredResponse | null;
   status: SaveStatus;
   onAnswer: (i: Annex5bItem, a: PfAnswer, remarks?: string) => void;
+  loanId: string;
+  readOnly?: boolean;
 }) {
   const [remarks, setRemarks] = useState<string>(stored?.remarks ?? "");
   const current = stored?.answer;
@@ -592,8 +623,9 @@ function ItemCard({
             <button
               key={opt}
               type="button"
+              disabled={readOnly}
               onClick={() => onAnswer(item, opt, remarks || undefined)}
-              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                 isSelected
                   ? "border-transparent text-white"
                   : "border-line bg-panelAlt text-slate-200 hover:bg-white/5"
@@ -626,8 +658,16 @@ function ItemCard({
             if (current) onAnswer(item, current, remarks || undefined);
           }}
           rows={2}
+          readOnly={readOnly}
+          disabled={readOnly}
           placeholder="Evidence references, mitigation commitments…"
-          className="w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+          className="w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none disabled:opacity-60"
+        />
+        <EvidenceAttachments
+          entityType="pf_screening"
+          entityId={loanId}
+          fieldKey={item.id}
+          readOnly={readOnly}
         />
       </div>
 
@@ -675,6 +715,7 @@ function ReviewStep({
   onBack,
   onExit,
   onSaved,
+  readOnly = false,
 }: {
   loan: Loan;
   borrower: Borrower;
@@ -683,6 +724,7 @@ function ReviewStep({
   onBack: () => void;
   onExit: () => void;
   onSaved: (r: PfScreeningResult) => void;
+  readOnly?: boolean;
 }) {
   // Compute a live preview against the current in-memory answers.
   const live: PfScreeningResponse = useMemo(() => {
@@ -846,19 +888,21 @@ function ReviewStep({
             ← Back
           </button>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={saving || displayed.itemsAnswered === 0}
-              className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
-              style={{ backgroundColor: "var(--brand-primary)" }}
-            >
-              {saving
-                ? "Saving…"
-                : isRerun
-                  ? "Re-run with current answers"
-                  : "Compute & save PF screening"}
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={submit}
+                disabled={saving || displayed.itemsAnswered === 0}
+                className="rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+                style={{ backgroundColor: "var(--brand-primary)" }}
+              >
+                {saving
+                  ? "Saving…"
+                  : isRerun
+                    ? "Re-run with current answers"
+                    : "Compute & save PF screening"}
+              </button>
+            )}
             {saved && (
               <button
                 type="button"

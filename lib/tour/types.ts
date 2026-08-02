@@ -42,6 +42,13 @@ export type TourStep = {
    * only exists when a loan has been escalated).
    */
   targetOptional?: boolean;
+  /**
+   * Optional. When set, the tour engine will programmatically switch the
+   * ESRM workbench sub-tab to this value before measuring the target.
+   * Required for any tour step whose target lives inside the workbench
+   * (e.g. pcaf-availability-panel, cap-panel).
+   */
+  workbenchSubtab?: "overview" | "cap" | "pcaf" | "hydro" | "map";
 };
 
 export type TourScript = {

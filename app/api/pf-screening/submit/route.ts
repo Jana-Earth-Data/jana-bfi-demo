@@ -16,6 +16,7 @@ import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { scorePfScreening } from "@/lib/regulatory/esdd/annex5b-pf-scoring";
+import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
 import type {
   PfAnswer,
   PfScreeningResponse,
@@ -53,6 +54,10 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Owner-only edit (P36).
+  const denied = await assertOwnerOrRespond(loanId, officer, tenant);
+  if (denied) return denied;
 
   const { data: raw, error: respErr } = await supabase
     .from("bfi_pf_screening_responses")

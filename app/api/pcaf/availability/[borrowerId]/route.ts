@@ -50,6 +50,7 @@ import { getBfiDemoData } from "@/lib/api/bfi";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
+import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
 import {
   assetClassForLoanCategory,
   computePcafScore,
@@ -278,6 +279,12 @@ export async function POST(request: Request, { params }: Params) {
     evidence?: Record<string, string | null>;
     notes?: string | null;
     loanCategory?: LoanCategory;
+    /** Optional per-P36 caller-supplied loan id used to enforce
+     *  ownership. PCAF availability itself is per-borrower so this is
+     *  advisory — when omitted we let the write through (analyst
+     *  might be capturing data on a borrower without a currently-
+     *  selected loan). */
+    loanId?: string;
   } = {};
   try {
     body = await request.json();
@@ -314,6 +321,20 @@ export async function POST(request: Request, { params }: Params) {
 
   const tenant = await resolveCurrentTenant();
   const officer = await resolveCurrentOfficer();
+
+  // Owner-only edit (P36) — best-effort. PCAF availability is stored
+  // per-BORROWER, not per-loan, so we can't strictly gate on a single
+  // loan. When the caller supplies a loanId (the workbench does, since
+  // the panel is mounted under a selected loan), enforce that lock so
+  // a non-owner can't sneak in a write via URL-crafting. When no
+  // loanId is supplied fall back to `loan` (the one the endpoint
+  // resolved from the borrower's exposures) — same fail-open rule as
+  // the other guards.
+  const enforcementLoanId = body.loanId ?? loan?.id ?? null;
+  if (officer && enforcementLoanId) {
+    const denied = await assertOwnerOrRespond(enforcementLoanId, officer, tenant);
+    if (denied) return denied;
+  }
 
   // Trim per-flag evidence to the recognised keys only — reject stray keys
   // rather than persisting them; the columns are typed.

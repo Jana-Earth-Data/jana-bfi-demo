@@ -330,6 +330,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 1b) Wipe evidence attachments tied to the demo loans. Attachments
+    // aren't loan-scoped by column (entity_id can be a cap_item.id,
+    // covenant.id, monitoring_report.id, etc.), so we blanket-wipe every
+    // ESDD / PF / PCAF attachment referencing the demo loan ids plus
+    // every attachment on the CAP items / covenants / monitoring reports
+    // that were just deleted above (cascade-on-parent isn't set up).
+    // Simplest: wipe every attachment for the tenant that references any
+    // of the surface types we're about to re-seed.
+    {
+      const { error } = await supabase
+        .from("bfi_evidence_attachments")
+        .delete()
+        .eq("bank_id", tenant.id);
+      if (error) {
+        // Table may not exist yet if the migration hasn't been run — that's
+        // OK, treat as non-fatal so older DBs still seed.
+        console.warn(
+          `[${tenant.id}] Evidence attachment wipe skipped: ${error.message}`,
+        );
+      }
+    }
+
     // 2) Insert ESDD responses for the cement borrower.
     const responseRows = CEMENT_ESDD_RESPONSES.map((r) => ({
       bank_id: tenant.id,
@@ -804,13 +826,20 @@ export async function POST(request: NextRequest) {
         created_by: officer.id,
       },
     ];
+    const insertedCapItemIds: string[] = [];
     {
-      const { error } = await supabase.from("bfi_cap_items").insert(capRows);
+      const { data, error } = await supabase
+        .from("bfi_cap_items")
+        .insert(capRows)
+        .select("id");
       if (error) {
         return NextResponse.json(
           { error: `[${tenant.id}] CAP item insert failed: ${error.message}` },
           { status: 500 },
         );
+      }
+      for (const row of data ?? []) {
+        insertedCapItemIds.push(row.id as string);
       }
     }
 
@@ -932,6 +961,100 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 9) Seed a couple of demo evidence attachments so the evidence
+    // panel isn't empty on first demo. One tiny PDF on the first
+    // Hongshi CAP item (labour audit corrective action) + one plain
+    // text file on the Himal Power ESDD Section 3 (Q 3.1 community
+    // consultation) remarks. Table may not exist on older DBs — errors
+    // are treated as non-fatal so seeding still succeeds.
+    let evidenceAttachmentsCount = 0;
+    {
+      // Minimal but valid single-page PDF (~430 bytes). Rendered as a
+      // blank page by any reader — the point is that it downloads and
+      // opens as a real PDF, not that it contains audit content.
+      const fakePdf = Buffer.from(
+        [
+          "%PDF-1.4",
+          "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj",
+          "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj",
+          "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<<>>>>endobj",
+          "4 0 obj<</Length 44>>stream",
+          "BT /F1 12 Tf 72 720 Td (Q3.2 labour audit CAP) Tj ET",
+          "endstream endobj",
+          "xref",
+          "0 5",
+          "0000000000 65535 f",
+          "0000000010 00000 n",
+          "0000000053 00000 n",
+          "0000000099 00000 n",
+          "0000000173 00000 n",
+          "trailer<</Size 5/Root 1 0 R>>",
+          "startxref",
+          "268",
+          "%%EOF",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+      const fakeTxt = Buffer.from(
+        [
+          "Himal Power — Khimti site visit note, 2026-03-14",
+          "-----------------------------------------------",
+          "Visited ward office. Reviewed the community consultation log",
+          "maintained by the environment team. Sample MoU with downstream",
+          "user committee reviewed on site — signed 2025-11.",
+          "",
+          "No outstanding grievances on the current register.",
+          "Next quarterly consultation scheduled for 2026-06.",
+          "",
+          "— T. Rana, ESG officer",
+        ].join("\n"),
+        "utf8",
+      );
+
+      const attachmentRows: Array<Record<string, unknown>> = [];
+      // Hongshi CAP item 1 (labour) attachment — PDF.
+      if (insertedCapItemIds[0]) {
+        attachmentRows.push({
+          bank_id: tenant.id,
+          entity_type: "cap_item",
+          entity_id: insertedCapItemIds[0],
+          field_key: "evidence",
+          filename: "hongshi-labour-audit-corrective-action.pdf",
+          mime_type: "application/pdf",
+          size_bytes: fakePdf.byteLength,
+          data: "\\x" + fakePdf.toString("hex"),
+          uploaded_by: officer.id,
+        });
+      }
+      // Himal Power ESDD Section 3 Q 3.1 (community consultation)
+      // attachment — plain text.
+      attachmentRows.push({
+        bank_id: tenant.id,
+        entity_type: "esdd",
+        entity_id: HYDRO_LOAN_ID,
+        field_key: "annex5.3.1",
+        filename: "himal-power-community-consultation-note.txt",
+        mime_type: "text/plain",
+        size_bytes: fakeTxt.byteLength,
+        data: "\\x" + fakeTxt.toString("hex"),
+        uploaded_by: officer.id,
+      });
+
+      if (attachmentRows.length > 0) {
+        const { error } = await supabase
+          .from("bfi_evidence_attachments")
+          .insert(attachmentRows);
+        if (error) {
+          console.warn(
+            `[${tenant.id}] Evidence attachment seed skipped: ${error.message}`,
+          );
+        } else {
+          evidenceAttachmentsCount = attachmentRows.length;
+        }
+      }
+    }
+
     perTenantResults.push({
       tenant: tenant.id,
       officer: officer.id,
@@ -947,6 +1070,7 @@ export async function POST(request: NextRequest) {
         capItems: capRows.length,
         covenants: covenantRows.length,
         monitoringReports: 1,
+        evidenceAttachments: evidenceAttachmentsCount,
       },
       drivingQuestionIds,
     });

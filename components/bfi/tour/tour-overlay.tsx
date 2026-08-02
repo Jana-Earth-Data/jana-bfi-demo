@@ -19,7 +19,31 @@ type Rect = {
   height: number;
 };
 
+type CalloutStyle = {
+  top?: string;
+  left?: string;
+  right?: string;
+  bottom?: string;
+};
+
+type Placement = {
+  scrollTo: number;
+  callout: CalloutStyle;
+};
+
 const PAD = 10; // px around the target element
+const CALLOUT_WIDTH = 380;
+const CALLOUT_HEIGHT = 220; // estimated
+const CALLOUT_GAP = 16;
+const CALLOUT_MARGIN = 24;
+// Height of the "reserved band" for a top/bottom-anchored callout on wide
+// targets. Callout is ~220px + 24px margin + a little breathing room.
+const CALLOUT_BAND_PX = 260;
+// If the target's natural page-Y is below this threshold, we have room to
+// scroll it under a top-anchored callout. Otherwise we flip the callout to
+// the bottom and leave the page at the top.
+const TOP_ROOM_PX = 280;
+const NARROW_TOP_OFFSET_PX = 88;
 
 function targetRect(selector: string): Rect | null {
   if (typeof window === "undefined") return null;
@@ -35,91 +59,151 @@ function targetRect(selector: string): Rect | null {
   };
 }
 
-function calloutPosition(rect: Rect | null) {
-  // When there is no target, park the callout in the top-right corner
-  // instead of dead-centering it (which historically felt like an
-  // "everything is broken" state).
-  if (!rect) {
-    if (typeof window === "undefined") {
-      return { top: "24px", right: "24px" };
-    }
-    return {
-      top: "24px",
-      left: `${Math.max(24, window.innerWidth - 380 - 24)}px`,
-    };
-  }
+/**
+ * Choose where to scroll AND where the callout should sit, jointly, so the
+ * callout never overlaps the highlighted target and the user does not need
+ * to scroll manually.
+ */
+function computePlacement(el: HTMLElement): Placement {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const calloutWidth = 380;
-  const calloutHeight = 220; // estimated
-  const calloutGap = 16;
+  const rect = el.getBoundingClientRect();
+  // Absolute page-Y of the target's top edge (unaffected by current scroll).
+  const absTop = window.scrollY + rect.top;
 
-  // For a spotlight that spans a large fraction of the viewport width
-  // (banner-style targets like the escalation banner, KPI strip, or
-  // wide loan cards with action buttons on the right edge), placing
-  // the callout above/below just moves the obstruction from one
-  // meaningful area to another AND placing it to the right of a
-  // near-full-width target ends up overlapping the target's own
-  // right-side content (e.g. the CTA column on a loan card).
-  //
-  // Pin to the top-LEFT of the viewport. Loan-card action buttons
-  // ("Start ESDD", "Review taxonomy") sit at the card's right edge,
-  // which is near the viewport's right edge for wide cards, so
-  // top-right ALSO collides. Top-left is the only safe corner —
-  // there's nothing important there once the tour spotlight has
-  // drawn the reader's eye down onto the card. The 50% threshold
-  // catches typical loan-card widths (65-75% of vw) as well as true
-  // full-width banners.
-  const targetIsWide = rect.width > vw * 0.5;
-  if (targetIsWide) {
+  // -------- Wide targets (span > 50% of viewport width) --------
+  if (rect.width > vw * 0.5) {
+    // Case B — target sits near the top of the page: keep page at top,
+    // flip the callout to the bottom-left band so the target is visible
+    // in the free top region.
+    if (absTop < TOP_ROOM_PX) {
+      return {
+        scrollTo: 0,
+        callout: { bottom: "24px", left: "24px" },
+      };
+    }
+    // Case A / Case C — target has room above it. Scroll so the target's
+    // top lands at viewport y = CALLOUT_BAND_PX (below the top-anchored
+    // callout). When the target is taller than the free vertical region
+    // (vh - CALLOUT_BAND_PX - 40), the user will still see the top of it —
+    // which is what we want for oversized panels.
+    const scrollTo = Math.max(0, absTop - CALLOUT_BAND_PX);
     return {
-      top: "24px",
-      left: "24px",
+      scrollTo,
+      callout: { top: "24px", left: "24px" },
     };
   }
 
+  // -------- Narrow targets (side placement) --------
+  // Vertically centre the target unless it is very tall — in that case,
+  // top-align with an 88-px offset so its header stays visible.
+  const isTallTarget = rect.height > vh * 0.6;
+  const desiredViewportTop = isTallTarget
+    ? NARROW_TOP_OFFSET_PX
+    : Math.max(NARROW_TOP_OFFSET_PX, (vh - rect.height) / 2);
+  const scrollTo = Math.max(0, absTop - desiredViewportTop);
+
+  // Re-project rect into the post-scroll viewport for callout placement.
+  const projectedTop = absTop - scrollTo;
+  const projectedLeft = rect.left; // horizontal scroll is not used
+  const projectedWidth = rect.width;
+
+  // Callout vertical anchor: aligned to target top but clamped to viewport.
+  const calloutTop = Math.min(
+    vh - CALLOUT_HEIGHT - CALLOUT_MARGIN,
+    Math.max(CALLOUT_MARGIN, projectedTop),
+  );
+
   // Try right side (spotlight on left, callout on right)
-  if (rect.left + rect.width + calloutGap + calloutWidth < vw - 24) {
+  if (
+    projectedLeft + projectedWidth + CALLOUT_GAP + CALLOUT_WIDTH <
+    vw - CALLOUT_MARGIN
+  ) {
     return {
-      top: `${Math.min(vh - calloutHeight - 24, Math.max(24, rect.top))}px`,
-      left: `${rect.left + rect.width + calloutGap}px`,
+      scrollTo,
+      callout: {
+        top: `${calloutTop}px`,
+        left: `${projectedLeft + projectedWidth + CALLOUT_GAP}px`,
+      },
     };
   }
   // Try left side
-  if (rect.left - calloutGap - calloutWidth > 24) {
+  if (projectedLeft - CALLOUT_GAP - CALLOUT_WIDTH > CALLOUT_MARGIN) {
     return {
-      top: `${Math.min(vh - calloutHeight - 24, Math.max(24, rect.top))}px`,
-      left: `${rect.left - calloutGap - calloutWidth}px`,
+      scrollTo,
+      callout: {
+        top: `${calloutTop}px`,
+        left: `${projectedLeft - CALLOUT_GAP - CALLOUT_WIDTH}px`,
+      },
     };
   }
   // Try below the target
-  if (rect.top + rect.height + calloutGap + calloutHeight < vh - 24) {
+  if (
+    projectedTop + rect.height + CALLOUT_GAP + CALLOUT_HEIGHT <
+    vh - CALLOUT_MARGIN
+  ) {
     return {
-      top: `${rect.top + rect.height + calloutGap}px`,
-      left: `${Math.min(vw - calloutWidth - 24, Math.max(24, rect.left))}px`,
+      scrollTo,
+      callout: {
+        top: `${projectedTop + rect.height + CALLOUT_GAP}px`,
+        left: `${Math.min(
+          vw - CALLOUT_WIDTH - CALLOUT_MARGIN,
+          Math.max(CALLOUT_MARGIN, projectedLeft),
+        )}px`,
+      },
     };
   }
   // Try above the target
-  if (rect.top - calloutGap - calloutHeight > 24) {
+  if (projectedTop - CALLOUT_GAP - CALLOUT_HEIGHT > CALLOUT_MARGIN) {
     return {
-      top: `${Math.max(24, rect.top - calloutGap - calloutHeight)}px`,
-      left: `${Math.min(vw - calloutWidth - 24, Math.max(24, rect.left))}px`,
+      scrollTo,
+      callout: {
+        top: `${Math.max(
+          CALLOUT_MARGIN,
+          projectedTop - CALLOUT_GAP - CALLOUT_HEIGHT,
+        )}px`,
+        left: `${Math.min(
+          vw - CALLOUT_WIDTH - CALLOUT_MARGIN,
+          Math.max(CALLOUT_MARGIN, projectedLeft),
+        )}px`,
+      },
     };
   }
-  // Nothing fits without overlap — default to top-left. Loan-card CTAs
-  // and most workbench actions live on the right, so top-left is the
-  // safest fallback corner. Only flip to top-right if the target
-  // itself is anchored on the LEFT side of the viewport (leaving the
-  // right side free).
-  const targetOnLeft = rect.left + rect.width < vw * 0.5;
-  return targetOnLeft
-    ? { top: "24px", left: `${Math.max(24, vw - calloutWidth - 24)}px` }
-    : { top: "24px", left: "24px" };
+  // Fallback — nothing fits without overlap. Pick the corner that leaves
+  // the target's own content most visible.
+  const targetOnLeft = projectedLeft + projectedWidth < vw * 0.5;
+  return {
+    scrollTo,
+    callout: targetOnLeft
+      ? {
+          top: "24px",
+          left: `${Math.max(CALLOUT_MARGIN, vw - CALLOUT_WIDTH - CALLOUT_MARGIN)}px`,
+        }
+      : { top: "24px", left: "24px" },
+  };
+}
+
+/**
+ * Fallback callout placement when we do not have a target element in hand
+ * (e.g. targetOptional step whose element never mounted, or the rect is
+ * still being measured). Parks in the top-right corner.
+ */
+function emptyCalloutPosition(): CalloutStyle {
+  if (typeof window === "undefined") {
+    return { top: "24px", right: "24px" };
+  }
+  return {
+    top: "24px",
+    left: `${Math.max(24, window.innerWidth - CALLOUT_WIDTH - 24)}px`,
+  };
 }
 
 export function TourOverlay() {
   const { status, step, currentIndex, totalSteps } = useTour();
   const [rect, setRect] = useState<Rect | null>(null);
+  const [calloutStyle, setCalloutStyle] = useState<CalloutStyle>(() =>
+    emptyCalloutPosition(),
+  );
 
   // Update on step change, resize, and scroll. Uses a MutationObserver so
   // late-mounting targets (e.g. loan cards rendered after an API fetch,
@@ -128,6 +212,7 @@ export function TourOverlay() {
   useLayoutEffect(() => {
     if (!step) {
       setRect(null);
+      setCalloutStyle(emptyCalloutPosition());
       return;
     }
     const measure = () => setRect(targetRect(step.target));
@@ -177,7 +262,7 @@ export function TourOverlay() {
     };
   }, [step?.id, step?.target]);
 
-  // Scroll handling when a new step arrives.
+  // Scroll + callout placement when a new step arrives.
   //
   // Two things must happen in order:
   //   1. Reset the window scroll to the top of the page IMMEDIATELY. The user
@@ -186,46 +271,62 @@ export function TourOverlay() {
   //      We always want a clean baseline so the next step starts from the
   //      top of the new tab.
   //   2. After a beat (to let the new tab mount / fade in), find the target
-  //      and scroll it so its TOP sits at TOP_OFFSET_PX below the viewport
-  //      top. This guarantees the user sees the start of the target (the
-  //      loan table title, the borrower-detail header, the NFRS headline)
-  //      rather than its middle. We retry a few times because tab content
-  //      sometimes fades in async.
+  //      and CO-DECIDE the scroll offset AND callout placement via
+  //      computePlacement so the callout never overlaps the target. Retry a
+  //      few times because tab content sometimes fades in async.
   useEffect(() => {
     if (!step) return;
 
-    // 1. Instant reset to page top.
+    // 1. Instant reset to page top. Also park the callout in the fallback
+    //    corner until we have a real target measurement.
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    setCalloutStyle(emptyCalloutPosition());
 
-    // 2. Scroll target into view, top-aligned, with breathing room.
-    const TOP_OFFSET_PX = 88;
     const RETRY_DELAYS_MS = [150, 350, 700];
     const timers: number[] = [];
 
     let landed = false;
-    const ensureTargetVisible = () => {
+    const placeAndScroll = () => {
       if (landed) return;
       const el = document.querySelector(step.target) as HTMLElement | null;
       if (!el) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) return; // not laid out yet
-      const targetY = Math.max(0, window.scrollY + rect.top - TOP_OFFSET_PX);
-      window.scrollTo({ top: targetY, left: 0, behavior: "smooth" });
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return; // not laid out yet
+      const placement = computePlacement(el);
+      window.scrollTo({ top: placement.scrollTo, left: 0, behavior: "smooth" });
+      setCalloutStyle(placement.callout);
       landed = true;
     };
 
     for (const delay of RETRY_DELAYS_MS) {
-      timers.push(window.setTimeout(ensureTargetVisible, delay));
+      timers.push(window.setTimeout(placeAndScroll, delay));
     }
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
     };
   }, [step?.id]);
 
+  // When the measured rect updates (resize, late mount, or observer hit)
+  // recompute the callout position using the CURRENT target element so it
+  // stays anchored correctly. We do not re-scroll here — the scroll effect
+  // above handles the initial landing; this only keeps the callout in sync
+  // with layout shifts.
+  useLayoutEffect(() => {
+    if (!step) return;
+    if (!rect) {
+      setCalloutStyle(emptyCalloutPosition());
+      return;
+    }
+    const el = document.querySelector(step.target) as HTMLElement | null;
+    if (!el) return;
+    const placement = computePlacement(el);
+    setCalloutStyle(placement.callout);
+  }, [rect, step?.id, step?.target]);
+
   if (status === "idle" || !step) return null;
 
   const isEnded = status === "ended";
-  const pos = calloutPosition(rect);
+  const pos: CalloutStyle = rect ? calloutStyle : emptyCalloutPosition();
 
   // SVG mask: full-screen black with a transparent rect over the target
   const vw = typeof window !== "undefined" ? window.innerWidth : 1500;

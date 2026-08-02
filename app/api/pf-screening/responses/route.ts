@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,10 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Owner-only edit (P36).
+  const denied = await assertOwnerOrRespond(loanId, officer, tenant);
+  if (denied) return denied;
 
   const { data, error } = await supabase
     .from("bfi_pf_screening_responses")
@@ -198,6 +203,10 @@ export async function DELETE(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Owner-only edit (P36).
+  const denied = await assertOwnerOrRespond(loanId, officer, tenant);
+  if (denied) return denied;
 
   const { error, count } = await supabase
     .from("bfi_pf_screening_responses")

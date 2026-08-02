@@ -1,136 +1,146 @@
 {
-  "version": "4.0",
-  "totalDurationSecondsApprox": 380,
+  "version": "1.0-draft",
+  "totalDurationSecondsApprox": 420,
   "voice": "onyx",
   "model": "tts-1-hd",
-  "narrator": "OpenAI TTS \u00b7 onyx \u00b7 neutral male, news-anchor cadence",
-  "notesForRegeneration": "Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour loan-officer --force",
+  "narrator": "OpenAI TTS · onyx · neutral male, news-anchor cadence",
+  "notesForRegeneration": "Draft — reframed to walk one loan through the full NRB lifecycle: screen → classify → CAP → monitor → PCAF → file. Regenerate audio with: python3 scripts/generate-tour-audio.py --tenant laxmi_sunrise --tour loan-officer --force",
   "steps": [
     {
       "id": "intro",
       "tab": "mywork",
       "target": "[data-tour='my-work-queue']",
-      "calloutTitle": "Laxmi Sunrise Bank \u00b7 Sujata's compliance workbench",
-      "calloutText": "Every loan officer sees their assigned loans with both ESRM and Green Finance Taxonomy status in one place. Full audit trail underneath.",
-      "narration": "Welcome. This is the compliance workbench built for Laxmi Sunrise Bank. Sujata Adhikari is a loan officer. Her queue shows every loan Laxmi has assigned to her, with both regulatory obligations visible on one row. The Nepal Rastra Bank ESRM screening from the 2022 directive, and the Green Finance Taxonomy classification from the October 2024 directive. Over the next six minutes I will walk you through how Sujata completes both flows on a single loan, step by step.",
+      "calloutTitle": "Sujata's compliance workbench · every regulatory obligation, one queue",
+      "calloutText": "Every loan Sujata owns, with ESDD, taxonomy, CAP, and monitoring status visible on one row. Follow-up reminders surface anything due this week.",
+      "narration": "Welcome. This is the compliance workbench built for Laxmi Sunrise Bank. Sujata Adhikari is a loan officer. Her queue shows every loan the bank has assigned to her, with every regulatory obligation on one row. Circular twenty-two environmental screening. Green Finance Taxonomy classification. Corrective action plan status. Monitoring cadence. Over the next seven minutes I will walk you through how Sujata takes one commercial loan through the entire NRB compliance lifecycle from a new application to a defensible audit trail.",
       "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-01-intro.mp3"
+    },
+    {
+      "id": "followups",
+      "tab": "mywork",
+      "target": "[data-tour='followups-panel']",
+      "targetOptional": true,
+      "calloutTitle": "Follow-up reminders · nothing slips",
+      "calloutText": "CAP items due, monitoring reports due, covenant checks due — all rolled up at the top of Sujata's queue.",
+      "narration": "Above the queue is the follow-up reminder panel. Any corrective action item, any monitoring report, or any covenant check that is due this week surfaces here with the borrower name and the number of days remaining. Circular twenty-two section seven point three point seven treats missed monitoring as a compliance breach, not an administrative oversight. This panel is how Sujata makes sure that never happens on her book.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-02-followups.mp3"
     },
     {
       "id": "loan-card",
       "tab": "mywork",
       "target": "[data-tour='loan-card-primary']",
-      "calloutTitle": "One loan, two regulatory flows",
-      "calloutText": "ESDD checklist status. Taxonomy classification. Both visible before Sujata clicks in. NRB requires ESRM before Taxonomy classification.",
-      "narration": "Each card in Sujata's queue represents one loan. She sees at a glance where each regulatory flow stands. The ESDD checklist progress or risk chip, and the taxonomy classification color if the sector is eligible. NRB Green Finance Taxonomy section 3.2.2 requires ESRM screening to be complete before taxonomy classification. so the ESDD action button is always the officer's entry point, and the taxonomy action unlocks once the screening is saved.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-02-loan-card.mp3"
+      "calloutTitle": "One loan · every flow visible before Sujata clicks in",
+      "calloutText": "ESDD status. Taxonomy classification. CAP status. Escalation flag. NRB requires ESRM before taxonomy, so ESDD is always Sujata's entry point.",
+      "narration": "Each card in Sujata's queue is one loan. She sees at a glance where every regulatory flow stands. The ESDD checklist progress, the taxonomy classification if the sector is eligible, and any corrective action items or covenants attached to the loan. Green Finance Taxonomy section three point two point two requires ESRM screening to be complete before taxonomy classification. So the ESDD action button is always the officer's entry point. Everything else unlocks in the correct sequence.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-03-loan-card.mp3"
     },
     {
       "id": "esdd-basics",
       "tab": "mywork",
       "target": "[data-tour='esdd-wizard']",
       "navigateTo": "/esdd/L-0079959?tourStep=0",
-      "calloutTitle": "ESDD wizard \u00b7 Step 1 \u00b7 Basic information",
-      "calloutText": "Prefilled from the loan record. NRB Annex 5 requires these fields at the top of every checklist.",
-      "narration": "When Sujata opens the ESDD checklist, the first step is basic information. Date, transaction ID, client name, industry, location. All prefilled from the loan record. NRB Annex 5 requires these fields at the top of every ESDD file. She confirms and moves on.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-03-esdd-basics.mp3"
+      "calloutTitle": "ESDD wizard · Step 1 · Basic information",
+      "calloutText": "Prefilled from the loan record. NRB Circular 22 requires these fields at the top of every checklist.",
+      "narration": "When Sujata opens the ESDD, the first step is basic information. Date, transaction ID, client name, industry, loan category, location. All prefilled from the loan record. Circular twenty-two requires these fields at the top of every screening file. She confirms and moves on.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-04-esdd-basics.mp3"
     },
     {
       "id": "esdd-section-1",
       "tab": "mywork",
       "target": "[data-tour='esdd-wizard']",
       "navigateTo": "/esdd/L-0079959?tourStep=1",
-      "calloutTitle": "Section 1 \u00b7 General Risk",
-      "calloutText": "Three questions on legal issues, stakeholder grievances, and sensitive-area siting. Verbatim NRB language.",
-      "narration": "Section 1. General Risk. Three questions on legal permits and standing, stakeholder grievances or media coverage, and whether the site sits near protected or sensitive areas. Each question offers four options. A is the best case. B is partial mitigation with a plan. C is an unmitigated concern that will trigger escalation. D is not applicable. The wording matches the 2022 NRB directive verbatim so the audit trail is defensible.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-04-esdd-section-1.mp3"
+      "calloutTitle": "Section 1 · General risk",
+      "calloutText": "Three questions on legal issues, stakeholder grievances, and eco-sensitive-area siting. Verbatim Circular 22 language.",
+      "narration": "Section one. General risk. Three questions on legal permits and standing, stakeholder grievances or media coverage, and whether the site sits near protected or eco-sensitive areas. Each question offers four options. A is the best case. B is partial mitigation with a plan. C is an unmitigated concern that will trigger escalation. D is not applicable. The wording matches Circular twenty-two verbatim so the audit trail is defensible.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-05-esdd-section-1.mp3"
     },
     {
       "id": "esdd-section-2",
       "tab": "mywork",
       "target": "[data-tour='esdd-wizard']",
       "navigateTo": "/esdd/L-0079959?tourStep=2",
-      "calloutTitle": "Section 2 \u00b7 Environmental Health & Safety",
-      "calloutText": "Four questions on air, water, land pollution, and energy efficiency.",
-      "narration": "Section 2. Environmental health and safety. Four questions on air and noise pollution, water pollution, land pollution and waste handling, and energy efficiency or renewables. Each carries its own guidance notes drawn from the NRB source document, so the officer knows what evidence to look for. Every answer auto-saves the moment Sujata clicks it, timestamped and attributed to her officer identity.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-05-esdd-section-2.mp3"
+      "calloutTitle": "Section 2 · Environmental health and safety",
+      "calloutText": "Five questions on air, water, land, energy, and climate risk. Evidence uploads live on every remarks field.",
+      "narration": "Section two. Environmental health and safety. Five questions on air and noise pollution, water pollution, land pollution and waste handling, energy efficiency or renewables, and climate change risks and opportunities. The climate question was added in the twenty twenty two update to reflect NGFS climate risk taxonomy. Every question includes NRB's own guidance notes and a remarks field. Sujata can attach the underlying source document, an EIA extract, a monitoring report, a photograph, directly on the remarks field. When the auditor asks how she reached a conclusion, the evidence is one click away.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-06-esdd-section-2.mp3"
     },
     {
       "id": "esdd-section-3",
       "tab": "mywork",
       "target": "[data-tour='esdd-wizard']",
       "navigateTo": "/esdd/L-0079959?tourStep=3",
-      "calloutTitle": "Section 3 \u00b7 Social Risks \u00b7 the escalation triggers",
-      "calloutText": "Four questions on occupational H&S, labour practices, community H&S, and stakeholder consultation. Two 'c' answers here drive the credit-committee escalation.",
-      "narration": "Section 3. Social risks. Four questions on occupational health and safety, labour practices, community health and safety, and stakeholder consultation with indigenous peoples. On this loan the officer recorded a 'c' answer to labour practices and another to community health and safety. Those two answers are what triggered the credit-committee escalation you saw in the queue. Every question includes NRB's own guidance notes and a free-text remarks field for evidence references.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-06-esdd-section-3.mp3"
+      "calloutTitle": "Section 3 · Social risks · the escalation triggers",
+      "calloutText": "Four questions on occupational H&S, labour, community H&S, and stakeholder consultation. Two 'c' answers here route the loan to credit committee.",
+      "narration": "Section three. Social risks. Four questions on occupational health and safety, labour practices, community health and safety, and stakeholder consultation with Indigenous Peoples. On this loan the officer recorded a c answer to labour practices and another to community health and safety. Those two answers are what will trigger the credit committee escalation you saw on the queue. Every answer auto-saves with a timestamp and Sujata's officer identity attached.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-07-esdd-section-3.mp3"
     },
     {
       "id": "esdd-review",
       "tab": "mywork",
       "target": "[data-tour='esdd-wizard']",
       "navigateTo": "/esdd/L-0079959?tourStep=4",
-      "calloutTitle": "Review \u00b7 computed risk and escalation",
-      "calloutText": "Scoring engine derives risk class and recommendation. Escalation banner surfaces the driving questions.",
-      "narration": "The review step. The scoring engine runs the NRB rules over Sujata's answers and produces a risk class and recommendation. On this loan the two 'c' answers in Section 3 triggered the escalation. The rationale text spells out exactly why. The recommendation is approve with conditions plus binding covenants on the flagged items and quarterly monitoring. Save the screening and it is in the audit trail. The manager sees it immediately.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-07-esdd-review.mp3"
+      "calloutTitle": "Review · computed risk class and recommendation",
+      "calloutText": "Scoring engine derives risk class. Escalation banner surfaces the driving questions. Recommendation calls for CAP + covenants.",
+      "narration": "The review step. The scoring engine runs the NRB rules over Sujata's answers and returns a risk class. On this loan the two c answers in section three drive the classification. The rationale text spells out exactly why. The recommendation is approve with conditions, binding covenants on the flagged items, and quarterly monitoring. That recommendation is not just a note. It becomes the source for the corrective action plan on the next surface.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-08-esdd-review.mp3"
     },
     {
-      "id": "taxonomy-basics",
-      "tab": "mywork",
-      "target": "[data-tour='taxonomy-wizard']",
-      "navigateTo": "/taxonomy/L-0079959?tourStep=0",
-      "calloutTitle": "Taxonomy wizard \u00b7 Step 1 \u00b7 Loan basics",
-      "calloutText": "Same loan, second regulatory flow. NRB Green Finance Taxonomy from October 2024.",
-      "narration": "Now the second regulatory flow. The Green Finance Taxonomy from NRB October 2024. Note that NRB requires an ESRM screening to be complete before the taxonomy wizard will open, per section 3.2.2 of the taxonomy document. Sujata has just saved her ESRM screening, so the taxonomy wizard opens. Step 1 is loan basics, prefilled from the loan record. She confirms and moves on to activity selection.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-08-taxonomy-basics.mp3"
+      "id": "cap-capture",
+      "tab": "esrm",
+      "target": "[data-tour='cap-panel']",
+      "workbenchSubtab": "cap",
+      "calloutTitle": "CAP + Covenants + Monitoring · §7.3.5 and §7.3.7 in one panel",
+      "calloutText": "Corrective actions with deadlines. Covenants written into the facility agreement. Monitoring reports on cadence.",
+      "narration": "Circular twenty-two section seven point three point five says every medium and high risk loan needs a time-bound corrective action plan with covenants. Section seven point three point seven says those actions need periodic monitoring. Both live on this panel. Sujata lists each corrective action with its deadline and its owner, records the covenants exactly as they were negotiated into the facility agreement, and sets the monitoring cadence. When a deadline slips, the loan flags on Sujata's queue and on the manager's portfolio banner. This is the piece that turns a screening into an ongoing obligation.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-09-cap-capture.mp3"
     },
     {
       "id": "taxonomy-picker",
       "tab": "mywork",
       "target": "[data-tour='taxonomy-wizard']",
       "navigateTo": "/taxonomy/L-0079959?tourStep=1",
-      "calloutTitle": "Step 2 \u00b7 Choose the applicable activity",
-      "calloutText": "10 activities encoded from NRB Oct 2024. Suggested activities appear first based on the borrower's sector.",
-      "narration": "Step 2. Choose the applicable activity. The wizard suggests activities based on the borrower's sector. For a cement borrower with waste heat recovery, that is the cement-with-WHR activity. Ten activities are encoded from the October 2024 directive covering the Nepal cases banks most commonly underwrite. Hydropower at three capacity tiers. Utility solar. Cement with WHR. Green buildings. Organic agriculture. Electric vehicles. High-efficiency irrigation. And the fossil-fuel exclusion.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-09-taxonomy-picker.mp3"
-    },
-    {
-      "id": "taxonomy-criteria",
-      "tab": "mywork",
-      "target": "[data-tour='taxonomy-wizard']",
-      "navigateTo": "/taxonomy/L-0079959?tourStep=2",
-      "calloutTitle": "Step 3 \u00b7 Criteria plus central DNSH library",
-      "calloutText": "Activity-specific questions plus shared 'Do No Significant Harm' checks pulled from a central library.",
-      "narration": "Step 3. Each activity carries its own criteria plus a set of shared Do No Significant Harm checks. DNSH is the taxonomy principle that says an activity cannot count as green if it materially harms another environmental objective. Water. Biodiversity. Community rights. Climate adaptation. The DNSH checks live in a central library so the same check, for example environmental flow or resettlement discharged, is defined once and referenced by every activity that uses it. No drift between activities, no re-encoding when new activities land.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-10-taxonomy-criteria.mp3"
+      "calloutTitle": "Green Finance Taxonomy · choose the applicable activity",
+      "calloutText": "Seventeen activities encoded from NRB Oct 2024. Suggested activities appear first based on the borrower's sector.",
+      "narration": "Now the taxonomy wizard. The screening is saved, so the taxonomy classification unlocks. Step two is activity selection. The wizard suggests activities based on the borrower's sector. Seventeen activities are encoded from the October twenty twenty four directive covering every case Nepal banks commonly underwrite. Hydropower classified on lifecycle emissions. Utility solar and wind. Cement, which has no fully green pathway and lands on amber or excluded. Green buildings against LEED or EDGE. Poultry, dairy, aquaculture. Textiles. Hotels. Waste management. Consumer EV loans. And the fossil fuel exclusion.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-10-taxonomy-picker.mp3"
     },
     {
       "id": "taxonomy-review",
       "tab": "mywork",
       "target": "[data-tour='taxonomy-wizard']",
       "navigateTo": "/taxonomy/L-0079959?tourStep=3",
-      "calloutTitle": "Step 4 \u00b7 Classification result",
-      "calloutText": "Live preview of the derivation. Save records the classification, rationale, and citation to the audit trail.",
-      "narration": "Step 4. Review and save. The classifier returns Green, Amber, or Red with any DNSH failures called out separately. Cement with waste heat recovery lands on Amber, transitional financing, because cement remains a hard-to-abate sector under NRB's own methodology. Sujata sees a live preview before she saves. The saved classification carries the rationale text and the NRB citation so the audit trail is defensible.",
+      "calloutTitle": "Classification result · Green, Amber, Red, with DNSH",
+      "calloutText": "Live preview of the derivation. Save records the classification, rationale, and NRB citation to the audit trail.",
+      "narration": "The taxonomy review step. The classifier returns green, amber, or red with any Do No Significant Harm failures called out separately. DNSH is the principle that says an activity cannot count as green if it materially harms another environmental objective. Water. Biodiversity. Community rights. Climate adaptation. Cement on this loan lands on amber, transitional financing, because it remains a hard-to-abate sector with no fully green pathway under NRB's own methodology. The saved classification carries the rationale text and the NRB citation.",
       "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-11-taxonomy-review.mp3"
+    },
+    {
+      "id": "pcaf-availability",
+      "tab": "esrm",
+      "target": "[data-tour='pcaf-availability-panel']",
+      "workbenchSubtab": "pcaf",
+      "calloutTitle": "PCAF Data Availability · what the NFRS auditor asks first",
+      "calloutText": "Four flag rows for the PCAF option ladder. Auto-inferred from the borrower record, confirmed by Sujata, flipped to MANUAL when overridden.",
+      "narration": "One more panel before Sujata moves on. PCAF Data Availability. This is what the NFRS auditor asks about first. Four flag rows corresponding to the PCAF option ladder. Verified reported emissions. Unverified reported. Physical activity data. Revenue-only. The starting state is auto-inferred from what the borrower record already contains. When Sujata changes a flag, the badge flips from AUTO to MANUAL and the evidence field records why. That is how the financed emissions score for this loan becomes defensible when it rolls up into the annual NFRS filing.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-12-pcaf-availability.mp3"
     },
     {
       "id": "back-to-queue",
       "tab": "mywork",
       "target": "[data-tour='loan-card-primary']",
-      "calloutTitle": "Both flows saved, queue updates",
-      "calloutText": "Sujata's card now shows the risk chip on the ESDD side and the Amber classification on the Taxonomy side.",
-      "narration": "Back in her queue. The loan card now shows both regulatory decisions. A risk chip on the ESDD side and an Amber classification on the Taxonomy side. The manager's view updates immediately because both surfaces read from the same records. Sujata moves on to her next loan.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-12-back-to-queue.mp3"
+      "calloutTitle": "Every flow saved · the manager sees it immediately",
+      "calloutText": "Risk chip · Amber classification · CAP status · PCAF availability. All from one workflow.",
+      "narration": "Back in her queue. The loan card now shows every regulatory decision. The environmental risk class on the ESDD side. The amber classification on the taxonomy side. The corrective action items scheduled with deadlines. The PCAF availability captured. The manager's view updates immediately because both surfaces read from the same records. Sujata moves on to her next loan.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-13-back-to-queue.mp3"
     },
     {
       "id": "closing",
       "tab": "mywork",
       "target": "[data-tour='my-work-queue']",
-      "calloutTitle": "Two regulations, one workflow, full attribution",
-      "calloutText": "ESRM Annex 5. Green Finance Taxonomy. Every capture officer-attributed and timestamped.",
-      "narration": "That is the officer workflow. Two Nepal Rastra Bank regulations captured verbatim, one workspace, every answer attributed to Sujata's officer identity, every classification carrying its NRB citation. When the compliance manager reviews her work, or NRB examines the loan three years from now, the audit trail is complete. Thanks for watching.",
-      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-13-closing.mp3"
+      "calloutTitle": "One loan · one workflow · every NRB layer",
+      "calloutText": "Circular 22. Green Finance Taxonomy. CAP + covenants + monitoring. PCAF availability. Every capture officer-attributed and timestamped.",
+      "narration": "That is the officer workflow. Every NRB layer captured in the correct sequence, every answer attributed to Sujata's officer identity, every classification carrying its citation, every corrective action with a deadline that the follow-up surface will remind her about. When the compliance manager reviews her work, or NRB examines the loan three years from now, the audit trail is complete. Thanks for watching.",
+      "audioFile": "/audio/laxmi_sunrise/loan-officer/tour-14-closing.mp3"
     }
   ]
 }

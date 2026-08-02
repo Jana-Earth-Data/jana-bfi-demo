@@ -57,7 +57,8 @@ export function NrbsisGreenStatementButton() {
         <div className="text-xs text-slate-400">
           Annual aggregate 17-sector Green Finance Statement keyed into the
           NRB Supervisory Information System per NRB Green Finance Taxonomy
-          2024, Annex 4b. This is the file the bank submits to NRBSIS.
+          2024, Annex 4b. Excel and PDF exports carry the bank's logo, colors,
+          and letterhead.
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
