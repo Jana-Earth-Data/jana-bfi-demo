@@ -12,7 +12,7 @@
       "target": "[data-tour='application-queue']",
       "calloutTitle": "The Manager tab · every commercial loan, every regulatory obligation",
       "calloutText": "Rebuilt to cover the full NRB stack — screening, CAP, covenants, monitoring, PCAF, taxonomy roll-up. Not just ESRM.",
-      "narration": "The Manager tab at Laxmi Sunrise Bank. NRB Circular twenty-two environmental screening is only the first layer of what happens here. On top of that sit corrective action plans, covenants, monitoring, project finance screening for Annex five b loans, PCAF data availability, and taxonomy classification. The compliance lead runs the whole portfolio from this tab. Over the next five minutes I will walk you through how.",
+      "narration": "The Manager tab at Laxmi Sunrise Bank. NRB Circular twenty-two environmental screening is only the first layer of what happens here. On top of that sit corrective action plans, covenants, monitoring, project finance screening for Annex five b loans, P-CAF data availability, and taxonomy classification. The compliance lead runs the whole portfolio from this tab. Over the next five minutes I will walk you through how.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-01-intro.mp3"
     },
     {
@@ -72,7 +72,7 @@
       "selectBorrowerNameContains": "Hongshi",
       "calloutTitle": "Workbench sub-tabs · every obligation, one loan",
       "calloutText": "Overview · CAP + Covenants · PCAF · Hydropower docs · Facility map.",
-      "narration": "Below the strip the workbench splits into sub-tabs. Overview holds the ESDD screening and the taxonomy result. CAP and Covenants holds the corrective action plan, the financial clause covenants, and the monitoring schedule. PCAF holds the data availability panel that feeds the financed emissions score for this loan. Hydropower docs holds the sector specific evidence matrix. And Facility map holds the geolocated emissions dot. The manager moves between sub-tabs without leaving the loan.",
+      "narration": "Below the strip the workbench splits into sub-tabs. Overview holds the ESDD screening and the taxonomy result. CAP and Covenants holds the corrective action plan, the financial clause covenants, and the monitoring schedule. P-CAF holds the data availability panel that feeds the financed emissions score for this loan. Hydropower docs holds the sector specific evidence matrix. And Facility map holds the geolocated emissions dot. The manager moves between sub-tabs without leaving the loan.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-06-workbench-subtabs.mp3"
     },
     {
@@ -129,7 +129,7 @@
       "target": "[data-tour='application-queue']",
       "calloutTitle": "Whole book · every regulatory layer · one view",
       "calloutText": "Officer captures roll up. Escalations surface. Overdue CAPs surface. Portfolio filing is one click.",
-      "narration": "That is the manager workflow. Every loan, every officer's captures, every escalation, every overdue corrective action, every taxonomy classification, every PCAF availability confirmation, visible in a single view and rolled up to the regulatory filing without a spreadsheet or a batch job in sight. Thanks for watching.",
+      "narration": "That is the manager workflow. Every loan, every officer's captures, every escalation, every overdue corrective action, every taxonomy classification, every P-CAF availability confirmation, visible in a single view and rolled up to the regulatory filing without a spreadsheet or a batch job in sight. Thanks for watching.",
       "audioFile": "/audio/laxmi_sunrise/manager/tour-12-closing.mp3"
     }
   ]

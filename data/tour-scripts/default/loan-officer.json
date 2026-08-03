@@ -121,7 +121,7 @@
       "workbenchSubtab": "pcaf",
       "calloutTitle": "PCAF Data Availability · what the NFRS auditor asks first",
       "calloutText": "Four flag rows for the PCAF option ladder. Auto-inferred from the borrower record, confirmed by Riya, flipped to MANUAL when overridden.",
-      "narration": "One more panel before Riya moves on. PCAF Data Availability. This is what the NFRS auditor asks about first. Four flag rows corresponding to the PCAF option ladder. Verified reported emissions. Unverified reported. Physical activity data. Revenue-only. The starting state is auto-inferred from what the borrower record already contains. When Riya changes a flag, the badge flips from AUTO to MANUAL and the evidence field records why. That is how the financed emissions score for this loan becomes defensible when it rolls up into the annual NFRS filing.",
+      "narration": "One more panel before Riya moves on. P-CAF Data Availability. This is what the NFRS auditor asks about first. Four flag rows corresponding to the P-CAF option ladder. Verified reported emissions. Unverified reported. Physical activity data. Revenue-only. The starting state is auto-inferred from what the borrower record already contains. When Riya changes a flag, the badge flips from AUTO to MANUAL and the evidence field records why. That is how the financed emissions score for this loan becomes defensible when it rolls up into the annual NFRS filing.",
       "audioFile": "/audio/default/loan-officer/tour-12-pcaf-availability.mp3"
     },
     {
@@ -130,7 +130,7 @@
       "target": "[data-tour='loan-card-primary']",
       "calloutTitle": "Every flow saved · the manager sees it immediately",
       "calloutText": "Risk chip · Amber classification · CAP status · PCAF availability. All from one workflow.",
-      "narration": "Back in her queue. The loan card now shows every regulatory decision. The environmental risk class on the ESDD side. The amber classification on the taxonomy side. The corrective action items scheduled with deadlines. The PCAF availability captured. The manager's view updates immediately because both surfaces read from the same records. Riya moves on to her next loan.",
+      "narration": "Back in her queue. The loan card now shows every regulatory decision. The environmental risk class on the ESDD side. The amber classification on the taxonomy side. The corrective action items scheduled with deadlines. The P-CAF availability captured. The manager's view updates immediately because both surfaces read from the same records. Riya moves on to her next loan.",
       "audioFile": "/audio/default/loan-officer/tour-13-back-to-queue.mp3"
     },
     {

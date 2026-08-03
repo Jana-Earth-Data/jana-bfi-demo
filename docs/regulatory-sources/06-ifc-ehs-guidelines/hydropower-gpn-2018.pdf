@@ -1,0 +1,1739 @@
+
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8"/>
+    
+		<title>Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects </title>
+    
+    
+    
+    <script defer="defer" type="text/javascript" src="https://rum.hlx.page/.rum/@adobe/helix-rum-js@%5E2/dist/micro.js" data-routing="env=stage,tier=publish,ams=World Bank"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin=""/>
+	<link rel="preconnect" href="https://s7d1.scene7.com/" crossorigin=""/>
+	<link rel="preload" as="image" href="/content/dam/ifc/corporate/logo/IFC-Logo.svg"/>
+
+    
+	
+    
+    
+    <link rel="shortcut icon" href="/content/dam/ifc/migration/favicon.ico" type="image/png"/>
+    <meta name="keywords" content="Agriculture and Food Security,Environmental Governance,Sustainability and Environmental and Social Governance,Health,Renewable Energy,Community Driven Development,Climate Change,Sustainable Economic Growth,Environmental Sustainability"/>
+
+	
+    <meta name="description" content="This Good Practice Note is intended to be used in conjunction with other EHS Guidelines and IFC&#39;s Performance Standards to identify, avoid, mitigate, and manage EHS risks and impacts in hydropower projects. "/>
+	
+    
+
+    <meta name="template" content="report---publications-short-version"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap"/>
+
+    
+
+    
+
+	<meta property="og:title" content="Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects "/>
+
+	<meta property="og:description" content="This Good Practice Note is intended to be used in conjunction with other EHS Guidelines and IFC&#39;s Performance Standards to identify, avoid, mitigate, and manage EHS risks and impacts in hydropower projects. "/>
+
+	<meta property="og:url" content="https://www.ifc.org/en/insights-reports/2018/publications-gpn-ehshydropwer"/>
+
+	<meta property="og:site_name" content="IFC"/>
+
+	<meta property="og:type" content="article"/>
+
+	<meta property="og:image:type" content="image/jpg"/>
+
+	<meta property="og:image:width" content="1200"/>
+
+	<meta property="og:image:height" content="630"/>
+
+	<meta property="og:image" content="https://www.ifc.org/content/dam/ifc/photos/ifc-twitter.jpg"/>
+
+
+	<meta name="twitter:card" content="summary_large_image"/>
+
+	<meta name="twitter:site" content="IFC"/>
+
+	<meta name="twitter:image" content="https://www.ifc.org/content/dam/ifc/photos/ifc-twitter.jpg"/>
+
+
+	<meta name="dcterms.title" content="Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects "/>
+
+	<meta name="dcterms.type" content="Text/HTML"/>
+
+	<meta name="dcterms.identifier" content="https://www.ifc.org/en/insights-reports/2018/publications-gpn-ehshydropwer"/>
+
+	<meta name="dcterms.language" content="English"/>
+
+
+<link rel="canonical" href="https://www.ifc.org/en/insights-reports/2018/publications-gpn-ehshydropwer"/>
+      
+      
+
+
+    
+
+
+
+    
+
+    
+    
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-base.css" type="text/css">
+
+
+
+
+
+
+
+    
+    
+    
+
+    
+
+    
+    <script src="/etc.clientlibs/ifc/clientlibs/clientlib-dependencies.js"></script>
+
+
+    
+    <link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-dependencies.css" type="text/css">
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-vendor/jquery.css" type="text/css">
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-vendor/popper.css" type="text/css">
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-vendor/bootstrap.css" type="text/css">
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-site-icon.css" type="text/css">
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-site-author.css" type="text/css">
+
+
+    
+    
+
+    
+    
+
+    
+    
+<link rel="stylesheet" href="/etc.clientlibs/ifc/clientlibs/clientlib-site-publish.css" type="text/css">
+
+
+
+
+	
+
+    
+
+     
+<script>
+    var wbgData = wbgData || {};
+
+    wbgData.page = {
+        pageInfo: {
+            pageName: "en:ifc:ifc:/en/insights-reports/2018/publications-gpn-ehshydropwer",
+            pageCategory: "content page",
+            pageUid: "3ac2c14b-36b7-494f-b16b-4a68b2258b7f",
+            pageFirstPub: "",
+            pageLastMod: "02-27-2026",
+            author: "",
+            topicTag: "Environmental Governance : Climate Change : Renewable Energy : Health : Agriculture and Food Security : Sustainable Economic Growth : Community Driven Development : Environmental Sustainability : Sustainability and Environmental and Social Governance",
+            subtopicTag: "",
+            contentType: "Good Practice",
+            channel: "ifc publications ext",
+            webpackage: ""
+        },
+        sectionInfo: {
+            siteSection: "",
+            subsectionP2: "Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects ",
+            subsectionP3: "",
+            subsectionP4: "",
+            subsectionP5: "",
+        }
+    }
+    wbgData.site = {
+        siteInfo: {
+            siteLanguage: "en",
+            siteCountry: "",
+            siteEnv: "prod",
+            siteType: "ifc",
+            siteRegion: "",
+            userIpaddressType: "10.47.0.80",
+        },
+        techInfo: {
+            cmsType: "AEM",
+            bussVPUnit: "WE",
+            bussUnit: "COMMS",
+            bussUserGroup: "external",
+            bussAgency: "IFC",
+        },
+    }
+    wbgData.misc = {
+        eventstatus: "",
+    }
+</script>
+<script src="//assets.adobedtm.com/223f6e2cf7c9/222eb671b1af/launch-6136c59bf2cd.min.js" async></script>
+
+
+</head>
+    <body class="page basicpage" id="page-e6a6b7b48d" data-cmp-link-accessibility-enabled data-cmp-link-accessibility-text="opens in a new tab">
+        
+        
+        
+            
+
+
+
+
+            
+<div id="wbg-aem-target" class="wbg-aem-target"></div>
+<div>
+
+<div>
+    
+	
+	
+	
+	
+	
+		
+
+    
+
+	
+    
+</div>
+</div> 
+<div class="root container responsivegrid">
+  
+
+
+    
+    <div id="container-d4f640d4c9" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="experiencefragment aem-GridColumn aem-GridColumn--default--12">
+<div id="experiencefragment-48fc8e2572" class="cmp-experiencefragment cmp-experiencefragment--header-mega-menu">
+
+  
+
+
+    
+    <div id="container-15cd144866" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="megamenu aem-GridColumn aem-GridColumn--default--12">
+
+    
+<script src="/etc.clientlibs/ifc/clientlibs/clientlib-vendor/jquery.js"></script>
+<script src="/etc.clientlibs/ifc/components/headersection/clientlibs/editor.js"></script>
+<script src="/etc.clientlibs/ifc/components/header/megamenu/clientlibs/editor.js"></script>
+
+
+
+
+
+
+<!-- IFC Desktop Menu -->
+<div class="hidden-sm hidden-xs">
+  <a tabindex="0" id="skip-to-main-content" class="visually-hidden focusable" href="#main">Skip to Main Navigation</a>
+  <header>
+   <div class="hidden-sm">
+     <div class="ifc_emergency_bar">
+         <div class="ifc-grid">
+           <ul class="ifc_emergency_bar_nav">
+             
+                
+             
+                
+             
+                
+             
+                
+             
+                
+             
+                
+                   
+                      <li class="ifc_emergency_bar_nav_list"><a href="https://disclosures.ifc.org/" class="ifc__megamenu_item" aria-current="page">Disclosures</a></li>
+                   
+                      <li class="ifc_emergency_bar_nav_list"><a href="https://www.ifc.org/en/insights-reports" class="ifc__megamenu_item" aria-current="page">Insights &amp; Reports</a></li>
+                   
+                      <li class="ifc_emergency_bar_nav_list"><a href="https://www.ifc.org/en/news" class="ifc__megamenu_item" aria-current="page">News</a></li>
+                   
+                
+             
+                
+             
+          </ul>
+
+          
+	</div>
+   </div>
+</div>
+
+<div class="ifc__navbar ifc__navbar_default">
+   <div class="ifc-grid">
+      <div class="ifc__navbar_header">
+     	 
+         <a href="https://www.ifc.org/en/home" title="IFC logo" class="ifc__navbar_brand">
+            
+            	<img title="IFC logo" alt="IFC logo" width="200" height="35" src="/content/dam/ifc/corporate/logo/IFC-Logo.svg" class="img-responsive"/>
+             
+			 
+          </a>
+         </div>
+         <div class="ifc__menulist_wrappper">
+            <div class="lp__megamenu">
+               <nav class="ifc__megamenu">
+                 <ul class="ifc__navbar_nav">
+                  
+
+
+    
+
+
+
+
+
+
+<li class="lp__megamenu_list">
+	
+	<a href="https://www.ifc.org/en/about" class="ifc__megamenu_item" aria-label="Who We Are">Who We Are</a>
+<div class="ifc__megamenu_dropdown">
+	<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+                      <div class="ifc__submenu_title" role="heading" tabindex="0">Who We Are</div>
+                      <p class="ifc__megamenu_lg_text" tabindex="0">IFC is the largest global development institution focused on the private sector in developing countries. By encouraging growth, IFC advances economic development, creates jobs and improves the lives of people. </p>
+                      <a href="https://www.ifc.org/en/about" class="ifc__btn ifc__btn_md ifc__blue_btn" tabindex="0">More About Us</a>
+                    </div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+                    <div class="ifc__submenu_list ">
+                        <div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">About IFC</div>
+                        <ul>
+					 
+						<li><a href="https://www.ifc.org/en/about/leadership">Our Leadership</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/about/partnerships">Development Partners</a></li>
+					
+					
+                    </ul>
+                      </div>
+                </div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+						<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">Accountability</div>
+					<ul>
+						 
+						<li><a href="https://www.ifc.org/en/about/accountability">Learn more about accountability</a></li>
+						                               
+                        
+					</ul>
+				</div>
+				</div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+				
+				
+					 <div class="ifc__submenu_list">
+				<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">Annual Report</div>
+					<ul>
+						 
+						<li><a href="https://www.ifc.org/annualreport">Download the Report</a></li>
+						                               
+                        
+						
+					</ul>
+				</div>
+				
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+                  
+
+
+    
+
+
+
+
+
+
+<li class="lp__megamenu_list">
+	
+	<a href="https://www.ifc.org/en/what-we-do" class="ifc__megamenu_item" aria-label="What We Do">What We Do</a>
+<div class="ifc__megamenu_dropdown">
+	<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+                      <div class="ifc__submenu_title" role="heading" tabindex="0">What We Do</div>
+                      <p class="ifc__megamenu_lg_text" tabindex="0">IFC advances economic development and improves the lives of people by encouraging the growth of the private sector in developing countries. We achieve this by investing in impactful projects, mobilizing other investors, and sharing expertise. </p>
+                      <a href="https://www.ifc.org/en/what-we-do" class="ifc__btn ifc__btn_md ifc__blue_btn" tabindex="0">What We Do Overview</a>
+                    </div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+                    <div class="ifc__submenu_list ">
+                        <div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">SOLUTIONS</div>
+                        <ul>
+					 
+						<li><a href="https://www.ifc.org/en/what-we-do/products-and-services">Our products and services</a></li>
+					
+					
+                    </ul>
+                      </div>
+                </div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+						<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">OUR PRIORITIES</div>
+					<ul>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/climate-business">Climate Business</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/fragile-and-conflict-affected-situations">Fragile &amp; Conflict Afflicted Situations</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/gender">Gender</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/mobilizing-private-capital">Mobilizing Private Capital</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/topics/sustainability">Sustainability</a></li>
+						                               
+                        
+					</ul>
+				</div>
+				</div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+				
+				
+					 <div class="ifc__submenu_list">
+				<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">SECTORS &amp; EXPERTISE</div>
+					<ul>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/agribusiness-forestry">Agribusiness &amp; Forestry</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/creative-industries">Creative Industries</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/education">Education</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/financial-institutions">Financial Institutions</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/funds">Funds</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/health">Health</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/infrastructure">Infrastructure</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/manufacturing">Manufacturing</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/public-private-partnerships">Public-Private Partnerships</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/tourism-retail-property">Tourism, Retail &amp; Property</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/trade-and-supply-chain-finance">Trade &amp; Supply Chain Finance</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/venture-capital">Venture Capital</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/creating-business-creating-opportunities">Working Upstream</a></li>
+						                               
+                        
+						
+					</ul>
+				</div>
+				
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+                  
+
+
+    
+
+
+
+
+
+
+<li class="lp__megamenu_list">
+	
+	<a href="https://www.ifc.org/en/where-we-work" class="ifc__megamenu_item" aria-label="Where We Work">Where We Work</a>
+<div class="ifc__megamenu_dropdown">
+	<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+                      <div class="ifc__submenu_title" role="heading" tabindex="0">Where We Work</div>
+                      <p class="ifc__megamenu_lg_text" tabindex="0">As the largest global development institution focused on the private sector, IFC operates in more than 100 countries around the globe. We apply lessons learned in one region to solve problems in another. </p>
+                      <a href="https://www.ifc.org/en/where-we-work" class="ifc__btn ifc__btn_md ifc__blue_btn" tabindex="0">Overview</a>
+                    </div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+                    <div class="ifc__submenu_list ">
+                        <div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">By Region</div>
+                        <ul>
+					 
+						<li><a href="https://www.ifc.org/en/where-we-work/africa">Africa</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/where-we-work/east-asia-and-the-pacific">East Asia and Pacific</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/where-we-work/europe">Europe</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/where-we-work/latin-america-and-the-caribbean">Latin America and the Caribbean</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/where-we-work/middle-east">Middle East and Central Asia</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/where-we-work/south-asia">South Asia</a></li>
+					
+					
+                    </ul>
+                      </div>
+                </div>
+				
+				
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+                  
+
+
+    
+
+
+
+
+
+
+<li class="lp__megamenu_list">
+	
+	<a href="https://www.ifc.org/en/our-impact" class="ifc__megamenu_item" aria-label="Our Impact">Our Impact</a>
+<div class="ifc__megamenu_dropdown">
+	<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+                      <div class="ifc__submenu_title" role="heading" tabindex="0">Our Impact</div>
+                      <p class="ifc__megamenu_lg_text" tabindex="0">Our impact improves lives. IFC brings a clear set of advantages to the world’s most challenging markets. Including a history of innovation, a global mandate, and a determination to achieve measurable development impact.</p>
+                      <a href="https://www.ifc.org/en/our-impact" class="ifc__btn ifc__btn_md ifc__blue_btn" tabindex="0">Our Impact Overview</a>
+                    </div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+                    <div class="ifc__submenu_list ">
+                        <div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">PRINCIPLES &amp; MEASUREMENT</div>
+                        <ul>
+					 
+						<li><a href="https://www.ifc.org/en/our-impact/impact-investing-at-ifc">Impact Investing at IFC</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/our-impact/measuring-and-monitoring">Measuring and Monitoring (AIMM)</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/our-impact/evaluation">Evaluation</a></li>
+					 
+						<li><a href="https://www.ifc.org/en/our-impact/sustainable-development-goals">Sustainable Development Goals (SDGs)</a></li>
+					
+					
+                    </ul>
+                      </div>
+                </div>
+				
+				
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+               </ul>
+
+            </nav>
+         </div>
+      </div>
+      <div class="lp__megamenu ifc__megamenu_right_section">
+        <div class="ifc__megamenu" aria-label="secondary">
+         <div class="ifc__navbar_nav">
+            <div class="lp__megamenu_list ifc__workwithus">
+		<!-- <button type="button" class="ifc__workwithus" id="WorkWith_Us" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-controls="WorkWith_Us">Work With Us</button> -->
+		<a href="" class="ifc__megamenu_item " aria-label="Work with us">Work With Us</a>
+		<!-- only for desktop mega menu -->
+		  <div class="ifc__megamenu_dropdown ifc__workwithus_dropdown">
+			<!-- <div class="ifc-grid"> -->
+				<div class="aem-Grid">
+					<div class="aem-GridColumn--desktop--4 aem-GridColumn--phone--12">
+						<div class="ifc__submenu_list ">
+						<div class="ifc__submenu_title" role="heading" tabindex="0">Work With Us</div>
+						<p class="ifc__megamenu_lg_text" tabindex="0">Owned by 186 member countries and consistently rated AAA/Aaa. IFC aims to achieve our mission of promoting development by providing debt and equity to the private sector, through a range of benchmark and bespoke products.</p>
+						
+					</div>
+					</div>
+					
+					<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+						<div class="ifc__submenu_list ">
+						<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">For Partners</div>
+						<ul>
+						 
+							<li><a href="https://www.ifc.org/en/about/partnerships">Partners</a></li>
+						 
+							<li><a href="https://www.ifc.org/en/about/partnerships#partners">Governments</a></li>
+						 
+							<li><a href="https://www.ifc.org/en/about/accountability">CSOs/NGOs</a></li>
+						
+						
+						</ul>
+					</div>
+					</div>
+					<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+						<div class="ifc__submenu_list ">
+						<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">For Investors</div>
+						<ul>
+						 
+						<li><a href="https://www.ifc.org/en/about/funding-and-investor-relations">Funding Program &amp; Investor Relations</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/about/funding-and-investor-relations/green-bonds">Green Bonds</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/about/funding-and-investor-relations/social-bonds">Social Bonds</a></li>
+						                               
+						
+						</ul>
+					</div>
+					</div>
+					<div class="aem-GridColumn--desktop--2 aem-GridColumn--phone--12">
+						<div class="ifc__submenu_list ">
+						<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">Get in Touch</div>
+						<ul>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/products-and-services/how-to-apply-for-financing">Apply for Financing</a></li>
+						 
+						<li><a href="https://www.worldbank.org/ext/en/careers">World Bank Group Careers</a></li>
+						 
+						<li><a href="https://disclosures.ifc.org/inquiries">General Inquiries</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/contact-directory">Contact Directory</a></li>
+						                               
+						
+						</ul>
+					</div>
+					</div>
+				<!-- </div>  -->
+			</div>
+		</div>
+	</div>
+
+         </div>
+      </div>
+      
+            <div class="lp__globalsearch">
+            <div class="sr-only" id="search-label">global Search dropdown</div>
+               <a class="lang-lable" href="#" role="button" id="globalsearch-label" data-toggle="dropdown" aria-expanded="false" aria-labelledby="search-label">
+                </a>
+              <div class="dropdown-menu ifc__dropdown_menu" aria-labelledby="search-label" style="">
+                 <div class="ifc-grid">
+                  <div class="aem-Grid">
+                  <div class="ifc__secondary_search">
+                       <label class="ifc__input_text sr-only" for="ifc_search">Search ifc.org</label>
+  <form class="ifc__input_group" name="searchbox" method="post" id="ifc__input_search_redirect" onsubmit="handleSubmit(event)">  
+          <input type="search" placeholder="Search ifc.org" class="search-input-field" name="qterm" id="ifc_search" aria-label="Search"/>
+          <input class="ifc__submit_icon" type="image" src="/content/dam/ifc/corporate/logo/search-black.svg" alt="search"/>
+          <input type="hidden" name="lang_exact" value="English"/>
+          </form>
+                  </div>
+        </div>
+      </div>
+              </div>
+        </div>
+   </div>
+</div>
+</div>
+</header>
+</div>
+
+
+<div class="hidden-lg hidden-md">       
+	<header>
+		<div class="ifc__navbar ifc__navbar_default">
+			<div class="ifc-grid">
+				<div class="ifc__navbar_header">
+				 
+					<a href="https://www.ifc.org/en/home" title="IFC logo" class="ifc__navbar_brand">
+						
+							<img title="IFC logo" alt="IFC logo" width="200" height="35" src="/content/dam/ifc/corporate/logo/IFC-Logo.svg" class="img-responsive"/>
+						
+						
+					</a>
+				</div>
+				<!-- End Logo Section -->
+				<!-- End mega menu -->
+				<!-- SEARCH for mobile menu -->
+				<!-- create 2 buttons one for mobile menu and one for search -->
+				<div class="lp__menuButton">
+                 
+					<button type="button" class="ifc__navbar_toggle collapsed" data-toggle="collapse" data-target="#menuItems" aria-expanded="false" aria-controls="menuItems" aria-label="menu"></button>
+				</div>
+				<!-- END search for mobile menu -->
+				<!-- START Mega Menu -->
+				<div class="ifc__menulist_wrappper">
+					<div class="ifc__navbar_collapse collapse lp__megamenu" id="menuItems">
+						<nav class="megamenu">
+							<!-- mobile search -->
+							<div class="header-search-section hidden-lg hidden-md">
+								<form name="hiddensearch" id="globalsearchId-mob" action="" method="get" style="display:none" aria-hidden="true" class="ifc__megamenu_list">
+									<input id="global_search-mob" type="hidden" name="q" title="searchtexthidden1" role="group" aria-expanded="false" aria-hidden="true" class="dropdown"/>
+								</form>
+								<label for="mobile-globalsearch" class="sr-only ifc__megamenu_list">Global Search</label>
+								<form role="search" class="ifc__input_group ifc__megamenu_list" id="ifc-desktop-search" name="searchbox" onsubmit="handleSubmit(event)">
+									<input type="text" id="mobile-globalsearch" placeholder="Search worldbank.org" class="search-input-field-1 global_search_form_mobile" name="qterm_test" title=""/>
+									<button type="reset" title="Clear" class="search-reset-btn" onclick="javascript:clear_search_form();"><span class="ifc-search-close"></span></button>
+									<button type="submit" title="Search" class="search-submit-icon ifc-yellow-btn dropdown" onclick="javascript:submit_search_form();" id="ifc__megamenu7" role="group" aria-expanded="false" aria-hidden="true"><span class="sr-only" aria-hidden="true">Search button</span>
+									</button>
+								</form>
+							</div>
+							<!-- mobile mega menu -->
+							<ul class="ifc__navbar_nav">
+								
+
+
+
+<li class="lp__megamenu_list">
+	<a href="https://www.ifc.org/en/about" class="ifc__megamenu_item" data-toggle="dropdown" aria-expanded="false">Who We Are</a>
+	<div class="ifc__megamenu_dropdown dropdown-menu">
+		<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					 <div class="ifc__submenu_list ">
+					<div><a class="close_btn" href="#"><span class="ifc-back-icon"></span> Back </a></div>
+					<div class="ifc__submenu_title" role="heading">Who We Are</div>
+					<a href="https://www.ifc.org/en/about" class="ifc__btn ifc__btn_md ifc__blue_btn">More About Us</a><br/>
+					
+					<hr/>
+				</div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+					<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">About IFC</div>
+					<ul>
+						
+						<li><a href="https://www.ifc.org/en/about/leadership">Our Leadership</a></li>
+						
+						<li><a href="https://www.ifc.org/en/about/partnerships">Development Partners</a></li>
+						
+						
+					</ul>
+					<hr/>
+				</div>
+                </div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list">
+					 <div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">Accountability</div>
+					 <ul>
+						 
+						<li><a href="https://www.ifc.org/en/about/accountability">Learn more about accountability</a></li>
+						                               
+                        
+					</ul>
+					<hr/>
+				</div>
+				</div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+				
+				
+					<div class="ifc__submenu_list">
+				<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">Annual Report</div>
+					<ul>
+						 
+						<li><a href="https://www.ifc.org/annualreport">Download the Report</a></li>
+						                               
+                        
+						
+					</ul>
+				</div>
+				
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+								
+
+
+
+<li class="lp__megamenu_list">
+	<a href="https://www.ifc.org/en/what-we-do" class="ifc__megamenu_item" data-toggle="dropdown" aria-expanded="false">What We Do</a>
+	<div class="ifc__megamenu_dropdown dropdown-menu">
+		<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					 <div class="ifc__submenu_list ">
+					<div><a class="close_btn" href="#"><span class="ifc-back-icon"></span> Back </a></div>
+					<div class="ifc__submenu_title" role="heading">What We Do</div>
+					<a href="https://www.ifc.org/en/what-we-do" class="ifc__btn ifc__btn_md ifc__blue_btn">What We Do Overview</a><br/>
+					<a class="ifc__megamenu_viewalllink" href="https://disclosures.ifc.org/">View all projects</a>
+					<hr/>
+				</div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+					<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">SOLUTIONS</div>
+					<ul>
+						
+						<li><a href="https://www.ifc.org/en/what-we-do/products-and-services">Our products and services</a></li>
+						
+						
+					</ul>
+					<hr/>
+				</div>
+                </div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list">
+					 <div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">OUR PRIORITIES</div>
+					 <ul>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/climate-business">Climate Business</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/fragile-and-conflict-affected-situations">Fragile &amp; Conflict Afflicted Situations</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/gender">Gender</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/mobilizing-private-capital">Mobilizing Private Capital</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/topics/sustainability">Sustainability</a></li>
+						                               
+                        
+					</ul>
+					<hr/>
+				</div>
+				</div>
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+				
+				
+					<div class="ifc__submenu_list">
+				<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">SECTORS &amp; EXPERTISE</div>
+					<ul>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/agribusiness-forestry">Agribusiness &amp; Forestry</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/creative-industries">Creative Industries</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/education">Education</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/financial-institutions">Financial Institutions</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/funds">Funds</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/health">Health</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/infrastructure">Infrastructure</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/manufacturing">Manufacturing</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/public-private-partnerships">Public-Private Partnerships</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/tourism-retail-property">Tourism, Retail &amp; Property</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/trade-and-supply-chain-finance">Trade &amp; Supply Chain Finance</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/venture-capital">Venture Capital</a></li>
+						 
+						<li><a href="https://www.ifc.org/en/what-we-do/sector-expertise/creating-business-creating-opportunities">Working Upstream</a></li>
+						                               
+                        
+						
+					</ul>
+				</div>
+				
+				</div>
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+								
+
+
+
+<li class="lp__megamenu_list">
+	<a href="https://www.ifc.org/en/where-we-work" class="ifc__megamenu_item" data-toggle="dropdown" aria-expanded="false">Where We Work</a>
+	<div class="ifc__megamenu_dropdown dropdown-menu">
+		<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					 <div class="ifc__submenu_list ">
+					<div><a class="close_btn" href="#"><span class="ifc-back-icon"></span> Back </a></div>
+					<div class="ifc__submenu_title" role="heading">Where We Work</div>
+					<a href="https://www.ifc.org/en/where-we-work" class="ifc__btn ifc__btn_md ifc__blue_btn">Overview</a><br/>
+					
+					<hr/>
+				</div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+					<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">By Region</div>
+					<ul>
+						
+						<li><a href="https://www.ifc.org/en/where-we-work/africa">Africa</a></li>
+						
+						<li><a href="https://www.ifc.org/en/where-we-work/east-asia-and-the-pacific">East Asia and Pacific</a></li>
+						
+						<li><a href="https://www.ifc.org/en/where-we-work/europe">Europe</a></li>
+						
+						<li><a href="https://www.ifc.org/en/where-we-work/latin-america-and-the-caribbean">Latin America and the Caribbean</a></li>
+						
+						<li><a href="https://www.ifc.org/en/where-we-work/middle-east">Middle East and Central Asia</a></li>
+						
+						<li><a href="https://www.ifc.org/en/where-we-work/south-asia">South Asia</a></li>
+						
+						
+					</ul>
+					<hr/>
+				</div>
+                </div>
+				
+				
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+								
+
+
+
+<li class="lp__megamenu_list">
+	<a href="https://www.ifc.org/en/our-impact" class="ifc__megamenu_item" data-toggle="dropdown" aria-expanded="false">Our Impact</a>
+	<div class="ifc__megamenu_dropdown dropdown-menu">
+		<div class="ifc-grid">
+			<div class="aem-Grid">
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					 <div class="ifc__submenu_list ">
+					<div><a class="close_btn" href="#"><span class="ifc-back-icon"></span> Back </a></div>
+					<div class="ifc__submenu_title" role="heading">Our Impact</div>
+					<a href="https://www.ifc.org/en/our-impact" class="ifc__btn ifc__btn_md ifc__blue_btn">Our Impact Overview</a><br/>
+					
+					<hr/>
+				</div>
+				</div>
+				
+				<div class="aem-GridColumn--desktop--3 aem-GridColumn--phone--12">
+					<div class="ifc__submenu_list ">
+					<div class="ifc__submenu_list_title" aria-level="2" role="heading" tabindex="0">PRINCIPLES &amp; MEASUREMENT</div>
+					<ul>
+						
+						<li><a href="https://www.ifc.org/en/our-impact/impact-investing-at-ifc">Impact Investing at IFC</a></li>
+						
+						<li><a href="https://www.ifc.org/en/our-impact/measuring-and-monitoring">Measuring and Monitoring (AIMM)</a></li>
+						
+						<li><a href="https://www.ifc.org/en/our-impact/evaluation">Evaluation</a></li>
+						
+						<li><a href="https://www.ifc.org/en/our-impact/sustainable-development-goals">Sustainable Development Goals (SDGs)</a></li>
+						
+						
+					</ul>
+					<hr/>
+				</div>
+                </div>
+				
+				
+				
+			</div>
+		</div>
+	</div>
+</li>
+
+
+								<li class="ifc__megamenu_list">
+									<div class="ifc_emergency_bar">
+										<ul class="ifc_emergency_bar_nav">
+											
+												
+											
+												
+											
+												
+											
+												
+											
+												
+											
+												
+													
+													<li class="ifc_emergency_bar_nav_list"><a href="https://disclosures.ifc.org/" class="ifc__megamenu_item" aria-current="page">Disclosures</a></li>
+													
+													<li class="ifc_emergency_bar_nav_list"><a href="https://www.ifc.org/en/insights-reports" class="ifc__megamenu_item" aria-current="page">Insights &amp; Reports</a></li>
+													
+													<li class="ifc_emergency_bar_nav_list"><a href="https://www.ifc.org/en/news" class="ifc__megamenu_item" aria-current="page">News</a></li>
+													
+												
+											
+												
+											
+										</ul>
+									</div>
+								</li>
+								
+								  <!-- Workwithus  -->
+<li class="lp__megamenu_list ifc__workwithus dropup">
+	<div class="ifc-work-shadow"></div>
+	<!-- work with us for mobile -->
+<span class="ifc__dropdown_label sr-only" id="sr-workwithustitle">Work with us <span class="">On selection, leaving this page</span></span>
+	<button type="button" class="ifc__megamenu_item" data-toggle="dropdown" aria-expanded="false" aria-labelledby="sr-workwithustitle sr-workwithusbtn" id="sr-workwithusbtn" aria-label="Work with us">Work With Us</button>
+	
+
+		<ul class="dropdown-menu ifc__dropdown_menu" aria-labelledby="sr-workwithustitle">
+		 
+		<li tabindex="0"><a href="https://www.ifc.org/en/about/partnerships">Partners</a></li>
+		 
+		<li tabindex="0"><a href="https://www.ifc.org/en/about/partnerships#partners">Governments</a></li>
+		 
+		<li tabindex="0"><a href="https://www.ifc.org/en/about/accountability">CSOs/NGOs</a></li>
+		
+		</ul>
+	
+</li>
+							</ul>
+						</nav>
+					</div>
+				</div>
+			</div>
+		</div>
+	</header>
+</div></div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+    
+</div>
+<div class="container responsivegrid aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-9c9e36c583" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="ifcbreadcrumb breadcrumb aem-GridColumn aem-GridColumn--default--12">
+
+    
+
+<div>
+    
+		
+
+    
+<script src="/etc.clientlibs/clientlibs/granite/jquery.js"></script>
+<script src="/etc.clientlibs/ifc/components/ifcbreadcrumb/clientlibs/site.js"></script>
+
+
+ 
+
+
+
+    <div class="breadcrumb ifc__breadcrumb_menu ifc__breadcrumb_desktop">
+    <div class="ifc-grid">
+        <!-- breadcrumb menu -->
+        <nav class="cmp-breadcrumb" aria-label="Breadcrumb">
+		<!-- breadcrumb nav -->
+            <ol class="cmp-breadcrumb__list" itemscope="">
+				
+	                <li class="cmp-breadcrumb__item">
+	                    <a class="cmp-breadcrumb__item-link" itemprop="item" data-cmp-clickable="" target="_self" aria-label="home">
+	                     	<span class="breadcrumb__icon-home" itemprop="name"></span>
+	                    </a>
+	                    <meta itemprop="position" content="1"/>
+	                </li>
+				
+				
+				
+                	
+                    <li class="cmp-breadcrumb__item">
+
+                        <a class="cmp-breadcrumb__item-link" itemprop="item" data-cmp-clickable="" href="/en/insights-reports" target="_self">
+                            <span itemprop="name">Insights &amp; Reports</span>
+                        </a>
+                        <meta itemprop="position" content="2"/>
+                    </li>
+                    
+                    
+                
+                	
+                    
+                    	<li class="cmp-breadcrumb__item">
+                           <span itemprop="name">Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects </span>
+                           <meta itemprop="position" content="2"/>
+					  
+                    </li>
+                    
+                
+				
+				
+				
+            </ol>
+            <!-- breadcrumb share right nav desktop hidden on mobile -->
+			<ol class="cmp-breadcrumb__list breadcrumb__right hidden-sm hidden-xs" itemscope="">
+				 
+ 	<li class="cmp-breadcrumb__item">
+		<div class="ifc__lang_dropdown">
+			
+	                <div class="ifc__printshare-section">
+						<a class="cmp-breadcrumb__item-link printPage" href="#" itemprop="item" data-cmp-clickable="" aria-label="print" data-customlink="pr:page tools" data-text="print">
+	    					<span class="lp lp-print" itemprop="name"></span>
+						</a>
+				<meta itemprop="position" content="1"/>
+				<div class="ifc__share_section">
+			        <span class="sr-only" id="sr-socialshare"> Share this page</span>
+					<button type="button" class="cmp-breadcrumb__item-link" data-toggle="dropdown" aria-expanded="false" aria-labelledby="sr-socialshare"><span class="lp lp-share" itemprop="name"></span>
+				    </button>
+					<div class="ifc__dropdown_menu dropdown-menu" aria-labelledby="sr-socialshare">
+						<ul>
+							<li><a id="ifc-fbid" class="dropdown-item" href="#"><i class="lp lp-facebook" data-customlink="sw:page tools" data-text="facebook"></i><span class="sr-only">Facebook</span></a></li>
+							<li><a id="ifc-twid" class="dropdown-item" href="#"><i class="lp lp-twitter" data-customlink="sw:page tools" data-text="x"></i><span class="sr-only">x</span></a></li>
+							<li><a id="ifc-ldid" class="dropdown-item" href="#"><i class="lp lp-linkedln" data-customlink="sw:page tools" data-text="linkedin"></i><span class="sr-only">LinkedIn</span></a></li>
+							<li><a id="ifc-igid" class="dropdown-item" href="#"><i class="lp lp-instagram" data-customlink="sw:page tools" data-text="instagram"></i><span class="sr-only">instagram</span></a></li>
+			                <li><a id="ifc-emailid" class="dropdown-item" href="mailto:?body=This Good Practice Note is intended to be used in conjunction with other EHS Guidelines and IFC&#39;s Performance Standards to identify, avoid, mitigate, and manage EHS risks and impacts in hydropower projects. %0Dhttps://www.ifc.org/en/insights-reports/2018/publications-gpn-ehshydropwer&subject=Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects " data-customlink="em:page tools" data-text="email"><i class="lp lp-newsletter"></i><span class="sr-only">Email</span></a></li>
+							<li><a id="ifc-whatsappid" class="dropdown-item" href="#" data-page-title="Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects "><i class="lp lp-whatsup" data-customlink="sw:page tools" data-text="whatsup"></i><span class="sr-only">whatsup</span></a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</li>
+	     
+
+			</ol>
+        </nav>
+    </div>
+</div>
+<!-- mobile translate menu -->
+
+    <div class="breadcrumb ifc__breadcrumb_menu ifc__breadcrumb-translate-bg hidden-lg hidden-md">
+	<div class="ifc-grid">
+	    <nav>
+	        <ol class="cmp-breadcrumb__list breadcrumb__right" itemscope="">
+              	 
+ 	<li class="cmp-breadcrumb__item">
+		<div class="ifc__lang_dropdown">
+			
+	                <div class="ifc__printshare-section">
+						<a class="cmp-breadcrumb__item-link printPage" href="#" itemprop="item" data-cmp-clickable="" aria-label="print" data-customlink="pr:page tools" data-text="print">
+	    					<span class="lp lp-print" itemprop="name"></span>
+						</a>
+				<meta itemprop="position" content="1"/>
+				<div class="ifc__share_section">
+			        <span class="sr-only" id="sr-socialshare"> Share this page</span>
+					<button type="button" class="cmp-breadcrumb__item-link" data-toggle="dropdown" aria-expanded="false" aria-labelledby="sr-socialshare"><span class="lp lp-share" itemprop="name"></span>
+				    </button>
+					<div class="ifc__dropdown_menu dropdown-menu" aria-labelledby="sr-socialshare">
+						<ul>
+							<li><a id="ifc-fbid" class="dropdown-item" href="#"><i class="lp lp-facebook" data-customlink="sw:page tools" data-text="facebook"></i><span class="sr-only">Facebook</span></a></li>
+							<li><a id="ifc-twid" class="dropdown-item" href="#"><i class="lp lp-twitter" data-customlink="sw:page tools" data-text="x"></i><span class="sr-only">x</span></a></li>
+							<li><a id="ifc-ldid" class="dropdown-item" href="#"><i class="lp lp-linkedln" data-customlink="sw:page tools" data-text="linkedin"></i><span class="sr-only">LinkedIn</span></a></li>
+							<li><a id="ifc-igid" class="dropdown-item" href="#"><i class="lp lp-instagram" data-customlink="sw:page tools" data-text="instagram"></i><span class="sr-only">instagram</span></a></li>
+			                <li><a id="ifc-emailid" class="dropdown-item" href="mailto:?body=This Good Practice Note is intended to be used in conjunction with other EHS Guidelines and IFC&#39;s Performance Standards to identify, avoid, mitigate, and manage EHS risks and impacts in hydropower projects. %0Dhttps://www.ifc.org/en/insights-reports/2018/publications-gpn-ehshydropwer&subject=Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects " data-customlink="em:page tools" data-text="email"><i class="lp lp-newsletter"></i><span class="sr-only">Email</span></a></li>
+							<li><a id="ifc-whatsappid" class="dropdown-item" href="#" data-page-title="Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects "><i class="lp lp-whatsup" data-customlink="sw:page tools" data-text="whatsup"></i><span class="sr-only">whatsup</span></a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</li>
+	     
+
+ 			</ol>
+        </nav>
+    </div>
+</div>
+
+
+	
+	
+</div></div>
+<div class="container responsivegrid layer-white layer-banner-img layer__story_banner aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-7697d2837d" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="container responsivegrid ifc-grid aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-679225f7c2" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--tablet--12 aem-Grid--default--12 aem-Grid--desktop--12 aem-Grid--phone--12 ">
+    
+    <div class="storyTitle title ifc__title ifc__title_center aem-GridColumn--default--none aem-GridColumn--desktop--10 aem-GridColumn--offset--desktop--1 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--1 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn aem-GridColumn--default--10">
+<div id="storyTitle-480d1ac8bd" class="cmp-title">
+
+
+    <p class="cmp-teaser__pretitle">Good Practice</p>
+
+      
+    <h1 class="cmp-title__text">Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects </h1>
+</div>
+
+    
+
+</div>
+<div class="bannerdetail aem-GridColumn aem-GridColumn--default--12">
+
+
+
+
+	<div class="layer__story_banner_detail">
+	
+    <span class="ifc__datestamp">March 12, 2018</span>
+</div>
+
+
+
+
+    
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+<div class="container responsivegrid layer-white aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-05f56a95e2" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="container responsivegrid ifc-grid aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-e3a2f2806d" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--tablet--12 aem-Grid--default--12 aem-Grid--desktop--12 aem-Grid--phone--12 ">
+    
+    <div class="title ifc__title aem-GridColumn--default--none aem-GridColumn--offset--desktop--0 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--0 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--desktop--9 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn--default--9 aem-GridColumn">
+
+
+    
+
+</div>
+<div class="button aem-GridColumn--default--none aem-GridColumn--offset--desktop--0 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--0 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn aem-GridColumn--desktop--3 aem-GridColumn--default--3">
+
+    
+
+
+</div>
+<div class="container responsivegrid aem-GridColumn--default--none aem-GridColumn--offset--desktop--0 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--0 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--desktop--7 aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn aem-GridColumn--default--7">
+  
+
+
+    
+    <div id="container-630eb5a1c9" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--7 aem-Grid--tablet--12 aem-Grid--default--7 aem-Grid--desktop--7 aem-Grid--phone--12 ">
+    
+    <div class="text ifc__body_content ifc__paragraph_lg aem-GridColumn--tablet--12 aem-GridColumn--desktop--7 aem-GridColumn--phone--12 aem-GridColumn aem-GridColumn--default--7">
+<div id="text-4ff10b8f75" class="cmp-text">
+    <p>74 pages | © March 2018 IFC | Complimentary</p>
+
+<p><img src="/content/dam/ifc/migration/p_cover_GPN-EHSHydro.jpg" width="102" height="132" align="left" title="Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects"/></p>
+
+<p>This <strong>Good Practice Note on Environmental, Health, and Safety Approaches for Hydropower Projects</strong> is a technical reference document that has been developed for IFC clients and other private sector companies and their consultants. This Note is intended to be used in conjunction with the Environmental, Health, and Safety (EHS) General and other Guidelines, as relevant, and IFC’s Performance Standards to identify, avoid, mitigate, and manage EHS risks and impacts in hydropower projects.</p>
+
+<p><a href="/content/dam/ifc/doc/mgrt/gpn-ehshydropower.pdf" title="Good Practice Note: Environmental, Health, and Safety Approaches for Hydropower Projects [PDF document, 2.63mb]" target="_blank">Download full publication</a> [PDF]</p>
+
+<hr />
+<p><strong>Related resources</strong>:</p>
+
+<ul>
+	<li><a href="/wps/wcm/connect/topics_ext_content/ifc_external_corporate_site/sustainability-at-ifc/policies-standards/ehs-guidelines/ehsguidelines">World Bank Group Environmental, Health, and Safety Guidelines</a></li>
+	<li><a href="/wps/wcm/connect/topics_ext_content/ifc_external_corporate_site/sustainability-at-ifc/policies-standards/performance-standards/performance-standards">IFC Environmental and Social Performance Standards</a></li>
+</ul>
+
+<hr />
+<p> </p>
+
+<p><a href="#" title="">« Return to previous page</a></p>
+
+<p> </p>
+
+<p>Short URL for this page: <strong><a href="/EHSHydropower">www.ifc.org/EHSHydropower</a></strong></p>
+
+<p> </p>
+ 
+</div>
+
+    
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+<div class="container responsivegrid aem-GridColumn--default--none aem-GridColumn--offset--desktop--0 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--0 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn--desktop--5 aem-GridColumn aem-GridColumn--default--5">
+  
+
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+<div class="container responsivegrid layer-white aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+</div>
+<div class="container responsivegrid layer-white aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-69b6a4891b" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="container responsivegrid ifc-grid aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+    
+    <div id="container-82fdb4f79c" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--tablet--12 aem-Grid--default--12 aem-Grid--desktop--12 aem-Grid--phone--12 ">
+    
+    <div class="container responsivegrid aem-GridColumn--default--none aem-GridColumn--desktop--10 aem-GridColumn--offset--desktop--1 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--1 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn aem-GridColumn--default--10">
+  
+
+
+    
+    <div id="container-4ec16ae69c" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--10 aem-Grid--tablet--12 aem-Grid--default--10 aem-Grid--desktop--10 aem-Grid--phone--12 ">
+    
+    <div class="text ifc__body_content ifc__paragraph_lg aem-GridColumn--default--none aem-GridColumn--offset--desktop--0 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--0 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn aem-GridColumn--desktop--4 aem-GridColumn--default--4">
+
+
+    
+
+</div>
+<div class="text ifc__body_content ifc__paragraph_lg aem-GridColumn--default--none aem-GridColumn--offset--desktop--1 aem-GridColumn--offset--phone--0 aem-GridColumn--offset--default--1 aem-GridColumn--desktop--none aem-GridColumn--tablet--12 aem-GridColumn--offset--tablet--0 aem-GridColumn--phone--none aem-GridColumn--phone--12 aem-GridColumn--tablet--none aem-GridColumn--desktop--5 aem-GridColumn aem-GridColumn--default--5">
+<div id="text-e17c778bda" class="cmp-text">
+    74 pages | © March 2018 IFC | Complimentary
+</div>
+
+    
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+<div class="container responsivegrid layer-white aem-GridColumn aem-GridColumn--default--12">
+  
+
+
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+<div class="experiencefragment aem-GridColumn aem-GridColumn--default--12">
+<div id="experiencefragment-91a6f7562f" class="cmp-experiencefragment cmp-experiencefragment--globalfooter">
+
+  
+
+
+    
+    <div id="container-8c0bf97e65" class="cmp-container">
+        
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="footer aem-GridColumn aem-GridColumn--default--12">
+
+<footer class="layer-black hidden-xs">
+    <div class="ifc-grid">
+        <div class="ifc__footer_top_section">
+            <div class="aem-Grid">
+                <div class="aem-GridColumn--default--8 aem-GridColumn--desktop--7 aem-GridColumn--tablet--6 aem-GridColumn--phone--12">
+                    <div class="ifc__footer_top_left">
+                        <a href="https://www.ifc.org/en/home" target="_self" class="ifc__navbar_brand"><img title="Logo Image Title" alt="IFC Logo Image alt" src="/content/dam/ifc/corporate/logo/WBG-Horizontal-white-web.png" class="img-responsive" width="200" height="35"/> </a>
+                    </div>
+					<div class="ifc__listinline">
+                        <ul>
+							
+								<li class="disclaimer"><a href="https://www.worldbank.org/en/who-we-are/ibrd" target="_blank">IBRD</a></li>
+							
+								<li class="disclaimer"><a href="https://ida.worldbank.org/" target="_blank">IDA</a></li>
+							
+								<li class="disclaimer"><a href="https://www.ifc.org/" target="_blank">IFC</a></li>
+							
+								<li class="disclaimer"><a href="https://www.miga.org/" target="_blank">MIGA</a></li>
+							
+								<li class="disclaimer"><a href="https://icsid.worldbank.org/" target="_blank">ICSID</a></li>
+							
+                        </ul>
+                    </div>
+                </div>
+                <div class="aem-GridColumn--default--4 aem-GridColumn--desktop--5 aem-GridColumn--tablet--6 aem-GridColumn--phone--12">
+                    <div class="ifc__social_media">
+                        <ul>
+
+                        
+							<li><a href="https://www.facebook.com/IFCwbg" target="_blank" class="lp lp-fb" data-customlink="sm:footer" data-text="facebook"><span class="sr-only">facebook</span></a></li>
+						
+							<li><a href="https://x.com/IFC_org" target="_blank" class="lp lp-twit" data-customlink="sm:footer" data-text="Twitter"><span class="sr-only">Twitter</span></a></li>
+						
+							<li><a href="https://www.linkedin.com/company/ifclinkedin" target="_blank" class="lp lp-linkln" data-customlink="sm:footer" data-text="Linkedin"><span class="sr-only">Linkedin</span></a></li>
+						
+							<li><a href="https://www.youtube.com/user/IFCvideocasts" target="_blank" class="lp lp-youtube-solid" data-customlink="sm:footer" data-text="Youtube"><span class="sr-only">Youtube</span></a></li>
+						
+							<li><a href="https://instagram.com/ifc_org" target="_blank" class="lp lp-instagram-solid" data-customlink="sm:footer" data-text="Instagram"><span class="sr-only">Instagram</span></a></li>
+						
+							<li><a href="https://whatsapp.com/channel/0029Vafs61rKbYMLhUtnaA0d" target="_blank" class="lp lp-whatsup-solid" data-customlink="sm:footer" data-text="WhatsApp"><span class="sr-only">WhatsApp</span></a></li>
+						
+                        
+
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ifc__footer_bottom_section">
+            <div class="ifc__footer_bottom_b_section">
+                <div class="ifc__listinline">
+                    <ul>
+						
+							<li class="disclaimer"><a href="https://www.ifc.org/en/about" target="_self">About IFC</a></li>
+						
+							<li class="disclaimer"><a href="https://www.ifc.org/en/our-impact" target="_self">Our Impact</a></li>
+						
+							<li class="disclaimer"><a href="https://www.worldbank.org/ext/en/careers" target="_self">Careers</a></li>
+						
+                        <li class="disclaimer">
+                            <div class="ifc__lang_dropdown">
+                                <div class="sr-only" id="language-dropdown">Global language toggler</div>
+                                    <button type="button" class="ifc__lang_label" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="global-language" aria-labelledby="language-dropdown global-language">English</button>
+									<div class="ifc__dropdown_menu dropdown-menu" aria-labelledby="language-dropdown">
+                                        <ul>
+											<li lang="ja"><a class="dropdown-item" href="https://www.ifc.org/ja/home" target="_self">日本語</a></li>    
+										
+											<li lang="fr"><a class="dropdown-item" href="https://www.ifc.org/fr/home" target="_self">Français</a></li>    
+										
+											<li lang="ar"><a class="dropdown-item" href="https://www.ifc.org/ar/home" target="_self">عربي</a></li>    
+										
+											<li lang="en"><a class="dropdown-item" href="https://www.ifc.org/en/home" target="_self">English</a></li>    
+										</ul>
+									</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="ifc__footer_fraud">
+                    <ul>
+                        <li><a target="_self">© 2025 IFC</a></li>
+                    
+                        <li><a href="https://www.ifc.org/en/legal/terms-and-conditions-of-use" target="_blank">User Agreement</a></li>
+                    
+                        <li><a href="https://www.ifc.org/en/legal/privacy" target="_blank">Privacy</a></li>
+                    
+                        <li><a href="https://www.ifc.org/en/legal/scam-warning" target="_blank">Scam Warning</a></li>
+                    
+                        <li><a href="https://disclosures.ifc.org/inquiries" target="_blank">General Inquiry</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<footer class="layer-black hidden-lg hidden-md hidden-sm">
+    <div class="ifc-grid">
+        <div class="ifc__footer_top_section">
+            <div class="aem-Grid">
+                <div class="aem-GridColumn--default--12 aem-GridColumn--desktop--12 aem-GridColumn--tablet--12 aem-GridColumn--phone--12">
+                    <div class="ifc__footer_top_left">
+                        <a href="https://www.ifc.org/en/home" target="_self" class="ifc__navbar_brand"><img title="Logo Image Title" alt="IFC Logo Image alt" src="/content/dam/ifc/corporate/logo/WBG-Horizontal-white-web.png" class="img-responsive" width="200" height="35"/> </a>
+                    </div>
+					<div class="ifc__listinline">
+                        <ul>
+							
+								<li class="disclaimer"><a href="https://www.worldbank.org/en/who-we-are/ibrd" target="_blank">IBRD</a></li>
+							
+								<li class="disclaimer"><a href="https://ida.worldbank.org/" target="_blank">IDA</a></li>
+							
+								<li class="disclaimer"><a href="https://www.ifc.org/" target="_blank">IFC</a></li>
+							
+								<li class="disclaimer"><a href="https://www.miga.org/" target="_blank">MIGA</a></li>
+							
+								<li class="disclaimer"><a href="https://icsid.worldbank.org/" target="_blank">ICSID</a></li>
+							
+                        </ul>
+                    </div>
+                </div>
+                <div class="aem-GridColumn--default--12 aem-GridColumn--desktop--12 aem-GridColumn--tablet--12 aem-GridColumn--phone--12">
+                    <div class="ifc__listinline">
+						<ul>
+							
+								<li class="disclaimer"><a href="https://www.ifc.org/en/about" target="_self">About IFC</a></li>
+							
+								<li class="disclaimer"><a href="https://www.ifc.org/en/our-impact" target="_self">Our Impact</a></li>
+							
+								<li class="disclaimer"><a href="https://www.worldbank.org/ext/en/careers" target="_self">Careers</a></li>
+							
+                            <li class="disclaimer">
+                                <div class="ifc__lang_dropdown">
+                                    <div class="sr-only" id="language-dropdown1">Global language toggler</div>
+                                    <button type="button" class="ifc__lang_label" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="global-language1" aria-labelledby="language-dropdown1 global-language1">English</button>
+                                    <div class="ifc__dropdown_menu dropdown-menu" aria-labelledby="language-dropdown1">
+                                        <ul>
+											<li lang="ja"><a class="dropdown-item" href="https://www.ifc.org/ja/home" target="_self">日本語</a></li>    
+                                        
+											<li lang="fr"><a class="dropdown-item" href="https://www.ifc.org/fr/home" target="_self">Français</a></li>    
+                                        
+											<li lang="ar"><a class="dropdown-item" href="https://www.ifc.org/ar/home" target="_self">عربي</a></li>    
+                                        
+											<li lang="en"><a class="dropdown-item" href="https://www.ifc.org/en/home" target="_self">English</a></li>    
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="aem-GridColumn--default--12 aem-GridColumn--desktop--12 aem-GridColumn--tablet--12 aem-GridColumn--phone--12">
+                    <div class="ifc__social_media">
+                        <ul>
+							
+							
+								<li><a href="https://www.facebook.com/IFCwbg" target="_blank" class="lp lp-fb" data-customlink="sm:footer" data-text="facebook"><span class="sr-only">facebook</span></a></li>
+							
+								<li><a href="https://x.com/IFC_org" target="_blank" class="lp lp-twit" data-customlink="sm:footer" data-text="Twitter"><span class="sr-only">Twitter</span></a></li>
+							
+								<li><a href="https://www.linkedin.com/company/ifclinkedin" target="_blank" class="lp lp-linkln" data-customlink="sm:footer" data-text="Linkedin"><span class="sr-only">Linkedin</span></a></li>
+							
+								<li><a href="https://www.youtube.com/user/IFCvideocasts" target="_blank" class="lp lp-youtube-solid" data-customlink="sm:footer" data-text="Youtube"><span class="sr-only">Youtube</span></a></li>
+							
+								<li><a href="https://instagram.com/ifc_org" target="_blank" class="lp lp-instagram-solid" data-customlink="sm:footer" data-text="Instagram"><span class="sr-only">Instagram</span></a></li>
+							
+								<li><a href="https://whatsapp.com/channel/0029Vafs61rKbYMLhUtnaA0d" target="_blank" class="lp lp-whatsup-solid" data-customlink="sm:footer" data-text="WhatsApp"><span class="sr-only">WhatsApp</span></a></li>
+							
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ifc__footer_bottom_section">
+            <div class="ifc__footer_bottom_b_section">
+                <div class="ifc__footer_fraud">
+					<ul>
+                        <li><a target="_self">© 2025 IFC</a></li>
+                    
+                        <li><a href="https://www.ifc.org/en/legal/terms-and-conditions-of-use" target="_blank">User Agreement</a></li>
+                    
+                        <li><a href="https://www.ifc.org/en/legal/privacy" target="_blank">Privacy</a></li>
+                    
+                        <li><a href="https://www.ifc.org/en/legal/scam-warning" target="_blank">Scam Warning</a></li>
+                    
+                        <li><a href="https://disclosures.ifc.org/inquiries" target="_blank">General Inquiry</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>        </div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+    
+</div>
+
+    
+</div>
+
+    </div>
+
+    
+
+</div>
+
+     
+
+    
+
+
+
+    
+<script src="/etc.clientlibs/ifc/clientlibs/clientlib-site-publish.js"></script>
+
+
+
+
+
+<script type="text/javascript">
+    var appInsights=window.appInsights||function(a){
+        function b(a){c[a]=function(){var b=arguments;c.queue.push(function(){c[a].apply(c,b)})}}var c={config:a},d=document,e=window;setTimeout(function(){var b=d.createElement("script");b.src=a.url||"https://az416426.vo.msecnd.net/scripts/a/ai.0.js",d.getElementsByTagName("script")[0].parentNode.appendChild(b)});try{c.cookie=d.cookie}catch(a){}c.queue=[];for(var f=["Event","Exception","Metric","PageView","Trace","Dependency"];f.length;)b("track"+f.pop());if(b("setAuthenticatedUserContext"),b("clearAuthenticatedUserContext"),b("startTrackEvent"),b("stopTrackEvent"),b("startTrackPage"),b("stopTrackPage"),b("flush"),!a.disableExceptionTracking){f="onerror",b("_"+f);var g=e[f];e[f]=function(a,b,d,e,h){var i=g&&g(a,b,d,e,h);return!0!==i&&c["_"+f](a,b,d,e,h),i}}return c
+    }({
+        instrumentationKey:"2ddee9f8-57ef-4c0e-8810-a2f743116654"
+    });
+
+    window.appInsights=appInsights,appInsights.queue&&0===appInsights.queue.length&&appInsights.trackPageView();
+</script>
+            
+    
+    <script src="/etc.clientlibs/ifc/clientlibs/clientlib-vendor/popper.js"></script>
+<script src="/etc.clientlibs/ifc/clientlibs/clientlib-vendor/bootstrap.js"></script>
+<script src="/etc.clientlibs/ifc/clientlibs/clientlib-site-icon.js"></script>
+<script src="/etc.clientlibs/ifc/clientlibs/clientlib-site-author.js"></script>
+
+
+    
+
+    
+    
+<script src="/etc.clientlibs/core/wcm/components/commons/site/clientlibs/container.js"></script>
+<script src="/etc.clientlibs/core/wcm/components/commons/site/clientlibs/utils.js"></script>
+<script src="/etc.clientlibs/core/wcm/components/commons/site/clientlibs/imageDynamicMedia.js"></script>
+<script src="/etc.clientlibs/ifc/clientlibs/clientlib-base.js"></script>
+
+
+
+
+
+
+    
+
+    
+
+    
+    
+
+        
+    </body>
+</html>
