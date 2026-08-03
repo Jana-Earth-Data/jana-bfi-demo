@@ -12,7 +12,7 @@
       "target": "[data-tour='nfrs-headline']",
       "calloutTitle": "The NFRS tab · Nepal's IFRS S2-aligned climate disclosure",
       "calloutText": "NFRS S1 and S2, Nepal's IFRS-aligned sustainability disclosure standards. Exposure draft comment period closed June 2026; finalisation pending. This tab is the CFO surface for the annual filing.",
-      "narration": "This is the NFRS tab. NFRS S one and S two are Nepal's Financial Reporting Standards for sustainability, published in exposure draft by the Accounting Standards Board of Nepal in April twenty twenty six. The public comment period closed in June and the standards are now being finalised for pronouncement by ICAN. They align closely with IFRS S one and S two, the international sustainability disclosure standards from the ISSB. What that means for a Nepal bank is straightforward. The CFO now needs a defensible financed emissions number for the annual report, the PCAF methodology stack that shows how the number was derived, and the ability to file the NRBSIS Green Statement without a year-end scramble. This tab holds all three.",
+      "narration": "This is the NFRS tab. NFRS S one and S two are Nepal's Financial Reporting Standards for sustainability, published in exposure draft by the Accounting Standards Board of Nepal in April twenty twenty six. The public comment period closed in June and the standards are now being finalised for pronouncement by ICAN. They align closely with IFRS S one and S two, the international sustainability disclosure standards from the ISSB. What that means for a Nepal bank is straightforward. The CFO now needs a defensible financed emissions number for the annual report, the P-CAF methodology stack that shows how the number was derived, and the ability to file the NRBSIS Green Statement without a year-end scramble. This tab holds all three.",
       "audioFile": "/audio/laxmi_sunrise/nfrs/tour-01-intro.mp3",
       "navigateTo": "/"
     },
@@ -22,7 +22,7 @@
       "target": "[data-tour='nfrs-headline']",
       "calloutTitle": "Four numbers · the CFO's headline",
       "calloutText": "Total financed emissions · disclosure year · weighted PCAF score · in-scope exposure. The first number is what goes into the annual report.",
-      "narration": "Four numbers sit at the top of the page. Total financed emissions across the book for the most recent fully reported year. The disclosure year itself. The weighted PCAF data quality score from one to five, which tells the auditor how much of the number is measured and how much is estimated. And the in-scope exposure by rupee value, with the count of commercial and corporate loans behind it. This first number, total financed emissions, is what the CFO signs off on. It is what goes into the annual sustainability report. Everything else on this tab exists to defend it.",
+      "narration": "Four numbers sit at the top of the page. Total financed emissions across the book for the most recent fully reported year. The disclosure year itself. The weighted P-CAF data quality score from one to five, which tells the auditor how much of the number is measured and how much is estimated. And the in-scope exposure by rupee value, with the count of commercial and corporate loans behind it. This first number, total financed emissions, is what the CFO signs off on. It is what goes into the annual sustainability report. Everything else on this tab exists to defend it.",
       "audioFile": "/audio/laxmi_sunrise/nfrs/tour-02-headline-kpis.mp3"
     },
     {
@@ -58,7 +58,7 @@
       "target": "[data-tour='data-quality']",
       "calloutTitle": "PCAF data quality · Score 3 is the honest ceiling",
       "calloutText": "Score 1-2 need the borrower to publish assured emissions. Almost no Nepal borrower does. Score 3 is what facility data unlocks. Score 5 is the industry default.",
-      "narration": "The PCAF data quality panel. Every loan in the book carries an individual score from one to five, with one being best. Score one and two require the borrower to publish assured GHG emissions. Almost no Nepal borrower does that today. Score three, physical activity data multiplied by a sector emission factor, is the honest ceiling with the data available. Score five, revenue multiplied by a sector average, is the industry baseline for any book without facility-level data. Jana moves the loans that carry the emissions risk two notches up the ladder, from five to three. That is the trade the auditor sees.",
+      "narration": "The P-CAF data quality panel. Every loan in the book carries an individual score from one to five, with one being best. Score one and two require the borrower to publish assured GHG emissions. Almost no Nepal borrower does that today. Score three, physical activity data multiplied by a sector emission factor, is the honest ceiling with the data available. Score five, revenue multiplied by a sector average, is the industry baseline for any book without facility-level data. Jana moves the loans that carry the emissions risk two notches up the ladder, from five to three. That is the trade the auditor sees.",
       "audioFile": "/audio/laxmi_sunrise/nfrs/tour-06-pcaf-distribution.mp3"
     },
     {
@@ -67,7 +67,7 @@
       "target": "[data-tour='top-contributors']",
       "calloutTitle": "Top contributors · where the emissions live",
       "calloutText": "The loans driving the largest attributed emissions, with drill-down to enterprise value, attribution factor, PCAF score, and every matched Climate TRACE facility.",
-      "narration": "The top contributors table lists the loans that drive the largest attributed emissions. Click any row and the drill-down on the right shows the enterprise value, the attribution factor, the borrower's total facility emissions, the PCAF score, and every matched Climate TRACE facility. The taxonomy dot in the loan row cross-references back to the same classification that appears on the loan officer's Taxonomy tab and the ESDD result on the Manager tab. One number at the top of the page. Traceable in both directions, all the way down to the officer keystroke.",
+      "narration": "The top contributors table lists the loans that drive the largest attributed emissions. Click any row and the drill-down on the right shows the enterprise value, the attribution factor, the borrower's total facility emissions, the P-CAF score, and every matched Climate TRACE facility. The taxonomy dot in the loan row cross-references back to the same classification that appears on the loan officer's Taxonomy tab and the ESDD result on the Manager tab. One number at the top of the page. Traceable in both directions, all the way down to the officer keystroke.",
       "audioFile": "/audio/laxmi_sunrise/nfrs/tour-07-top-contributors.mp3"
     },
     {
@@ -85,7 +85,7 @@
       "target": "[data-tour='disclosure-preview']",
       "calloutTitle": "Annual report language · IFRS S2 excerpt",
       "calloutText": "The narrative that goes into the sustainability section of the printed annual report — Scope 3 Category 15 paragraph plus methodology note with citations.",
-      "narration": "The annual report disclosure preview is what actually goes into the sustainability section of the printed report. Two boxes. The Scope three category fifteen narrative on the left, filled with the bank's own numbers for the disclosure year, the weighted PCAF score, and the green versus red taxonomy split. The methodology note on the right, with citations to PCAF Part A chapter five, IFRS S two section twenty-nine, and NFRS draft section seventeen b. Copy, paste into the annual report, done. What normally takes the sustainability team weeks of drafting sits ready on the tab.",
+      "narration": "The annual report disclosure preview is what actually goes into the sustainability section of the printed report. Two boxes. The Scope three category fifteen narrative on the left, filled with the bank's own numbers for the disclosure year, the weighted P-CAF score, and the green versus red taxonomy split. The methodology note on the right, with citations to P-CAF Part A chapter five, IFRS S two section twenty-nine, and NFRS draft section seventeen b. Copy, paste into the annual report, done. What normally takes the sustainability team weeks of drafting sits ready on the tab.",
       "audioFile": "/audio/laxmi_sunrise/nfrs/tour-09-disclosure-preview.mp3"
     },
     {
@@ -94,7 +94,7 @@
       "target": "[data-tour='nfrs-headline']",
       "calloutTitle": "Assembled, not reconstructed",
       "calloutText": "Every output on this tab is a projection of officer work. The annual filing is a click, not a project.",
-      "narration": "That is the whole NFRS surface. Every output on this tab, from the headline number to the Annex four b filing to the disclosure preview paragraph, is assembled from work that officers were already doing on the My Work, Manager, and Taxonomy tabs. The annual filing is a click, not a project. If you have not watched them yet, the PCAF tour walks through the data quality methodology in detail, and the dashboard tour walks through the wider regulatory stack this tab sits on top of. Thanks for watching.",
+      "narration": "That is the whole NFRS surface. Every output on this tab, from the headline number to the Annex four b filing to the disclosure preview paragraph, is assembled from work that officers were already doing on the My Work, Manager, and Taxonomy tabs. The annual filing is a click, not a project. If you have not watched them yet, the P-CAF tour walks through the data quality methodology in detail, and the dashboard tour walks through the wider regulatory stack this tab sits on top of. Thanks for watching.",
       "audioFile": "/audio/laxmi_sunrise/nfrs/tour-10-closing.mp3"
     }
   ]
