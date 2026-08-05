@@ -832,9 +832,46 @@ function buildPortfolio(): BfiDemoData {
 
 /**
  * Get the synthesized portfolio. Memoized across requests within one server process.
+ *
+ * On Vercel serverless the module-scope cache above does NOT survive across
+ * cold starts, and re-synthesizing 80k loans + PCAF attribution + aggregation
+ * on every cold start pushed user load times past 60s. Fix: build the
+ * portfolio once at `next build` time (see scripts/precompute-portfolio.ts)
+ * and read it from a JSON file at request time — ~500ms parse vs. ~50s synth.
+ *
+ * Falls back to in-memory synthesis if the precomputed JSON is missing so
+ * that `npm run dev` (which skips `prebuild`) still works out of the box.
  */
 export function getPortfolio(): BfiDemoData {
   if (portfolioCache) return portfolioCache;
+
+  // Prefer the precomputed JSON (written by scripts/precompute-portfolio.ts
+  // during `next build`). This code only runs on the server (API routes +
+  // server components), so `require` of Node built-ins is safe.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs") as typeof import("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require("path") as typeof import("path");
+    const jsonPath = path.join(
+      process.cwd(),
+      "lib/data/precomputed-portfolio.json"
+    );
+    if (fs.existsSync(jsonPath)) {
+      const raw = fs.readFileSync(jsonPath, "utf8");
+      portfolioCache = JSON.parse(raw) as BfiDemoData;
+      return portfolioCache;
+    }
+  } catch (e) {
+    console.warn(
+      "[portfolio] precomputed JSON load failed, falling back to synth:",
+      e
+    );
+  }
+
+  console.log(
+    "[portfolio] synthesizing portfolio in-memory (no precomputed JSON found)"
+  );
   portfolioCache = buildPortfolio();
   return portfolioCache;
 }
