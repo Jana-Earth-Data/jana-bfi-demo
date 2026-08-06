@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "precompute-portfolio": "tsx scripts/precompute-portfolio.ts",
+    "prebuild": "npm run precompute-portfolio",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -27,6 +29,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.16",
+    "tsx": "^4.23.7",
     "typescript": "^5.7.2"
   },
   "overrides": {
