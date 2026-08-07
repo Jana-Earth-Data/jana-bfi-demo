@@ -845,20 +845,25 @@ function buildPortfolio(): BfiDemoData {
 export function getPortfolio(): BfiDemoData {
   if (portfolioCache) return portfolioCache;
 
-  // Prefer the precomputed JSON (written by scripts/precompute-portfolio.ts
-  // during `next build`). This code only runs on the server (API routes +
-  // server components), so `require` of Node built-ins is safe.
+  // Prefer the precomputed gzipped JSON (written by
+  // scripts/precompute-portfolio.ts during `next build`). This code only
+  // runs on the server (API routes + server components), so `require` of
+  // Node built-ins is safe. Read + gunzip + parse totals ~300ms for the
+  // 80K-loan portfolio; the alternative is ~50s of in-memory synthesis.
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require("fs") as typeof import("fs");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require("path") as typeof import("path");
-    const jsonPath = path.join(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const zlib = require("zlib") as typeof import("zlib");
+    const gzPath = path.join(
       process.cwd(),
-      "lib/data/precomputed-portfolio.json"
+      "lib/data/precomputed-portfolio.json.gz"
     );
-    if (fs.existsSync(jsonPath)) {
-      const raw = fs.readFileSync(jsonPath, "utf8");
+    if (fs.existsSync(gzPath)) {
+      const compressed = fs.readFileSync(gzPath);
+      const raw = zlib.gunzipSync(compressed).toString("utf8");
       portfolioCache = JSON.parse(raw) as BfiDemoData;
       return portfolioCache;
     }
