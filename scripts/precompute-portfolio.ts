@@ -1,12 +1,18 @@
 /**
  * Precompute the ~80K-loan portfolio at build time.
  *
- * Runs `buildPortfolio()` once, serializes the result to
- * `lib/data/precomputed-portfolio.json`, and exits non-zero on failure.
+ * Runs `buildPortfolio()` once, serializes the result, and writes it
+ * GZIPPED to `lib/data/precomputed-portfolio.json.gz`. Exits non-zero on failure.
  *
- * Wired into `prebuild` in package.json so `next build` picks up the JSON,
- * turning what was a ~50s per-cold-start synthesis into a ~500ms
- * `fs.readFileSync` + `JSON.parse` at request time.
+ * Wired into `prebuild` in package.json so `next build` picks up the file,
+ * turning what was a ~50s per-cold-start synthesis into a ~300ms
+ * `fs.readFileSync` + `zlib.gunzipSync` + `JSON.parse` at request time.
+ *
+ * WHY GZIP: the raw JSON is ~62 MB. Bundled into the Vercel serverless
+ * function that made the function bundle large and pushed first cold-start
+ * decompression past 2 minutes. Gzip at level 9 brings JSON down ~10x
+ * (~6 MB), which shrinks the function bundle correspondingly and eliminates
+ * the multi-minute first cold-start.
  *
  * Run manually with:
  *   npx tsx scripts/precompute-portfolio.ts
@@ -18,6 +24,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 import { getPortfolio, PORTFOLIO_SCALE, PORTFOLIO_TOTAL_COUNT } from "@/lib/data/portfolio";
@@ -25,7 +32,7 @@ import { getPortfolio, PORTFOLIO_SCALE, PORTFOLIO_TOTAL_COUNT } from "@/lib/data
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
-const OUT_PATH = path.join(REPO_ROOT, "lib", "data", "precomputed-portfolio.json");
+const OUT_PATH = path.join(REPO_ROOT, "lib", "data", "precomputed-portfolio.json.gz");
 
 function humanBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -49,13 +56,21 @@ async function main() {
   const serT0 = Date.now();
   const json = JSON.stringify(data);
   const serMs = Date.now() - serT0;
-  console.log(`[precompute-portfolio] serialized in ${serMs} ms — ${humanBytes(Buffer.byteLength(json, "utf8"))}`);
+  const rawBytes = Buffer.byteLength(json, "utf8");
+  console.log(`[precompute-portfolio] serialized in ${serMs} ms — ${humanBytes(rawBytes)} raw`);
+
+  console.log(`[precompute-portfolio] gzipping (level 9)...`);
+  const gzipT0 = Date.now();
+  const gzipped = zlib.gzipSync(Buffer.from(json, "utf8"), { level: 9 });
+  const gzipMs = Date.now() - gzipT0;
+  const ratio = ((1 - gzipped.length / rawBytes) * 100).toFixed(1);
+  console.log(`[precompute-portfolio] gzipped in ${gzipMs} ms — ${humanBytes(gzipped.length)} (${ratio}% smaller)`);
 
   // Ensure parent dir exists.
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
 
   console.log(`[precompute-portfolio] writing ${OUT_PATH}`);
-  fs.writeFileSync(OUT_PATH, json, "utf8");
+  fs.writeFileSync(OUT_PATH, gzipped);
 
   const stats = fs.statSync(OUT_PATH);
   const totalMs = Date.now() - t0;
