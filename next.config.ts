@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // tracer can't detect statically. Without this the standalone build
   // silently falls back to in-memory synthesis (~50s cold-start).
   outputFileTracingIncludes: {
-    "/**/*": ["./lib/data/precomputed-portfolio.json"],
+    "/**/*": ["./lib/data/precomputed-portfolio.json.gz"],
   },
 };
 
