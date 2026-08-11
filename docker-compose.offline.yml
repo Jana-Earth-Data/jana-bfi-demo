@@ -30,6 +30,8 @@
 #         console.log("service_role:",sign({role:"service_role"}));'
 # ============================================================================
 
+name: jana-bfi-demo-offline
+
 services:
   postgres:
     image: postgres:15-alpine
