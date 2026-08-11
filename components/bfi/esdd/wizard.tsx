@@ -19,7 +19,7 @@
  * lib/regulatory/esdd/annex5-questions.ts for the provenance note.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Borrower, Loan } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
@@ -36,7 +36,7 @@ import {
 import { deriveEsddLoanCategory } from "@/lib/regulatory/esdd/loan-category-derive";
 import { formatNpr } from "@/components/bfi/ui";
 import Link from "next/link";
-import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
+import { isProjectFinanceLoanWithOverride } from "@/lib/regulatory/esdd/pf-loan-gate";
 import type { TenantSettings } from "@/lib/settings/types";
 import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { remarksRequiredForSection } from "@/lib/settings/schema";
@@ -69,11 +69,19 @@ export function EsddWizard({
   officer,
   loan,
   borrower,
+  initialLoanCategoryOverride = null,
 }: {
   tenantName: string;
   officer: Officer;
   loan: Loan;
   borrower: Borrower;
+  /**
+   * P45 — server-side hydrated override for the ESDD loan category.
+   * Sourced from bfi_loan_assignments.loan_category_override on the
+   * ESDD page load. Null when no override has been recorded, in
+   * which case we fall back to deriveEsddLoanCategory(loan, borrower).
+   */
+  initialLoanCategoryOverride?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -107,12 +115,75 @@ export function EsddWizard({
   );
   // Loan Category — lifted to the wizard level so it survives step
   // navigation (BasicInfoStep unmounts + remounts when the officer clicks
-  // Continue → Back and would otherwise reset to the derived default,
-  // silently losing any manual override the officer set). Persistence
-  // across full page reloads still requires a DB write — TODO.
-  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">(
-    () => deriveEsddLoanCategory(loan, borrower),
-  );
+  // Continue → Back). P45 adds cross-refresh persistence via
+  // bfi_loan_assignments.loan_category_override:
+  //   - Initial value: server-hydrated override if present, else the
+  //     derived category.
+  //   - On every change: debounced PATCH /api/loans/{id}/category so
+  //     the value survives page refresh / Save & Exit + re-entry.
+  const [loanCategory, setLoanCategoryState] = useState<
+    EsddLoanCategory | ""
+  >(() => {
+    if (initialLoanCategoryOverride) {
+      return initialLoanCategoryOverride as EsddLoanCategory;
+    }
+    return deriveEsddLoanCategory(loan, borrower);
+  });
+  const [categorySaveStatus, setCategorySaveStatus] =
+    useState<SaveStatus>("idle");
+  const categorySaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const categoryPatchInFlight = useRef(0);
+  // Skip the very first autosave — the initial value is already what
+  // the server has (either the persisted override or the derived
+  // default, and re-saving the derived default would pollute the
+  // override column with values the officer never actually chose).
+  const skipNextAutosave = useRef(true);
+  useEffect(() => {
+    return () => {
+      if (categorySaveTimer.current) clearTimeout(categorySaveTimer.current);
+    };
+  }, []);
+
+  function setLoanCategory(next: EsddLoanCategory | "") {
+    setLoanCategoryState(next);
+    if (skipNextAutosave.current) {
+      skipNextAutosave.current = false;
+      return;
+    }
+    if (readOnly) return;
+    if (categorySaveTimer.current) clearTimeout(categorySaveTimer.current);
+    setCategorySaveStatus("saving");
+    categorySaveTimer.current = setTimeout(async () => {
+      const myTicket = ++categoryPatchInFlight.current;
+      try {
+        const res = await fetch(
+          `/api/loans/${encodeURIComponent(loan.id)}/category`,
+          {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ category: next === "" ? null : next }),
+          },
+        );
+        // If another change came in while this request was in flight,
+        // ignore this response — the later request will win.
+        if (myTicket !== categoryPatchInFlight.current) return;
+        if (!res.ok) {
+          console.warn(
+            "[esdd] loan-category autosave failed:",
+            res.status,
+            await res.text().catch(() => ""),
+          );
+          setCategorySaveStatus("error");
+          return;
+        }
+        setCategorySaveStatus("saved");
+      } catch (err) {
+        if (myTicket !== categoryPatchInFlight.current) return;
+        console.warn("[esdd] loan-category autosave threw:", err);
+        setCategorySaveStatus("error");
+      }
+    }, 500);
+  }
 
   // Tenant settings drive the require-remarks-per-section gating. Start
   // with DEFAULT_SETTINGS so the wizard is usable before the fetch
@@ -279,6 +350,7 @@ export function EsddWizard({
               borrower={borrower}
               loanCategory={loanCategory}
               onLoanCategoryChange={setLoanCategory}
+              loanCategorySaveStatus={categorySaveStatus}
               onContinue={() => setStep(1)}
               readOnly={readOnly}
             />
@@ -327,6 +399,7 @@ export function EsddWizard({
               borrower={borrower}
               responses={responses}
               priorScreening={priorScreening}
+              loanCategoryOverride={loanCategory === "" ? null : loanCategory}
               onBack={backFromReview}
               onExit={() => router.push("/")}
               readOnly={readOnly}
@@ -550,6 +623,7 @@ function BasicInfoStep({
   borrower,
   loanCategory,
   onLoanCategoryChange,
+  loanCategorySaveStatus = "idle",
   onContinue,
   readOnly = false,
 }: {
@@ -557,6 +631,12 @@ function BasicInfoStep({
   borrower: Borrower;
   loanCategory: EsddLoanCategory | "";
   onLoanCategoryChange: (v: EsddLoanCategory | "") => void;
+  /**
+   * P45 — surface the autosave state next to the dropdown so the
+   * officer sees the value is being persisted server-side. Optional
+   * so callers that don't wire up autosave can omit it.
+   */
+  loanCategorySaveStatus?: SaveStatus;
   onContinue: () => void;
   readOnly?: boolean;
 }) {
@@ -619,6 +699,22 @@ function BasicInfoStep({
             Selecting Project Finance triggers the Annex 5b PF Screening
             Questionnaire.
           </p>
+          {/* P45 — autosave indicator. Rendered inline so the officer
+           * knows their override is persisted server-side and will
+           * survive refresh / Save & Exit + re-entry. */}
+          <div className="mt-1 h-4 text-[11px]">
+            {loanCategorySaveStatus === "saving" && (
+              <span className="text-slate-400">Saving…</span>
+            )}
+            {loanCategorySaveStatus === "saved" && (
+              <span className="text-emerald-400">Saved</span>
+            )}
+            {loanCategorySaveStatus === "error" && (
+              <span className="text-rose-300">
+                Save failed — value kept locally, will retry on next change.
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -939,6 +1035,7 @@ function ReviewStep({
   borrower,
   responses,
   priorScreening,
+  loanCategoryOverride = null,
   onBack,
   onExit,
   readOnly = false,
@@ -947,6 +1044,10 @@ function ReviewStep({
   borrower: Borrower;
   responses: Record<string, StoredResponse>;
   priorScreening: SavedScreening | null;
+  /** P45 — override that drives the PF-screening callout so an
+   *  officer-set "project-finance" surfaces the Annex 5b CTA even
+   *  when loan.category / businessUnit disagrees. */
+  loanCategoryOverride?: string | null;
   onBack: () => void;
   onExit: () => void;
   /** When true, hide the "Save screening" / "Re-run" buttons. */
@@ -996,6 +1097,7 @@ function ReviewStep({
         screening={saved}
         borrower={borrower}
         loan={loan}
+        loanCategoryOverride={loanCategoryOverride}
         onExit={onExit}
         onRerun={
           readOnly
@@ -1013,7 +1115,10 @@ function ReviewStep({
 
   return (
     <div className="flex flex-col gap-4">
-      <PfScreeningCallout loan={loan} />
+      <PfScreeningCallout
+        loan={loan}
+        loanCategoryOverride={loanCategoryOverride}
+      />
       <div className="rounded-2xl border border-line bg-panel p-6">
         <h2 className="text-lg font-semibold text-white">
           {isRerun ? "Re-run screening" : "Review and save"}
@@ -1085,12 +1190,15 @@ function ScreeningResult({
   screening,
   borrower,
   loan,
+  loanCategoryOverride = null,
   onExit,
   onRerun,
 }: {
   screening: SavedScreening;
   borrower: Borrower;
   loan: Loan;
+  /** P45 — override forwarded to PfScreeningCallout below. */
+  loanCategoryOverride?: string | null;
   onExit: () => void;
   onRerun?: () => void;
 }) {
@@ -1107,7 +1215,10 @@ function ScreeningResult({
   };
   return (
     <div className="flex flex-col gap-4">
-      <PfScreeningCallout loan={loan} />
+      <PfScreeningCallout
+        loan={loan}
+        loanCategoryOverride={loanCategoryOverride}
+      />
       {screening.escalationFlag && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
           <div className="font-semibold">Escalated to credit committee</div>
@@ -1210,8 +1321,21 @@ function ScreeningResult({
  * both the sector-agnostic Annex 5 flow AND the Annex 5b screening for a
  * PF loan to be considered complete.
  */
-function PfScreeningCallout({ loan }: { loan: Loan }) {
-  if (!isProjectFinanceLoan(loan)) return null;
+function PfScreeningCallout({
+  loan,
+  loanCategoryOverride = null,
+}: {
+  loan: Loan;
+  /**
+   * P45 — when the officer has explicitly set the loan category on the
+   * Basic Info step, that value drives PF applicability rather than
+   * loan.category/businessUnit. Keeps the callout in sync with the
+   * dropdown even before the override is round-tripped through a
+   * refresh.
+   */
+  loanCategoryOverride?: string | null;
+}) {
+  if (!isProjectFinanceLoanWithOverride(loan, loanCategoryOverride)) return null;
   return (
     <div
       data-tour="esdd-pf-callout"

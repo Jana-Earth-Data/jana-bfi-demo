@@ -33,7 +33,7 @@ import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
-import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
+import { isProjectFinanceLoanWithOverride } from "@/lib/regulatory/esdd/pf-loan-gate";
 import { ANNEX5B_ALL } from "@/lib/regulatory/esdd/annex5b-pf-questions";
 import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 
@@ -216,13 +216,21 @@ export async function GET() {
   // ------------------------------------------------------------------
   const { data: allAssigns } = await supabase
     .from("bfi_loan_assignments")
-    .select("loan_id, officer_id")
+    .select("loan_id, officer_id, loan_category_override")
     .eq("bank_id", tenant.id);
   const assignedLoanIds = new Set<string>();
   const myAssignedLoanIds = new Set<string>();
+  // P45 — officer-set ESDD loan-category override per loan. Used
+  // below to decide PF-screening applicability so the queue matches
+  // what the officer sees in the wizard.
+  const categoryOverrideByLoan = new Map<string, string | null>();
   for (const a of allAssigns ?? []) {
     assignedLoanIds.add(a.loan_id);
     if (a.officer_id === officer.id) myAssignedLoanIds.add(a.loan_id);
+    categoryOverrideByLoan.set(
+      a.loan_id,
+      (a.loan_category_override as string | null | undefined) ?? null,
+    );
   }
 
   // ------------------------------------------------------------------
@@ -450,7 +458,13 @@ export async function GET() {
     const escalated = screening?.escalated ?? false;
 
     // PF screening (Annex 5b) applicability + completion state.
-    const pfRequired = isProjectFinanceLoan(loan);
+    // P45 — honour the officer's ESDD-wizard loan-category override
+    // when present; otherwise fall through to the raw
+    // loan.category / businessUnit check.
+    const pfRequired = isProjectFinanceLoanWithOverride(
+      loan,
+      categoryOverrideByLoan.get(loanId) ?? null,
+    );
     const pfAnsweredSet = pfAnsweredByLoan.get(loanId);
     const pfAnswered = pfAnsweredSet?.size ?? 0;
     const pfResult = pfResultByLoan.get(loanId);
