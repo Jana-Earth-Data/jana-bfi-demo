@@ -102,6 +102,23 @@ export type LoanCard = {
     flagsTotal: 4;
     completed: boolean;
   };
+  /**
+   * NRB Circular 22 §7.3.5 CAP + covenants + monitoring status.
+   *
+   * Populated for every candidate loan, but the loan card only renders
+   * the CAP CTA when the loan's ESRR risk class is Medium / High /
+   * Extreme (§7.3.5 does not require a CAP for Low-risk loans).
+   *
+   * `total`     — count of bfi_cap_items rows for this loan
+   * `completed` — subset with status = 'completed'
+   * `overdue`   — subset with status != 'completed' AND deadline < today
+   *               (matches the projection GET /api/cap/[loanId] applies)
+   */
+  cap: {
+    total: number;
+    completed: number;
+    overdue: number;
+  };
 };
 
 export async function GET() {
@@ -368,6 +385,46 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
+  // 5d. CAP items per loan (P44). One batched query for the whole
+  // candidate set — count total / completed / overdue per loan so the
+  // loan card can label its CTA "Start CAP" / "Continue N/M" /
+  // "Review CAP" without an N+1. Overdue projection matches the same
+  // rule GET /api/cap/[loanId] applies at read time (status !=
+  // 'completed' AND deadline_date < today).
+  // ------------------------------------------------------------------
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: capRows, error: capErr } =
+    candidateArray.length > 0
+      ? await supabase
+          .from("bfi_cap_items")
+          .select("loan_id, status, deadline_date")
+          .eq("bank_id", tenant.id)
+          .in("loan_id", candidateArray)
+      : { data: [], error: null };
+  if (capErr) {
+    return NextResponse.json(
+      { error: `CAP item query failed: ${capErr.message}` },
+      { status: 500 },
+    );
+  }
+  type CapAgg = { total: number; completed: number; overdue: number };
+  const capByLoan = new Map<string, CapAgg>();
+  for (const row of capRows ?? []) {
+    const agg = capByLoan.get(row.loan_id) ?? {
+      total: 0,
+      completed: 0,
+      overdue: 0,
+    };
+    agg.total += 1;
+    if (row.status === "completed") {
+      agg.completed += 1;
+    } else if (row.deadline_date && row.deadline_date < today) {
+      agg.overdue += 1;
+    }
+    capByLoan.set(row.loan_id, agg);
+  }
+
+  // ------------------------------------------------------------------
   // 6. Build a LoanCard for every candidate loan, then bucket.
   // ------------------------------------------------------------------
   const cards: LoanCard[] = [];
@@ -470,6 +527,7 @@ export async function GET() {
         flagsTotal: 4,
         completed: pcafConfirmedBorrowerIds.has(borrower.id),
       },
+      cap: capByLoan.get(loanId) ?? { total: 0, completed: 0, overdue: 0 },
     });
   }
 
