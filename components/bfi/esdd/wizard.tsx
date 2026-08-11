@@ -105,6 +105,15 @@ export function EsddWizard({
   const [priorScreening, setPriorScreening] = useState<SavedScreening | null>(
     null,
   );
+  // Loan Category — lifted to the wizard level so it survives step
+  // navigation (BasicInfoStep unmounts + remounts when the officer clicks
+  // Continue → Back and would otherwise reset to the derived default,
+  // silently losing any manual override the officer set). Persistence
+  // across full page reloads still requires a DB write — TODO.
+  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">(
+    () => deriveEsddLoanCategory(loan, borrower),
+  );
+
   // Tenant settings drive the require-remarks-per-section gating. Start
   // with DEFAULT_SETTINGS so the wizard is usable before the fetch
   // resolves; the fetch swaps them in when ready.
@@ -268,6 +277,8 @@ export function EsddWizard({
             <BasicInfoStep
               loan={loan}
               borrower={borrower}
+              loanCategory={loanCategory}
+              onLoanCategoryChange={setLoanCategory}
               onContinue={() => setStep(1)}
               readOnly={readOnly}
             />
@@ -537,11 +548,15 @@ function StepIndicator({
 function BasicInfoStep({
   loan,
   borrower,
+  loanCategory,
+  onLoanCategoryChange,
   onContinue,
   readOnly = false,
 }: {
   loan: Loan;
   borrower: Borrower;
+  loanCategory: EsddLoanCategory | "";
+  onLoanCategoryChange: (v: EsddLoanCategory | "") => void;
   onContinue: () => void;
   readOnly?: boolean;
 }) {
@@ -549,11 +564,8 @@ function BasicInfoStep({
   // `Tempor!A1:A4`). Prefilled from the loan + borrower record so the
   // officer typically just confirms and moves on. The value drives
   // Circular 22 §5 applicability triage and the Annex 5b PF screening
-  // gate on Project Finance loans.
-  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">(
-    () => deriveEsddLoanCategory(loan, borrower),
-  );
-
+  // gate on Project Finance loans. State is lifted to the wizard so it
+  // survives navigation to another step and back.
   const canContinue = loanCategory !== "";
 
   return (
@@ -588,7 +600,7 @@ function BasicInfoStep({
             disabled={readOnly}
             value={loanCategory}
             onChange={(e) =>
-              setLoanCategory(e.target.value as EsddLoanCategory | "")
+              onLoanCategoryChange(e.target.value as EsddLoanCategory | "")
             }
             className="mt-1 w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 focus:outline-none disabled:opacity-60"
           >
