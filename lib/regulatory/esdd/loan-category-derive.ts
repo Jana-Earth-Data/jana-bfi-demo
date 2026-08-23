@@ -20,7 +20,7 @@
  *   corporate-project-finance   → project-finance
  *
  * The critical-sector override uses substring matching against the
- * borrower's `nrbSector` label. The list is per Circular 22 §5 (the 10
+ * borrower's `nrbSector` label. The list is per NRB ESRM Guideline 2022 §5 (the 10
  * critical sectors that require the full checklist regardless of loan
  * size). We're intentionally conservative with the matching — better to
  * over-route into "critical" than under-route.
@@ -29,7 +29,7 @@
 import type { Loan, Borrower } from "@/lib/types/bfi";
 import type { EsddLoanCategory } from "./annex5-questions";
 
-// Circular 22 §5 critical sectors (substring match against nrbSector).
+// NRB ESRM Guideline 2022 §5 critical sectors (substring match against nrbSector).
 // Case-insensitive.
 const CRITICAL_SECTOR_TOKENS = [
   "hydro",

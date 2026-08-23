@@ -12,7 +12,7 @@
  * non-hydro loans — it returns { applicable: false } so the UI panel can
  * hide itself without a second round-trip.
  *
- * Verbatim source: NRB Circular 22 Annex 2 (ESRM Guideline PDF p. 25).
+ * Verbatim source: NRB ESRM Guideline 2022 Annex 2 (printed p. 27).
  */
 
 import { NextResponse } from "next/server";
@@ -166,6 +166,6 @@ export async function GET(_req: Request, { params }: Params) {
       required: requiredDocs.length,
       percent: completionPct,
     },
-    citation: "NRB Circular 22 Annex 2 (ESRM Guideline PDF p. 25)",
+    citation: "NRB ESRM Guideline 2022 Annex 2 (printed p. 27)",
   });
 }

@@ -51,9 +51,12 @@ the next boot. **Always use `-v` when you want a clean database.**
 
 | Host port | Container      | Purpose                                        |
 |-----------|----------------|------------------------------------------------|
-| 3001      | web:3000       | Next.js app (open this in a browser)           |
+| 3002      | web:3000       | Next.js app (open this in a browser)           |
 | 3010      | postgrest:3000 | Direct PostgREST access for debugging / curl   |
 | 5432      | postgres:5432  | Direct Postgres access for psql debugging      |
+
+Note: host port is **3002** (not 3001) so this stack can run at the same
+time as the regular `docker-compose.yml` dev stack (which binds 3001).
 
 Both `3010` and `5432` are debugging-only exposures. The web container talks
 to PostgREST as `http://postgrest:3000` over the private compose network; the

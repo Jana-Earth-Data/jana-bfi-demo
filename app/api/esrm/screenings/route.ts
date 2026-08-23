@@ -90,10 +90,11 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// Precompute question-id → section lookup once at module load. Circular 22
-// defines only the 12-question sector-agnostic checklist (3 general + 5 EHS
-// + 4 social, including the 2022 addition of Q2.5 climate). Sector
-// supplements were removed because they are not part of Circular 22.
+// Precompute question-id → section lookup once at module load. The NRB
+// ESRM Guideline 2022 defines only the 13-question sector-agnostic Annex 5
+// checklist (4 general incl. the 2022 addition of Q1.4 land acquisition,
+// 5 EHS incl. the 2022 addition of Q2.5 climate, 4 social). Sector
+// supplements were removed because they are not part of the Guideline.
 const SECTION_BY_QUESTION_ID: Record<string, string> = {};
 for (const q of ANNEX5_GENERAL_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;
 for (const q of ANNEX5_EHS_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;

@@ -2,9 +2,13 @@
  * NRB ESRM Guidelines — Annex 5 E&S Due Diligence Checklist.
  *
  * Verbatim transcription of the questions, answer options, and guidance
- * notes from NRB Circular 22 (Directive 22, FY 2074/75) plus the 2022
- * NRB ESRM Guideline update (which added Q 2.5 climate change). Every
- * question captures:
+ * notes from the NRB Guideline on Environmental & Social Risk Management
+ * (ESRM) for Banks and Financial Institutions, February 2022 — the
+ * operative edition. It supersedes the May 2018 edition attached to NRB
+ * Circular 22 (Directive 22, FY 2074/75); the 2022 edition added Q 1.4
+ * (land acquisition / involuntary resettlement) and Q 2.5 (climate
+ * change), taking Annex 5 from 11 questions to 13. Every question
+ * captures:
  *   - id             : stable identifier used on captured rows
  *   - section        : "general" | "ehs" | "social"
  *   - number         : NRB's own numbering (e.g. "1.1", "2.3")
@@ -18,17 +22,22 @@
  * guideline. Do not edit to adjust demo behavior; edit lib/regulatory/esdd/
  * scoring.ts and risk-aggregation.ts instead.
  *
- * Primary source: NRB_ESRM_Guidelines_2018_Circular22.pdf, Annex 5
- * (pages 30-38) — canonical wording per the interactive Excel checklist
- * NRB distributes with Circular 22.
- * 2022 addition: Q 2.5 climate change risks and opportunities — added
- * by the 2022 NRB ESRM Guideline update ("Final-ESRM-without-cover-1.pdf",
- * new pre-Annex 2 climate section p.24-26 + updated Annex 5).
+ * Primary source: docs/regulatory-sources/01-nrb-esrm/
+ * NRB_ESRM_Guideline_2022_Feb.pdf, Annex 5 (printed pp. 32-38).
+ * Where the 2022 checklist text is identical to the 2018 edition, the
+ * interactive Excel tool NRB distributes with Circular 22 is used as the
+ * tie-breaker on punctuation and capitalisation.
+ *
+ * 2022-only content: Q 1.4 (land acquisition with resettlement, printed
+ * p. 33) and Q 2.5 (climate change risks and opportunities). Q 2.1-2.3
+ * were also updated in 2022 to cite "Environment Protection Rules 2020"
+ * in place of the 2018 wording "Environment Protection Rules (Official
+ * Gazette, June 26/1997)".
  *
  * NOTE ON SECTOR SUPPLEMENTS (removed):
- * Circular 22 defines only this sector-agnostic 12-question ESDD
+ * The Guideline defines only this sector-agnostic 13-question ESDD
  * checklist. There is no sector-specific ESDD checklist with a/b/c/d
- * options anywhere in Circular 22 or the 2022 update. Annex 2 of the
+ * options anywhere in the 2022 Guideline or the 2018 edition. Annex 2 of the
  * guideline (Hydropower) is a documentation matrix and parameter table,
  * not a scored checklist. Sector-specific NRB content (cement, textiles,
  * steel, chemicals, brick, agriculture, etc.) belongs to the NRB Green
@@ -199,6 +208,41 @@ export const ANNEX5_GENERAL_RISK: EsddQuestion[] = [
       "In the Remarks section — record how the presence/absence of eco-sensitive areas was verified (Google Map review, interview with client, visual inspection during site visit).",
     ],
   },
+  {
+    id: "annex5.1.4",
+    section: "general",
+    number: "1.4",
+    // 2022 NRB ESRM Guideline Annex 5 §1.4 (PDF printed p. 33), verbatim.
+    // Not present in the 2018 Circular 22 attachment — Q1.4 was introduced
+    // by the February 2022 edition, alongside Q2.5.
+    prompt:
+      "Is the project involved or will involve acquiring land with resettlement?",
+    options: {
+      // 2022 Guideline Annex 5 §1.4(a), verbatim.
+      a: "Neither land acquisition nor involuntary resettlement observed",
+      // 2022 Guideline Annex 5 §1.4(b), verbatim.
+      b:
+        "There is land acquisition and voluntary resettlement and the client " +
+        "has taken adequate measures as per regulations to mitigate the " +
+        "negative impacts of displacement, to identify development " +
+        "opportunities for all affected persons.",
+      // 2022 Guideline Annex 5 §1.4(c), verbatim.
+      c:
+        "There is land acquisition and involuntary resettlement and the " +
+        "client has not taken adequate measure as per regulations and the " +
+        "client may face legal challenge in future",
+      d: "Not applicable",
+    },
+    // 2022 Guideline Annex 5 guidance note for Q1.4 (PDF printed p. 37),
+    // verbatim.
+    guidanceNotes: [
+      "Does the project involve land acquisition that does not involve purely voluntary market transactions (such as land rights acquired through expropriation under the country's legal system; or through negotiated settlements where expropriation is possible; or involuntary restrictions on access to natural resources to which a community or group has had recognizable usage rights; or project situations requiring the evictions of people with no recognizable rights; or restrictions on access to land or use of other resources.)",
+      "Is there potential for any involuntary physical or economic displacement? If displacement can't be avoided, how compensation has been handled? Best practices of compensation are: at full replacement cost of the asset; transparently and consistently applied to all people affected by the displacement; where livelihood has been land-based, have the displaced been offered land-based compensation?",
+      "If the land has already been acquired, were people compensated fully beforehand? If resettled, were they able to move to their resettlement site beforehand?",
+      "Does the client prepare a Resettlement Action Plan (RAP) or Resettlement Framework (RF) that mitigates the negative impacts of displacement, identifies development opportunities and establishes entitlement for all affected persons?",
+      "Does the client prepare a Livelihood Restoration Plan (LRP) (if economic but not physical displacement is involved) or Livelihood Restoration Framework (LRF) to offer compensation or other assistance that will establish entitlement for affected persons or communities?",
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -209,12 +253,14 @@ export const ANNEX5_EHS_RISK: EsddQuestion[] = [
     id: "annex5.2.1",
     section: "ehs",
     number: "2.1",
-    // Circular 22 §2.1 (Excel C24 / PDF p.31), verbatim.
+    // 2022 NRB ESRM Guideline Annex 5 §2.1 (PDF printed p. 33), verbatim.
+    // The 2022 edition updates the instrument reference from the 2018
+    // wording "Environment Protection Rules (Official Gazette, June
+    // 26/1997)" to "Environment Protection Rules 2020".
     prompt:
       "Is there any evidence of air and noise pollution from the client's " +
-      "operation violating the Environment Protection Rules (Official Gazette, " +
-      "June 26/1997) or the conditions specified in the client's Pollution " +
-      "Control Certificate?",
+      "operation violating the Environment Protection Rules 2020 or the " +
+      "conditions specified in the client's Pollution Control Certificate?",
     options: {
       // Circular 22 §2.1(a), verbatim.
       a:
@@ -245,12 +291,13 @@ export const ANNEX5_EHS_RISK: EsddQuestion[] = [
     id: "annex5.2.2",
     section: "ehs",
     number: "2.2",
-    // Circular 22 §2.2 (Excel C25 / PDF p.31), verbatim.
+    // 2022 NRB ESRM Guideline Annex 5 §2.2 (PDF printed p. 33), verbatim.
+    // 2022 edition updates the instrument reference to "Environment
+    // Protection Rules 2020".
     prompt:
       "Is there any evidence of water pollution due to client's operation, " +
-      "violating the Environment Protection Rules (Official Gazette, " +
-      "June 26/1997) or the conditions specified in the client's Pollution " +
-      "Control Certificate?",
+      "violating the Environment Protection Rules 2020 or the conditions " +
+      "specified in the client's Pollution Control Certificate?",
     options: {
       // Circular 22 §2.2(a), verbatim.
       a:
@@ -280,14 +327,14 @@ export const ANNEX5_EHS_RISK: EsddQuestion[] = [
     id: "annex5.2.3",
     section: "ehs",
     number: "2.3",
-    // Circular 22 §2.3 (Excel C26 / PDF pp.31-32), verbatim. Prior demo
-    // wording dropped the gazette parenthetical and added a stray comma before
-    // "violating"; both corrected to the source text.
+    // 2022 NRB ESRM Guideline Annex 5 §2.3 (PDF printed p. 33), verbatim.
+    // 2022 edition updates the instrument reference to "Environment
+    // Protection Rules 2020".
     prompt:
       "Is there any evidence of land pollution and lack of waste handling " +
-      "mechanism in the project operation violating the Environment Protection " +
-      "Rules (Official Gazette, June 26/1997) or the conditions specified in " +
-      "the client's Pollution Control Certificate?",
+      "mechanism in the project operation violating the Environment " +
+      "Protection Rules 2020 or the conditions specified in the client's " +
+      "Pollution Control Certificate?",
     options: {
       // Circular 22 §2.3(a), verbatim.
       a:
@@ -564,13 +611,14 @@ export const ANNEX5_SOCIAL_RISK: EsddQuestion[] = [
 /**
  * The full ordered checklist that the wizard walks through.
  *
- * Circular 22 defines only the 12-question sector-agnostic checklist
- * (10 base per Circular 22 Excel + PDF-only Q3.4 + 2022 addition Q2.5 =
- * 12 questions total: 3 general + 5 EHS + 4 social).
+ * The 2022 NRB ESRM Guideline defines a single 13-question
+ * sector-agnostic checklist: 4 general (1.1-1.4) + 5 EHS (2.1-2.5) +
+ * 4 social (3.1-3.4). The 2018 Circular 22 edition had 11 (no Q1.4,
+ * no Q2.5).
  *
  * The `sectorSlug` parameter is retained only for backwards compatibility
  * with legacy callers; it is ignored. Sector supplements were removed
- * because they are not part of Circular 22 or the 2022 update.
+ * because they are not part of the 2022 Guideline or the 2018 edition.
  */
 export function fullChecklist(_sectorSlug?: string): EsddQuestion[] {
   return [

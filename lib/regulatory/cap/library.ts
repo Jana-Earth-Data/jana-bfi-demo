@@ -29,7 +29,7 @@ import type {
 // Covenant library — 7 entries covering every Annex 9 type at least once.
 // ---------------------------------------------------------------------------
 
-const ANNEX_9_CITATION = "NRB Circular 22 Annex 9 (ESRM Guideline PDF p. 66)";
+const ANNEX_9_CITATION = "NRB ESRM Guideline 2022 Annex 9 (printed p. 66)";
 
 export const COVENANT_LIBRARY: CovenantTemplate[] = [
   // -------- Positive covenants --------
@@ -160,7 +160,7 @@ export function findCovenantTemplate(
 // Annex 10 — 13-item monitoring checklist (verbatim)
 // ---------------------------------------------------------------------------
 
-const ANNEX_10_CITATION = "NRB Circular 22 Annex 10 (ESRM Guideline PDF pp. 67-68)";
+const ANNEX_10_CITATION = "NRB ESRM Guideline 2022 Annex 10 (printed pp. 67-68)";
 
 export const ANNEX10_CHECKLIST_ITEMS: MonitoringChecklistItem[] = [
   // Project Summary Information (Sl. 1-3)
@@ -326,18 +326,22 @@ type EscalationSource = {
  * If a driving question isn't in the map we fall back to the raw id.
  */
 const ESDD_QUESTION_AREA: Record<string, string> = {
-  "annex5.1.1": "Legal / regulatory issues (Circular 22 Q 1.1)",
-  "annex5.1.2": "Stakeholder grievances (Circular 22 Q 1.2)",
-  "annex5.1.3": "Sensitive-area siting (Circular 22 Q 1.3)",
-  "annex5.2.1": "Air and noise pollution (Circular 22 Q 2.1)",
-  "annex5.2.2": "Water pollution (Circular 22 Q 2.2)",
-  "annex5.2.3": "Waste handling (Circular 22 Q 2.3)",
-  "annex5.2.4": "Energy efficiency (Circular 22 Q 2.4)",
-  "annex5.2.5": "Climate risks and GHG mitigation (Circular 22 Q 2.5)",
-  "annex5.3.1": "Fire / occupational health & safety (Circular 22 Q 3.1)",
-  "annex5.3.2": "Labour practices (Circular 22 Q 3.2)",
-  "annex5.3.3": "Community health & safety (Circular 22 Q 3.3)",
-  "annex5.3.4": "Stakeholder consultation (Circular 22 Q 3.4)",
+  "annex5.1.1": "Legal / regulatory issues (NRB ESRM 2022 Annex 5 Q 1.1)",
+  "annex5.1.2": "Stakeholder grievances (NRB ESRM 2022 Annex 5 Q 1.2)",
+  "annex5.1.3": "Sensitive-area siting (NRB ESRM 2022 Annex 5 Q 1.3)",
+  "annex5.1.4":
+    "Land acquisition / involuntary resettlement (NRB ESRM 2022 Annex 5 Q 1.4)",
+  "annex5.2.1": "Air and noise pollution (NRB ESRM 2022 Annex 5 Q 2.1)",
+  "annex5.2.2": "Water pollution (NRB ESRM 2022 Annex 5 Q 2.2)",
+  "annex5.2.3": "Waste handling (NRB ESRM 2022 Annex 5 Q 2.3)",
+  "annex5.2.4": "Energy efficiency (NRB ESRM 2022 Annex 5 Q 2.4)",
+  "annex5.2.5":
+    "Climate risks and GHG mitigation (NRB ESRM 2022 Annex 5 Q 2.5)",
+  "annex5.3.1":
+    "Fire / occupational health & safety (NRB ESRM 2022 Annex 5 Q 3.1)",
+  "annex5.3.2": "Labour practices (NRB ESRM 2022 Annex 5 Q 3.2)",
+  "annex5.3.3": "Community health & safety (NRB ESRM 2022 Annex 5 Q 3.3)",
+  "annex5.3.4": "Stakeholder consultation (NRB ESRM 2022 Annex 5 Q 3.4)",
 };
 
 /**

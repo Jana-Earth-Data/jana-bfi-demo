@@ -782,8 +782,8 @@ function ReviewStep({
             grade language in the underlying IFC Performance Standards has
             been flagged (child/forced labor, forced eviction, critical
             habitat impact, IP relocation without FPIC, etc.). This
-            screening must be reviewed by the credit committee before any
-            approval.
+            screening must be reviewed by the next-higher credit approval
+            authority before any approval.
           </div>
         </div>
       )}

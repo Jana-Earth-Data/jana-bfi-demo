@@ -33,7 +33,7 @@ import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
-import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
+import { isProjectFinanceLoanWithOverride } from "@/lib/regulatory/esdd/pf-loan-gate";
 import { ANNEX5B_ALL } from "@/lib/regulatory/esdd/annex5b-pf-questions";
 import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
 
@@ -101,6 +101,23 @@ export type LoanCard = {
     flagsConfirmed: number;
     flagsTotal: 4;
     completed: boolean;
+  };
+  /**
+   * NRB ESRM Guideline 2022 §7.3.5 CAP + covenants + monitoring status.
+   *
+   * Populated for every candidate loan, but the loan card only renders
+   * the CAP CTA when the loan's ESRR risk class is Medium / High /
+   * Extreme (§7.3.5 does not require a CAP for Low-risk loans).
+   *
+   * `total`     — count of bfi_cap_items rows for this loan
+   * `completed` — subset with status = 'completed'
+   * `overdue`   — subset with status != 'completed' AND deadline < today
+   *               (matches the projection GET /api/cap/[loanId] applies)
+   */
+  cap: {
+    total: number;
+    completed: number;
+    overdue: number;
   };
 };
 
@@ -199,13 +216,21 @@ export async function GET() {
   // ------------------------------------------------------------------
   const { data: allAssigns } = await supabase
     .from("bfi_loan_assignments")
-    .select("loan_id, officer_id")
+    .select("loan_id, officer_id, loan_category_override")
     .eq("bank_id", tenant.id);
   const assignedLoanIds = new Set<string>();
   const myAssignedLoanIds = new Set<string>();
+  // P45 — officer-set ESDD loan-category override per loan. Used
+  // below to decide PF-screening applicability so the queue matches
+  // what the officer sees in the wizard.
+  const categoryOverrideByLoan = new Map<string, string | null>();
   for (const a of allAssigns ?? []) {
     assignedLoanIds.add(a.loan_id);
     if (a.officer_id === officer.id) myAssignedLoanIds.add(a.loan_id);
+    categoryOverrideByLoan.set(
+      a.loan_id,
+      (a.loan_category_override as string | null | undefined) ?? null,
+    );
   }
 
   // ------------------------------------------------------------------
@@ -368,6 +393,46 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
+  // 5d. CAP items per loan (P44). One batched query for the whole
+  // candidate set — count total / completed / overdue per loan so the
+  // loan card can label its CTA "Start CAP" / "Continue N/M" /
+  // "Review CAP" without an N+1. Overdue projection matches the same
+  // rule GET /api/cap/[loanId] applies at read time (status !=
+  // 'completed' AND deadline_date < today).
+  // ------------------------------------------------------------------
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: capRows, error: capErr } =
+    candidateArray.length > 0
+      ? await supabase
+          .from("bfi_cap_items")
+          .select("loan_id, status, deadline_date")
+          .eq("bank_id", tenant.id)
+          .in("loan_id", candidateArray)
+      : { data: [], error: null };
+  if (capErr) {
+    return NextResponse.json(
+      { error: `CAP item query failed: ${capErr.message}` },
+      { status: 500 },
+    );
+  }
+  type CapAgg = { total: number; completed: number; overdue: number };
+  const capByLoan = new Map<string, CapAgg>();
+  for (const row of capRows ?? []) {
+    const agg = capByLoan.get(row.loan_id) ?? {
+      total: 0,
+      completed: 0,
+      overdue: 0,
+    };
+    agg.total += 1;
+    if (row.status === "completed") {
+      agg.completed += 1;
+    } else if (row.deadline_date && row.deadline_date < today) {
+      agg.overdue += 1;
+    }
+    capByLoan.set(row.loan_id, agg);
+  }
+
+  // ------------------------------------------------------------------
   // 6. Build a LoanCard for every candidate loan, then bucket.
   // ------------------------------------------------------------------
   const cards: LoanCard[] = [];
@@ -377,7 +442,8 @@ export async function GET() {
     const borrower = borrowerById.get(loan.borrowerId);
     if (!borrower) continue;
 
-    // Circular 22: 12-question sector-agnostic checklist. No supplement.
+    // NRB ESRM Guideline 2022: 13-question sector-agnostic Annex 5
+    // checklist. No supplement.
     const total = fullChecklist().length;
     const esddAgg = byLoan.get(loanId);
     const answered = esddAgg?.distinctQuestionIds.size ?? 0;
@@ -393,7 +459,13 @@ export async function GET() {
     const escalated = screening?.escalated ?? false;
 
     // PF screening (Annex 5b) applicability + completion state.
-    const pfRequired = isProjectFinanceLoan(loan);
+    // P45 — honour the officer's ESDD-wizard loan-category override
+    // when present; otherwise fall through to the raw
+    // loan.category / businessUnit check.
+    const pfRequired = isProjectFinanceLoanWithOverride(
+      loan,
+      categoryOverrideByLoan.get(loanId) ?? null,
+    );
     const pfAnsweredSet = pfAnsweredByLoan.get(loanId);
     const pfAnswered = pfAnsweredSet?.size ?? 0;
     const pfResult = pfResultByLoan.get(loanId);
@@ -406,7 +478,7 @@ export async function GET() {
     // completes.
     let reason = "";
     if (escalated) {
-      reason = "Escalated to credit committee";
+      reason = "Escalated to next-higher credit approval authority";
     } else if (!esddDone && answered === 0) {
       reason = "ESDD checklist not started";
     } else if (!esddDone && answered > 0) {
@@ -470,6 +542,7 @@ export async function GET() {
         flagsTotal: 4,
         completed: pcafConfirmedBorrowerIds.has(borrower.id),
       },
+      cap: capByLoan.get(loanId) ?? { total: 0, completed: 0, overdue: 0 },
     });
   }
 

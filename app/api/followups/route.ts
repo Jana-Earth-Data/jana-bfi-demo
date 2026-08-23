@@ -6,12 +6,12 @@
  * officer is on the hook for and buckets what's coming due.
  *
  * NRB source authority:
- *   - Circular 22 §7.3.5 — time-bound Corrective Action Plans (Annex 8)
+ *   - NRB ESRM Guideline 2022 §7.3.5 — time-bound Corrective Action Plans (Annex 8)
  *     and E&S covenants (Annex 9) are required for medium+ risk loans.
  *     Deadlines aren't optional.
- *   - Circular 22 §7.3.7 — periodic monitoring per Annex 10; frequency
+ *   - NRB ESRM Guideline 2022 §7.3.7 — periodic monitoring per Annex 10; frequency
  *     driven by ESRR + CAP status.
- *   - Circular 22 §8 — Relationship Manager / Loan Officer is the
+ *   - NRB ESRM Guideline 2022 §8 — Relationship Manager / Loan Officer is the
  *     assigned role for pre-disbursement action follow-up and monitoring.
  *
  * Buckets:

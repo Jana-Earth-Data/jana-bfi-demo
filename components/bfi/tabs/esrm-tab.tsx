@@ -31,9 +31,10 @@ import {
   findActivityById,
   type TaxonomyColor,
 } from "@/lib/regulatory/taxonomy/activities";
-// Sector supplements were removed from annex5-questions.ts per Circular 22
-// verbatim conformance. This tab now renders only the sector-agnostic
-// 12-question checklist.
+// Sector supplements were removed from annex5-questions.ts for verbatim
+// conformance with the NRB ESRM Guideline 2022. This tab now renders only
+// the sector-agnostic 13-question Annex 5 checklist.
+import { fullChecklist as annex5FullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import ctSnapshot from "@/data/ct-nepal-2024.json";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
@@ -705,7 +706,7 @@ function CollapsedApplicationQueue({
         legend visually matches the tiles above it.
       */}
       <div className="mt-1 border-t border-line/50 pt-1.5 pb-0.5 space-y-1">
-        <div className="flex items-center gap-1.5 px-1" title="Left stripe color = NRB Circular 22 risk class (low → extreme)">
+        <div className="flex items-center gap-1.5 px-1" title="Left stripe color = NRB ESRM Guideline 2022 risk class (low to extreme)">
           <span
             className="h-3 w-1 rounded-r"
             style={{ backgroundColor: "#f43f5e" }}
@@ -716,7 +717,7 @@ function CollapsedApplicationQueue({
           </span>
         </div>
         {anyEscalated && (
-          <div className="flex items-center gap-1.5 px-1" title="Red dot = escalated to credit committee (any 'c' answer in NRB Circular 22 Annex 5)">
+          <div className="flex items-center gap-1.5 px-1" title="Red dot = escalated to the next-higher credit approval authority (ESRR of MEDIUM or HIGH, NRB ESRM Guideline 2022 §7.3.6)">
             <span
               className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_0_2px_rgba(15,23,42,1)]"
               aria-hidden
@@ -882,10 +883,10 @@ function ManagerSummary({
         >
           <div className="flex items-baseline justify-between">
             <div className="text-sm font-semibold text-amber-100">
-              {escalatedCount} loan{escalatedCount === 1 ? "" : "s"} escalated to credit committee
+              {escalatedCount} loan{escalatedCount === 1 ? "" : "s"} escalated to the next-higher credit approval authority
             </div>
             <div className="text-xs text-amber-200/70">
-              Any &lsquo;c&rsquo; answer in NRB Circular 22 triggers escalation
+              NRB ESRM Guideline 2022 §7.3.6: ESRR of MEDIUM or HIGH escalates one level
             </div>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -924,7 +925,7 @@ function ManagerSummary({
                 {loansWithOverdueCaps === 1 ? "" : "s"}
               </div>
               <div className="text-xs text-rose-200/70">
-                NRB Circular 22 §7.3.5 — CAP deadlines are non-optional
+                NRB ESRM Guideline 2022 §7.3.5: CAP deadlines are non-optional
               </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -1084,7 +1085,9 @@ function shortQuestionLabel(id: string): { number: string; short: string } {
           ? "Legal issues"
           : parts[2] === "2"
             ? "Stakeholder grievances"
-            : "Sensitive-area siting",
+            : parts[2] === "3"
+              ? "Sensitive-area siting"
+              : "Land acquisition / resettlement",
     };
   }
   if (id.startsWith("annex5.2.")) {
@@ -1115,8 +1118,8 @@ function shortQuestionLabel(id: string): { number: string; short: string } {
               : "Stakeholder consultation",
     };
   }
-  // Circular 22 defines only the sector-agnostic 12-question checklist —
-  // no sector supplement lookup needed.
+  // The NRB ESRM Guideline 2022 defines only the sector-agnostic
+  // 13-question checklist — no sector supplement lookup needed.
   return { number: id, short: "" };
 }
 
@@ -1148,9 +1151,11 @@ function WorkbenchComplianceStripe({
   loanId: string;
   borrower: Borrower;
 }) {
-  // Circular 22 = 12 questions total (3 general + 5 EHS incl. 2022 Q2.5
-  // climate + 4 social + PDF-only 3.4). No sector supplements per source.
-  const total = 3 + 5 + 4;
+  // NRB ESRM Guideline 2022 = 13 questions total (4 general incl. 2022
+  // Q1.4 land acquisition + 5 EHS incl. 2022 Q2.5 climate + 4 social).
+  // No sector supplements per source. Derived from the regulatory data
+  // so the count cannot drift from annex5-questions.ts again.
+  const total = annex5FullChecklist().length;
   const taxApplicable = isTaxonomyExpected(borrower.nrbSector);
 
   const [state, setState] = useState<WbStripeState>({
@@ -1317,7 +1322,7 @@ function WorkbenchComplianceStripe({
       {state.esdd.escalated && (
         <div className="mt-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2">
           <div className="text-xs font-semibold text-amber-100">
-            Escalated to credit committee
+            Escalated to the next-higher credit approval authority
           </div>
           {state.esdd.drivingQuestionIds.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -1981,7 +1986,7 @@ function ScreeningWorkbench({
       )}
 
       {/* Corrective Action Plan + E&S Covenants + Monitoring — NRB
-          Circular 22 §7.3.5 (Annex 8 CAP + Annex 9 covenants) + §7.3.7
+          NRB ESRM Guideline 2022 §7.3.5 (Annex 8 CAP + Annex 9 covenants) + §7.3.7
           (Annex 10 monitoring). The panel fetches the loan's latest
           saved ESRM screening and returns null when the risk class is
           Low (Low-risk loans don't require a CAP per §7.3.5). */}
@@ -2254,7 +2259,8 @@ function buildEsddRows(borrower: Borrower): EsddRow[] {
 
 // Structured section metadata used to render live per-question progress.
 // The sections + question ids MUST match lib/regulatory/esdd/annex5-questions.ts.
-// Circular 22 = 12 questions total, sector-agnostic. No supplements.
+// NRB ESRM Guideline 2022 = 13 questions total, sector-agnostic. No
+// supplements.
 
 const ANNEX5_SECTIONS: Array<{
   title: string;
@@ -2268,6 +2274,8 @@ const ANNEX5_SECTIONS: Array<{
       { id: "annex5.1.1", number: "1.1", prompt: "Legal issues with E&S performance" },
       { id: "annex5.1.2", number: "1.2", prompt: "Stakeholder grievances or NGO campaigns" },
       { id: "annex5.1.3", number: "1.3", prompt: "Site near eco-sensitive areas" },
+      // 2022 NRB ESRM Guideline addition
+      { id: "annex5.1.4", number: "1.4", prompt: "Land acquisition / involuntary resettlement" },
     ],
   },
   {
@@ -2415,7 +2423,7 @@ function EsddChecklistDrawer({
     };
   }, [loanId]);
 
-  // Circular 22 = single sector-agnostic 12-question checklist. The
+  // NRB ESRM Guideline 2022 = single sector-agnostic 13-question checklist. The
   // borrower's sector is retained for other panels (taxonomy classification,
   // permit lookup) but does not add ESDD questions.
   const sections = ANNEX5_SECTIONS;
@@ -2558,7 +2566,7 @@ function EsddSubpanel({
           ESDD checklist
         </div>
         <div className="text-[10px] uppercase tracking-wide text-slate-500">
-          NRB Circular 22
+          NRB ESRM Guideline 2022
         </div>
       </div>
 
@@ -2604,7 +2612,7 @@ function EsddSubpanel({
       </div>
       {screening?.escalationFlag && (
         <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
-          Escalated to credit committee per NRB ESRM guidance
+          Escalated one level per NRB ESRM Guideline 2022 §7.3.6
         </div>
       )}
       <a

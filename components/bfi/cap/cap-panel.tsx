@@ -1,7 +1,7 @@
 /**
  * Corrective Action Plan + E&S Covenants + Monitoring capture panel.
  *
- * NRB Circular 22 §7.3.5 requires a time-bound CAP (Annex 8) + E&S
+ * NRB ESRM Guideline 2022 §7.3.5 requires a time-bound CAP (Annex 8) + E&S
  * covenants (Annex 9) for every loan rated Medium / High. §7.3.7
  * requires periodic monitoring using the Annex 10 checklist. This panel
  * is the officer-facing capture surface for all three.
@@ -268,8 +268,8 @@ export function CapPanel({
         title="Corrective Action Plan + Covenants + Monitoring"
         subtitle={
           data && data.riskClass
-            ? `NRB Circular 22 §7.3.5 requires a time-bound CAP + covenants for medium/high risk (this loan: ${data.riskClass}). §7.3.7 requires periodic monitoring.`
-            : "NRB Circular 22 §7.3.5 requires a time-bound CAP + covenants for medium/high risk. §7.3.7 requires periodic monitoring."
+            ? `NRB ESRM Guideline 2022 §7.3.5 requires a time-bound CAP + covenants for medium/high risk (this loan: ${data.riskClass}). §7.3.7 requires periodic monitoring.`
+            : "NRB ESRM Guideline 2022 §7.3.5 requires a time-bound CAP + covenants for medium/high risk. §7.3.7 requires periodic monitoring."
         }
         action={
           readOnly ? null : (
@@ -1071,7 +1071,7 @@ function MonitoringSubmitModal({
               Submit monitoring report — Annex 10
             </div>
             <div className="text-xs text-slate-500">
-              13-item checklist per NRB Circular 22 §7.3.7. All rows visible
+              13-item checklist per NRB ESRM Guideline 2022 §7.3.7. All rows visible
               to the credit committee.
             </div>
           </div>
