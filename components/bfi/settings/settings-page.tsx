@@ -429,11 +429,11 @@ function EsrmPanel({
   return (
     <Panel
       title="ESRM"
-      subtitle="Circular 22 checklist behaviour + escalation rules. NRB source citations shown per row."
+      subtitle="NRB ESRM Guideline 2022 checklist behaviour + escalation rules. NRB source citations shown per row."
     >
       <Row
         label="Remarks required · Section 1 (General Risk)"
-        hint="NRB Circular 22 Annex 5 has a Remarks column but leaves it optional. Turn on to require remarks on every answered Section 1 question before advance."
+        hint="NRB ESRM Guideline 2022 Annex 5 has a Remarks column but leaves it optional. Turn on to require remarks on every answered Section 1 question before advance."
       >
         <Toggle
           value={esrm.remarksRequired.section1}
@@ -472,13 +472,17 @@ function EsrmPanel({
       </Row>
       <Row
         label="Escalation trigger"
-        hint='NRB Circular 22 §7.3.5: "any unmitigated concern". Default "any-c" maps that verbatim.'
+        hint='NRB ESRM Guideline 2022 §7.3.6: "All transactions rated as MEDIUM or HIGH (ESRR) will be escalated to the one-level higher related credit approval authority." Any "b" answer produces MEDIUM and any "c" produces HIGH (Q2.4 is excluded from the rating), so a "b" escalates too. The "c"-only modes below are stricter-than-NRB bank overrides.'
         comingSoon
       >
         <Select<EscalationTrigger>
           value={esrm.escalationTrigger}
           onChange={(v) => onChange({ escalationTrigger: v })}
           options={[
+            {
+              value: "esrr-medium-high",
+              label: "ESRR MEDIUM or HIGH (NRB rule)",
+            },
             { value: "any-c", label: "Any 'c' answer" },
             { value: "two-c", label: "Two or more 'c' answers" },
             { value: "section3-only", label: "Only 'c' in Section 3" },
@@ -697,7 +701,7 @@ function CapPanel({
   return (
     <Panel
       title="CAP & Monitoring"
-      subtitle="NRB Circular 22 §7.3.5 (CAP deadlines) + §7.3.7 (periodic monitoring)."
+      subtitle="NRB ESRM Guideline 2022 §7.3.5 (CAP deadlines) + §7.3.7 (periodic monitoring)."
     >
       <Row
         label="Monitoring cadence · Extreme"

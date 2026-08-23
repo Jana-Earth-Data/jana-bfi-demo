@@ -4,7 +4,7 @@
  *
  * Annex 5b is a Yes/No screening questionnaire built from the 8 IFC
  * Performance Standards. It applies only when a loan is categorised as
- * Project Finance under Circular 22 §5 (see `annex5-questions.ts` for the
+ * Project Finance under NRB ESRM Guideline 2022 §5 (see `annex5-questions.ts` for the
  * `EsddLoanCategory` shape).
  *
  * Source of truth: `uploads/Final-ESRM-without-cover-1.pdf`, pp. 43-49.

@@ -1,6 +1,6 @@
 /**
  * Type definitions for the Corrective Action Plan + E&S Covenants +
- * Monitoring capture surface (NRB Circular 22 §7.3.5 + Annex 8/9/10 and
+ * Monitoring capture surface (NRB ESRM Guideline 2022 §7.3.5 + Annex 8/9/10 and
  * §7.3.7).
  *
  * Column names match the Supabase schema in scripts/supabase-cap.sql,

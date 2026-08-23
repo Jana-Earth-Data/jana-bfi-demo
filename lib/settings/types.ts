@@ -17,7 +17,11 @@
 // its options straight off the source of truth.
 // ---------------------------------------------------------------------------
 
-export type EscalationTrigger = "any-c" | "two-c" | "section3-only";
+export type EscalationTrigger =
+  | "esrr-medium-high"
+  | "any-c"
+  | "two-c"
+  | "section3-only";
 
 export type AutoAssignment =
   | "unassigned-in-all-queues"
@@ -50,9 +54,19 @@ export type EsrmSettings = {
     section3: boolean; // annex5 social
   };
   /**
-   * Rule for when the ESRM screening result should escalate to the credit
-   * committee. NRB Circular 22 §7.3.5 phrases the requirement as "any
-   * unmitigated concern" — the default "any-c" mirrors that reading.
+   * Rule for when the ESRM screening result should escalate.
+   *
+   * NRB ESRM Guideline 2022 §7.3.6 "Escalation" (p. 18) is the baseline:
+   * "All transactions rated as MEDIUM or HIGH (ESRR) will be escalated to
+   * the one-level higher related credit approval authority." Under NRB's
+   * ESRR rule (ESRR_criteria sheet of the NRB ESDD Excel tool) any 'b'
+   * with no 'c' produces MEDIUM and any 'c' produces HIGH, with Q2.4
+   * excluded from the rating. So a 'b' answer escalates too — escalation
+   * is NOT keyed to 'c' answers alone.
+   *
+   * Default is "esrr-medium-high" (the NRB rule). The remaining options
+   * are bank-level narrowings a BFI may configure on top of it; they are
+   * stricter-than-NRB conveniences, not readings of the Guideline.
    */
   escalationTrigger: EscalationTrigger;
   /**
@@ -116,7 +130,7 @@ export type NfrsSettings = {
 
 export type CapSettings = {
   /**
-   * NRB Circular 22 §7.3.7 monitoring cadence by ESRR risk class.
+   * NRB ESRM Guideline 2022 §7.3.7 monitoring cadence by ESRR risk class.
    * Defaults align with the demo's frequencyForRiskClass helper —
    * Extreme=1 mo, High=3 mo, Medium=6 mo, Low=12 mo.
    */
@@ -187,7 +201,7 @@ export const SETTINGS_CATEGORIES: Array<{
   {
     key: "esrm",
     label: "ESRM",
-    description: "Circular 22 checklist behaviour + escalation rules",
+    description: "NRB ESRM Guideline 2022 checklist behaviour + escalation rules",
   },
   {
     key: "taxonomy",

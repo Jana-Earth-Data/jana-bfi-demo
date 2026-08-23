@@ -4,7 +4,7 @@
  *                          capture panel.
  * POST /api/cap/[loanId] — upserts any of the three collections in one call.
  *
- * NRB Circular 22 §7.3.5 (Annex 8 CAP + Annex 9 covenants) + §7.3.7
+ * NRB ESRM Guideline 2022 §7.3.5 (Annex 8 CAP + Annex 9 covenants) + §7.3.7
  * (Annex 10 monitoring). The endpoint returns a short { applicable: false }
  * response for loans whose latest ESRM screening rates them Low — Circular
  * 22 does not require a CAP or covenants for Low-risk loans.
@@ -36,7 +36,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ loanId: string }> };
 
 const CITATION =
-  "NRB Circular 22 §7.3.5 (CAP / covenants) + §7.3.7 (monitoring) — Annex 8 / 9 / 10";
+  "NRB ESRM Guideline 2022 §7.3.5 (CAP / covenants) + §7.3.7 (monitoring): Annex 8 / 9 / 10";
 
 const APPLICABLE_RISK_CLASSES = new Set<CapRiskClass>([
   "medium",

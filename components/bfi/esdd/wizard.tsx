@@ -5,7 +5,7 @@
  *
  * Multi-step form that walks a signed-in officer through NRB ESRM Annex 5:
  *   Step 0: Basic Information (client name, sector, loan category, etc.)
- *   Step 1: Section 1 — General Risk           (annex5.1.1 to 1.3)
+ *   Step 1: Section 1 — General Risk           (annex5.1.1 to 1.4)
  *   Step 2: Section 2 — Environmental Health   (annex5.2.1 to 2.5)
  *   Step 3: Section 3 — Social Risks           (annex5.3.1 to 3.4)
  *   Step 4: Review + submit (final ESRM screening save)
@@ -14,12 +14,12 @@
  * the officer navigates away mid-wizard. Existing responses are loaded on
  * mount so the officer can resume where they left off.
  *
- * Sector supplements were removed to conform to Circular 22 — the NRB
- * source defines only the sector-agnostic 12-question checklist. See
- * lib/regulatory/esdd/annex5-questions.ts for the provenance note.
+ * Sector supplements were removed to conform to the NRB ESRM Guideline
+ * 2022 — the source defines only the sector-agnostic 13-question Annex 5
+ * checklist. See lib/regulatory/esdd/annex5-questions.ts for provenance.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Borrower, Loan } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
@@ -36,7 +36,7 @@ import {
 import { deriveEsddLoanCategory } from "@/lib/regulatory/esdd/loan-category-derive";
 import { formatNpr } from "@/components/bfi/ui";
 import Link from "next/link";
-import { isProjectFinanceLoan } from "@/lib/regulatory/esdd/pf-loan-gate";
+import { isProjectFinanceLoanWithOverride } from "@/lib/regulatory/esdd/pf-loan-gate";
 import type { TenantSettings } from "@/lib/settings/types";
 import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { remarksRequiredForSection } from "@/lib/settings/schema";
@@ -69,11 +69,19 @@ export function EsddWizard({
   officer,
   loan,
   borrower,
+  initialLoanCategoryOverride = null,
 }: {
   tenantName: string;
   officer: Officer;
   loan: Loan;
   borrower: Borrower;
+  /**
+   * P45 — server-side hydrated override for the ESDD loan category.
+   * Sourced from bfi_loan_assignments.loan_category_override on the
+   * ESDD page load. Null when no override has been recorded, in
+   * which case we fall back to deriveEsddLoanCategory(loan, borrower).
+   */
+  initialLoanCategoryOverride?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,6 +113,78 @@ export function EsddWizard({
   const [priorScreening, setPriorScreening] = useState<SavedScreening | null>(
     null,
   );
+  // Loan Category — lifted to the wizard level so it survives step
+  // navigation (BasicInfoStep unmounts + remounts when the officer clicks
+  // Continue → Back). P45 adds cross-refresh persistence via
+  // bfi_loan_assignments.loan_category_override:
+  //   - Initial value: server-hydrated override if present, else the
+  //     derived category.
+  //   - On every change: debounced PATCH /api/loans/{id}/category so
+  //     the value survives page refresh / Save & Exit + re-entry.
+  const [loanCategory, setLoanCategoryState] = useState<
+    EsddLoanCategory | ""
+  >(() => {
+    if (initialLoanCategoryOverride) {
+      return initialLoanCategoryOverride as EsddLoanCategory;
+    }
+    return deriveEsddLoanCategory(loan, borrower);
+  });
+  const [categorySaveStatus, setCategorySaveStatus] =
+    useState<SaveStatus>("idle");
+  const categorySaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const categoryPatchInFlight = useRef(0);
+  // Skip the very first autosave — the initial value is already what
+  // the server has (either the persisted override or the derived
+  // default, and re-saving the derived default would pollute the
+  // override column with values the officer never actually chose).
+  const skipNextAutosave = useRef(true);
+  useEffect(() => {
+    return () => {
+      if (categorySaveTimer.current) clearTimeout(categorySaveTimer.current);
+    };
+  }, []);
+
+  function setLoanCategory(next: EsddLoanCategory | "") {
+    setLoanCategoryState(next);
+    if (skipNextAutosave.current) {
+      skipNextAutosave.current = false;
+      return;
+    }
+    if (readOnly) return;
+    if (categorySaveTimer.current) clearTimeout(categorySaveTimer.current);
+    setCategorySaveStatus("saving");
+    categorySaveTimer.current = setTimeout(async () => {
+      const myTicket = ++categoryPatchInFlight.current;
+      try {
+        const res = await fetch(
+          `/api/loans/${encodeURIComponent(loan.id)}/category`,
+          {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ category: next === "" ? null : next }),
+          },
+        );
+        // If another change came in while this request was in flight,
+        // ignore this response — the later request will win.
+        if (myTicket !== categoryPatchInFlight.current) return;
+        if (!res.ok) {
+          console.warn(
+            "[esdd] loan-category autosave failed:",
+            res.status,
+            await res.text().catch(() => ""),
+          );
+          setCategorySaveStatus("error");
+          return;
+        }
+        setCategorySaveStatus("saved");
+      } catch (err) {
+        if (myTicket !== categoryPatchInFlight.current) return;
+        console.warn("[esdd] loan-category autosave threw:", err);
+        setCategorySaveStatus("error");
+      }
+    }, 500);
+  }
+
   // Tenant settings drive the require-remarks-per-section gating. Start
   // with DEFAULT_SETTINGS so the wizard is usable before the fetch
   // resolves; the fetch swaps them in when ready.
@@ -227,8 +307,9 @@ export function EsddWizard({
     }
   }
 
-  // Circular 22 defines a single 12-question sector-agnostic checklist —
-  // no sector supplements. Steps are fixed: Basic → 3 sections → Review.
+  // The NRB ESRM Guideline 2022 defines a single 13-question
+  // sector-agnostic checklist — no sector supplements. Steps are fixed:
+  // Basic → 3 sections → Review.
   const steps = useMemo(
     () => [
       { title: "Basic information", subtitle: "Client, transaction, and loan category" },
@@ -268,6 +349,9 @@ export function EsddWizard({
             <BasicInfoStep
               loan={loan}
               borrower={borrower}
+              loanCategory={loanCategory}
+              onLoanCategoryChange={setLoanCategory}
+              loanCategorySaveStatus={categorySaveStatus}
               onContinue={() => setStep(1)}
               readOnly={readOnly}
             />
@@ -316,6 +400,7 @@ export function EsddWizard({
               borrower={borrower}
               responses={responses}
               priorScreening={priorScreening}
+              loanCategoryOverride={loanCategory === "" ? null : loanCategory}
               onBack={backFromReview}
               onExit={() => router.push("/")}
               readOnly={readOnly}
@@ -537,31 +622,39 @@ function StepIndicator({
 function BasicInfoStep({
   loan,
   borrower,
+  loanCategory,
+  onLoanCategoryChange,
+  loanCategorySaveStatus = "idle",
   onContinue,
   readOnly = false,
 }: {
   loan: Loan;
   borrower: Borrower;
+  loanCategory: EsddLoanCategory | "";
+  onLoanCategoryChange: (v: EsddLoanCategory | "") => void;
+  /**
+   * P45 — surface the autosave state next to the dropdown so the
+   * officer sees the value is being persisted server-side. Optional
+   * so callers that don't wire up autosave can omit it.
+   */
+  loanCategorySaveStatus?: SaveStatus;
   onContinue: () => void;
   readOnly?: boolean;
 }) {
   // Loan Category is required per Circular 22 Excel B13 (dropdown
   // `Tempor!A1:A4`). Prefilled from the loan + borrower record so the
   // officer typically just confirms and moves on. The value drives
-  // Circular 22 §5 applicability triage and the Annex 5b PF screening
-  // gate on Project Finance loans.
-  const [loanCategory, setLoanCategory] = useState<EsddLoanCategory | "">(
-    () => deriveEsddLoanCategory(loan, borrower),
-  );
-
+  // NRB ESRM Guideline 2022 §5 applicability triage and the Annex 5b PF screening
+  // gate on Project Finance loans. State is lifted to the wizard so it
+  // survives navigation to another step and back.
   const canContinue = loanCategory !== "";
 
   return (
     <div className="rounded-2xl border border-line bg-panel p-6">
       <h2 className="text-lg font-semibold text-white">Basic information</h2>
       <p className="mt-1 text-sm text-slate-400">
-        Prefilled from the loan and borrower record. NRB Circular 22
-        requires these fields to be captured at the top of every ESDD
+        Prefilled from the loan and borrower record. The NRB ESRM Guideline
+        2022 requires these fields to be captured at the top of every ESDD
         checklist.
       </p>
 
@@ -588,7 +681,7 @@ function BasicInfoStep({
             disabled={readOnly}
             value={loanCategory}
             onChange={(e) =>
-              setLoanCategory(e.target.value as EsddLoanCategory | "")
+              onLoanCategoryChange(e.target.value as EsddLoanCategory | "")
             }
             className="mt-1 w-full rounded-md border border-line bg-panelAlt px-3 py-2 text-sm text-slate-100 focus:outline-none disabled:opacity-60"
           >
@@ -607,6 +700,22 @@ function BasicInfoStep({
             Selecting Project Finance triggers the Annex 5b PF Screening
             Questionnaire.
           </p>
+          {/* P45 — autosave indicator. Rendered inline so the officer
+           * knows their override is persisted server-side and will
+           * survive refresh / Save & Exit + re-entry. */}
+          <div className="mt-1 h-4 text-[11px]">
+            {loanCategorySaveStatus === "saving" && (
+              <span className="text-slate-400">Saving…</span>
+            )}
+            {loanCategorySaveStatus === "saved" && (
+              <span className="text-emerald-400">Saved</span>
+            )}
+            {loanCategorySaveStatus === "error" && (
+              <span className="text-rose-300">
+                Save failed — value kept locally, will retry on next change.
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -620,7 +729,7 @@ function BasicInfoStep({
           title={
             canContinue
               ? undefined
-              : "Select a Loan Category to continue (required per Circular 22)"
+              : "Select a Loan Category to continue (required per NRB ESRM Guideline 2022 §5)"
           }
         >
           Continue to Section 1 →
@@ -927,6 +1036,7 @@ function ReviewStep({
   borrower,
   responses,
   priorScreening,
+  loanCategoryOverride = null,
   onBack,
   onExit,
   readOnly = false,
@@ -935,6 +1045,10 @@ function ReviewStep({
   borrower: Borrower;
   responses: Record<string, StoredResponse>;
   priorScreening: SavedScreening | null;
+  /** P45 — override that drives the PF-screening callout so an
+   *  officer-set "project-finance" surfaces the Annex 5b CTA even
+   *  when loan.category / businessUnit disagrees. */
+  loanCategoryOverride?: string | null;
   onBack: () => void;
   onExit: () => void;
   /** When true, hide the "Save screening" / "Re-run" buttons. */
@@ -984,6 +1098,7 @@ function ReviewStep({
         screening={saved}
         borrower={borrower}
         loan={loan}
+        loanCategoryOverride={loanCategoryOverride}
         onExit={onExit}
         onRerun={
           readOnly
@@ -1001,7 +1116,10 @@ function ReviewStep({
 
   return (
     <div className="flex flex-col gap-4">
-      <PfScreeningCallout loan={loan} />
+      <PfScreeningCallout
+        loan={loan}
+        loanCategoryOverride={loanCategoryOverride}
+      />
       <div className="rounded-2xl border border-line bg-panel p-6">
         <h2 className="text-lg font-semibold text-white">
           {isRerun ? "Re-run screening" : "Review and save"}
@@ -1073,12 +1191,15 @@ function ScreeningResult({
   screening,
   borrower,
   loan,
+  loanCategoryOverride = null,
   onExit,
   onRerun,
 }: {
   screening: SavedScreening;
   borrower: Borrower;
   loan: Loan;
+  /** P45 — override forwarded to PfScreeningCallout below. */
+  loanCategoryOverride?: string | null;
   onExit: () => void;
   onRerun?: () => void;
 }) {
@@ -1095,14 +1216,20 @@ function ScreeningResult({
   };
   return (
     <div className="flex flex-col gap-4">
-      <PfScreeningCallout loan={loan} />
+      <PfScreeningCallout
+        loan={loan}
+        loanCategoryOverride={loanCategoryOverride}
+      />
       {screening.escalationFlag && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
-          <div className="font-semibold">Escalated to credit committee</div>
+          <div className="font-semibold">
+            Escalated to the next-higher credit approval authority
+          </div>
           <div className="mt-1 text-xs">
-            One or more questions received a 'c' answer per NRB Circular 22.
-            This screening must be reviewed by the credit committee before
-            approval per NRB guidance.
+            NRB ESRM Guideline 2022 §7.3.6: all transactions rated MEDIUM or
+            HIGH (ESRR) are escalated one level. A &lsquo;b&rsquo; answer
+            produces MEDIUM and a &lsquo;c&rsquo; answer produces HIGH, so
+            either can trigger escalation.
           </div>
         </div>
       )}
@@ -1198,8 +1325,21 @@ function ScreeningResult({
  * both the sector-agnostic Annex 5 flow AND the Annex 5b screening for a
  * PF loan to be considered complete.
  */
-function PfScreeningCallout({ loan }: { loan: Loan }) {
-  if (!isProjectFinanceLoan(loan)) return null;
+function PfScreeningCallout({
+  loan,
+  loanCategoryOverride = null,
+}: {
+  loan: Loan;
+  /**
+   * P45 — when the officer has explicitly set the loan category on the
+   * Basic Info step, that value drives PF applicability rather than
+   * loan.category/businessUnit. Keeps the callout in sync with the
+   * dropdown even before the override is round-tripped through a
+   * refresh.
+   */
+  loanCategoryOverride?: string | null;
+}) {
+  if (!isProjectFinanceLoanWithOverride(loan, loanCategoryOverride)) return null;
   return (
     <div
       data-tour="esdd-pf-callout"
@@ -1208,11 +1348,11 @@ function PfScreeningCallout({ loan }: { loan: Loan }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="font-semibold">
-            This loan is Project Finance — additional NRB screening required
+            This loan is Project Finance: additional NRB screening required
           </div>
           <div className="mt-1 text-xs text-sky-100/80">
             NRB ESRM 2022 Annex 5b requires an IFC Performance-Standards-based
-            Project Finance screening (~85 Yes/No items across PS1–PS8) in
+            Project Finance screening (148 Yes/No items across PS1 to PS8) in
             addition to this ESDD checklist. This loan will not be
             ready-for-review until the PF screening is complete.
           </div>

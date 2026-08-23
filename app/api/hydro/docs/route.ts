@@ -7,7 +7,7 @@
  *   (bank_id, loan_id, document_id). The row's `updated_at` bumps via
  *   the trigger in scripts/supabase-hydro-docs.sql.
  *
- * Verbatim source: NRB Circular 22 Annex 2 (ESRM Guideline PDF p. 25).
+ * Verbatim source: NRB ESRM Guideline 2022 Annex 2 (printed p. 27).
  * Only document ids present in lib/regulatory/hydro/doc-matrix.ts are
  * accepted — an unknown id returns 400.
  */

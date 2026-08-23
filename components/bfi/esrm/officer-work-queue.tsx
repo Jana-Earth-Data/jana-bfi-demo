@@ -77,6 +77,16 @@ type LoanCard = {
     flagsTotal: 4;
     completed: boolean;
   };
+  /**
+   * NRB ESRM Guideline 2022 §7.3.5 Corrective Action Plan summary. Only
+   * rendered as a CTA when the loan's ESRR risk class is Medium /
+   * High / Extreme — Low-risk loans don't require a CAP per §7.3.5.
+   */
+  cap?: {
+    total: number;
+    completed: number;
+    overdue: number;
+  };
 };
 
 type QueueBody = {
@@ -361,6 +371,22 @@ function LoanCardRow({
         : `Continue ${pcaf.flagsConfirmed}/4`
     : "Start PCAF";
 
+  // CAP CTA — only shown when the loan's ESRR class requires one
+  // (Medium / High / Extreme per NRB ESRM Guideline 2022 §7.3.5). Label
+  // reflects total vs completed row count so the officer can tell at
+  // a glance whether the CAP needs new items, more work on existing
+  // items, or is just being reviewed.
+  const cap = card.cap;
+  const capApplicable =
+    card.esdd.riskClass === "medium" ||
+    card.esdd.riskClass === "high" ||
+    card.esdd.riskClass === "extreme";
+  const capLabel = !cap || cap.total === 0
+    ? "Start CAP"
+    : cap.completed === cap.total
+      ? "Review CAP"
+      : `Continue ${cap.completed}/${cap.total} actions`;
+
   return (
     <div
       className="flex items-center justify-between gap-4 rounded-lg border border-line bg-panelAlt px-4 py-3"
@@ -432,7 +458,15 @@ function LoanCardRow({
             href={`/pf-screening/${encodeURIComponent(card.loanId)}`}
             label={pfLabel}
             primary={false}
-            title="Annex 5b · 148 items across 8 IFC Performance Standards (NRB Circular 22 §5)"
+            title="Annex 5b · 148 items across 8 IFC Performance Standards (NRB ESRM Guideline 2022 §5)"
+          />
+        )}
+        {capApplicable && (
+          <CardCta
+            href={`/cap/${encodeURIComponent(card.loanId)}`}
+            label={capLabel}
+            primary={false}
+            title="Corrective action plan · covenants · monitoring reports (NRB ESRM Guideline 2022 §7.3.5 + §7.3.7)"
           />
         )}
         <CardCta

@@ -357,10 +357,39 @@ export function TourProvider({
   return <TourContext.Provider value={value}>{children}</TourContext.Provider>;
 }
 
-export function useTour() {
+/**
+ * Inert default returned by useTour() when no TourProvider is in the tree.
+ *
+ * This matters in production builds where Next.js aggressively renders the
+ * TourShell's Suspense fallback (`<>{children}</>`) — which by definition
+ * does NOT wrap children in the provider. Any component in children that
+ * calls useTour would have thrown "must be used inside <TourProvider>"
+ * on the very first render, crashing the whole page.
+ *
+ * Returning a no-op stub instead lets those components render safely.
+ * `status: "idle"` + null step means the tour selector renders nothing,
+ * the overlay renders nothing, and every action is a no-op — exactly the
+ * "TourProvider stays inert" behaviour promised by the layout comment.
+ */
+const NOOP_TOUR: TourContextValue = {
+  status: "idle",
+  currentTour: null,
+  currentIndex: 0,
+  totalSteps: 0,
+  step: null,
+  desiredTab: null,
+  startTour: () => {},
+  stop: () => {},
+  play: () => {},
+  pause: () => {},
+  togglePlayPause: () => {},
+  next: () => {},
+  prev: () => {},
+  goTo: () => {},
+  restart: () => {},
+};
+
+export function useTour(): TourContextValue {
   const ctx = useContext(TourContext);
-  if (!ctx) {
-    throw new Error("useTour must be used inside <TourProvider>");
-  }
-  return ctx;
+  return ctx ?? NOOP_TOUR;
 }

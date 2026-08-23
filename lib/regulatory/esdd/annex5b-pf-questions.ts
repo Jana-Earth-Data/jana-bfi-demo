@@ -2,11 +2,25 @@
  * NRB ESRM Guideline 2022 — Annex 5b Project Finance E&S Screening
  * Questionnaire.
  *
- * Verbatim transcription of the ~85-item IFC-Performance-Standards-aligned
- * screening questionnaire that Annex 5b of the 2022 NRB ESRM Guideline
- * requires for every loan categorised as Project Finance under Circular 22 §5.
+ * Verbatim transcription of the IFC-Performance-Standards-aligned screening
+ * questionnaire that Annex 5b of the 2022 NRB ESRM Guideline requires for
+ * every loan categorised as Project Finance under §5 of that Guideline.
+ * This file defines 148 items.
  *
- * Source of truth: `uploads/Final-ESRM-without-cover-1.pdf`, pp. 43-49.
+ * Source of truth: `docs/regulatory-sources/01-nrb-esrm/
+ * NRB_ESRM_Guideline_2022_Feb.pdf`, printed pp. 43-49. Annex 5b exists
+ * only in the February 2022 edition; the May 2018 edition attached to NRB
+ * Circular 22 has no Annex 5b.
+ *
+ * ON THE COUNT (148 vs 145): NRB does not number the Annex 5b items.
+ * Counting dash-bullets in the source gives 145 (PS1 24, PS2 29, PS3 24,
+ * PS4 14, PS5 14, PS6 20, PS7 10, PS8 10). This file has 148 because the
+ * source's PS6 item "Will modified, natural or critical habitat be
+ * impacted by the company's activities?" carries three indented
+ * sub-questions (modified / natural / critical habitat) which we promote
+ * to standalone items so each can be answered and flagged independently.
+ * 148 is therefore our enumeration of NRB's bulleted list, not a number
+ * NRB publishes.
  *
  * The source PDF does not number its individual questions. It groups them
  * under 8 top-level areas (one per IFC Performance Standard) with a

@@ -96,9 +96,19 @@ export function scoreBySection(
 /**
  * Derive the overall ESRM decision from per-section scores.
  *
- * Escalation rules (matching NRB's own "any serious issue escalates"
- * posture):
- *   - Any 'c' answer anywhere → escalationFlag = true.
+ * NRB's own rule, for reference — NRB ESRM Guideline 2022 §7.3.6
+ * "Escalation" (p. 18), verbatim: "All transactions rated as MEDIUM or
+ * HIGH (ESRR) will be escalated to the one-level higher related credit
+ * approval authority." Under the ESRR_criteria sheet of NRB's ESDD Excel
+ * tool: all (a)/(d) → LOW; any (b) with no (c) → MEDIUM; any (c) → HIGH;
+ * Q2.4 excluded from the rating. So a 'b' answer escalates under NRB.
+ *
+ * Escalation reproduces NRB's rule directly: ESRR of MEDIUM or HIGH
+ * escalates one level, LOW does not. A loan reaching MEDIUM on 'b'
+ * answers alone therefore escalates, which is the NRB outcome.
+ *
+ * Escalation rules as implemented:
+ *   - Risk class above 'low' → escalationFlag = true (NRB §7.3.6).
  *   - Two or more 'c' answers OR a section mean ≥ 2.0 → high risk.
  *   - Three or more 'c' answers OR a section mean ≥ 2.5 → extreme risk.
  *   - No 'c' and every section mean ≤ 0.5 → low risk.
@@ -123,9 +133,18 @@ export function deriveEsrm(
     (m, b) => (b.mean !== null && b.mean > m ? b.mean : m),
     0,
   );
-  const drivingQuestionIds = responses
+  // Questions that drive the rating. Under NRB's ESRR criteria a 'b'
+  // answer alone produces MEDIUM, which escalates. So when there are no
+  // 'c' answers we surface the 'b' answers instead, otherwise an escalated
+  // MEDIUM loan would appear in the manager banner with no reason listed.
+  const cQuestionIds = responses
     .filter((r) => r.answer === "c")
     .map((r) => r.questionId);
+  const bQuestionIds = responses
+    .filter((r) => r.answer === "b")
+    .map((r) => r.questionId);
+  const drivingQuestionIds =
+    cQuestionIds.length > 0 ? cQuestionIds : bQuestionIds;
 
   let riskClass: EsrmDerivation["riskClass"] = "medium";
   if (totalC >= 3 || maxMean >= 2.5) {
@@ -142,7 +161,10 @@ export function deriveEsrm(
   const recommendation: EsrmDerivation["recommendation"] =
     riskClass === "low" ? "approve" : "approve-with-conditions";
 
-  const escalationFlag = totalC > 0 || riskClass === "extreme";
+  // NRB ESRM Guideline 2022 §7.3.6: an ESRR of MEDIUM or HIGH must be
+  // escalated to the next-higher credit approval authority. LOW does not
+  // escalate. This is the rule the UI cites, so the flag reproduces it.
+  const escalationFlag = riskClass !== "low";
 
   const rationale = buildRationale({
     riskClass,
@@ -175,13 +197,17 @@ function buildRationale({
     drivingQuestionIds.length > 0
       ? drivingQuestionIds.map((id) => id.replace("annex5.", "")).join(", ")
       : "none";
+  // When nothing was answered 'c', the listed questions are the 'b'
+  // answers that produced the rating. Label them accurately.
+  const driverLabel = totalC > 0 ? "'c'" : "'b'";
 
   if (riskClass === "extreme") {
     return (
       `Risk class: extreme. ${totalC} question(s) received a 'c' answer ` +
       `(indicating documented E&S concern with no mitigation plan): ${cList}. ` +
       `Highest section mean weight: ${maxMean.toFixed(2)}. ` +
-      `Recommend approve-with-conditions only after credit committee review and ` +
+      `Recommend approve-with-conditions only after review by the next-higher ` +
+      `credit approval authority and ` +
       `documented mitigation plan; escalation flag set per NRB ESRM guidance.`
     );
   }
@@ -201,8 +227,10 @@ function buildRationale({
     );
   }
   return (
-    `Risk class: medium. Highest section mean weight ${maxMean.toFixed(2)}, ` +
-    `${totalC} 'c' answer(s)${totalC > 0 ? ` at ${cList}` : ""}. Recommend ` +
-    `approve-with-conditions; monitor mitigation commitments during covenant review.`
+    `Risk class: medium. Highest section mean weight ${maxMean.toFixed(2)}. ` +
+    `Driven by ${driverLabel} answer(s) at ${cList}. Escalates to the ` +
+    `next-higher credit approval authority per NRB ESRM Guideline 2022 ` +
+    `§7.3.6. Recommend approve-with-conditions; monitor mitigation ` +
+    `commitments during covenant review.`
   );
 }

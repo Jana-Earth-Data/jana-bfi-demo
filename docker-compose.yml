@@ -1,3 +1,5 @@
+name: jana-bfi-demo-dev
+
 services:
   web:
     build:

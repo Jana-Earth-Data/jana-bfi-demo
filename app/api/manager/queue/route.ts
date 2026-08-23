@@ -39,7 +39,7 @@ export type ManagerQueueRow = {
    * Count of CAP items for this loan whose deadline is in the past AND
    * status is not 'completed'. Drives the per-row "Overdue CAP" pill
    * in the manager view and rolls up into the top-of-page banner.
-   * NRB Circular 22 §7.3.5 — deadlines are non-optional.
+   * NRB ESRM Guideline 2022 §7.3.5 — deadlines are non-optional.
    */
   overdueCapCount: number;
 };
@@ -178,7 +178,8 @@ export async function GET() {
   }
 
   const rows: ManagerQueueRow[] = apps.map((app) => {
-    // Circular 22: 12-question sector-agnostic checklist. No supplement.
+    // NRB ESRM Guideline 2022: 13-question sector-agnostic Annex 5
+    // checklist. No supplement.
     const total = fullChecklist().length;
     const progress = answeredByLoan.get(app.loan.id);
     const screening = screeningByLoan.get(app.loan.id);
