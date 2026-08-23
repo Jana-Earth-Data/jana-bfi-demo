@@ -44,8 +44,8 @@ const HYDRO_LOAN_ID = "L-0080028";
 // synthesizer (pinned to under-review by the portfolio hook but not
 // pinned to a specific ID). Non-escalated answers throughout — the
 // point is to demonstrate that a small brick loan still routes
-// through the FULL Circular 22 checklist (no fast-path) because brick
-// is on NRB's §5 critical-sector list.
+// through the FULL Annex 5 checklist (no fast-path) because brick is on
+// NRB's §5 critical-sector list.
 const BRICK_ESDD_RESPONSES: Array<{
   questionId: string;
   answer: "a" | "b" | "c" | "d";
@@ -54,6 +54,8 @@ const BRICK_ESDD_RESPONSES: Array<{
   { questionId: "annex5.1.1", answer: "a", remarks: null },
   { questionId: "annex5.1.2", answer: "a", remarks: null },
   { questionId: "annex5.1.3", answer: "b", remarks: "Kiln downwind of a wetland; buffer maintained per DoE guidance." },
+  // Q1.4 land acquisition / involuntary resettlement (new in the 2022 edition)
+  { questionId: "annex5.1.4", answer: "a", remarks: "Kiln operates on land held by the promoter family since 2009; no acquisition and no displacement associated with the facility." },
   { questionId: "annex5.2.1", answer: "b", remarks: "Legacy fixed-chimney bull's trench kiln; brick-sector modernisation programme retrofit committed by FY 2027." },
   { questionId: "annex5.2.2", answer: "a", remarks: null },
   { questionId: "annex5.2.3", answer: "a", remarks: null },
@@ -77,6 +79,8 @@ const CEMENT_ESDD_RESPONSES: Array<{
   { questionId: "annex5.1.1", answer: "a", remarks: null },
   { questionId: "annex5.1.2", answer: "b", remarks: "Prior media coverage in 2023 on dust complaints from neighbouring communities; addressed via community outreach in 2024." },
   { questionId: "annex5.1.3", answer: "b", remarks: null },
+  // Q1.4 land acquisition / involuntary resettlement (new in the 2022 edition)
+  { questionId: "annex5.1.4", answer: "b", remarks: "Limestone quarry extension acquired 14 ha in 2021; compensation paid at district rate and a Livelihood Restoration Plan is in place for the eleven affected households." },
   { questionId: "annex5.2.1", answer: "b", remarks: "Kiln stack emissions within limits; boundary dust from packing line under mitigation." },
   { questionId: "annex5.2.2", answer: "a", remarks: null },
   { questionId: "annex5.2.3", answer: "b", remarks: null },
@@ -87,7 +91,8 @@ const CEMENT_ESDD_RESPONSES: Array<{
   { questionId: "annex5.3.4", answer: "b", remarks: null },
   // Q2.5 climate risks and opportunities (new in 2022 update)
   { questionId: "annex5.2.5", answer: "b", remarks: "Physical: heat + water stress on kiln cooling. Transition: cement policy tightening. Reduction target not on file." },
-  // Sector supplements were removed in P1 — Circular 22 has no sector Q&A.
+  // Sector supplements were removed in P1 — the NRB ESRM Guideline has
+  // no sector-specific Q&A.
 ];
 
 // Cement — NRB §5.11 has NO Green column; classification maxes at Amber.
@@ -270,7 +275,7 @@ export async function POST(request: NextRequest) {
   const HYDRO_BORROWER_ID = hydroLoan.borrowerId;
 
   // Find the SME brick loan pinned to under-review by the portfolio
-  // synthesizer's demo-tour hook. Brick is on NRB Circular 22 §5
+  // synthesizer's demo-tour hook. Brick is on NRB ESRM Guideline 2022 §5
   // critical-sector list, so this is the small-loan-in-critical-sector
   // walkthrough path. Not fatal if missing — brick borrowers appear
   // stochastically in the SME pool.
@@ -398,7 +403,7 @@ export async function POST(request: NextRequest) {
         computed_recommendation: "approve-with-conditions",
         escalation_flag: true,
         computed_rationale:
-          "Two Section 3 questions received 'c' answers (labour practices, community health & safety). Per NRB Circular 22 guidance, any unmitigated concern escalates to the credit committee. Recommend approval only with binding covenants on the flagged items plus quarterly monitoring.",
+          "Two Section 3 questions received 'c' answers (labour practices, community health & safety), which sets the Environmental and Social Risk Rating to HIGH. Per NRB ESRM Guideline 2022 §7.3.6, all transactions rated MEDIUM or HIGH (ESRR) are escalated to the one-level higher related credit approval authority. Recommend approval only with binding covenants on the flagged items plus quarterly monitoring.",
         esdd_snapshot: esddSnapshot,
       });
       if (error) {
@@ -514,10 +519,13 @@ export async function POST(request: NextRequest) {
           borrower_id: BRICK_BORROWER_ID,
           officer_id: officer.id,
           computed_risk_class: "medium",
-          computed_recommendation: "approve",
-          escalation_flag: false,
+          computed_recommendation: "approve-with-conditions",
+          // MEDIUM escalates under NRB ESRM Guideline 2022 §7.3.6 even with
+          // no 'c' answers. This loan is the demo's worked example of that:
+          // every answer is 'a' or 'b', yet it still goes one level up.
+          escalation_flag: true,
           computed_rationale:
-            "Small brick SME loan. Critical-sector routing per Circular 22 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. All answers 'a' or 'b' — no unmitigated concerns. Modernisation retrofit commitment noted on the kiln air-emissions question.",
+            "Small brick SME loan. Critical-sector routing per NRB ESRM Guideline 2022 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. No 'c' answers recorded, but several 'b' answers (eco-sensitive siting, kiln air emissions, energy efficiency, climate risk, seasonal migrant labour) set the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, MEDIUM and HIGH both escalate to the one-level higher related credit approval authority. Recommend approval with the modernisation retrofit commitment recorded as a covenant.",
           esdd_snapshot: brickSnapshot,
         });
         if (error) {

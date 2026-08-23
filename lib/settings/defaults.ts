@@ -22,11 +22,12 @@ export const DEFAULT_SETTINGS: TenantSettings = {
       section2: false,
       section3: false,
     },
-    // NRB Circular 22 §7.3.5 phrases the escalation trigger as "any
-    // unmitigated concern" — mapped to "any-c" answer here. Alternative
-    // modes exist to model banks that already have stricter internal
-    // policies but the demo default matches the source.
-    escalationTrigger: "any-c",
+    // NRB ESRM Guideline 2022 §7.3.6 (p. 18): "All transactions rated as
+    // MEDIUM or HIGH (ESRR) will be escalated to the one-level higher
+    // related credit approval authority." That is the demo default. The
+    // 'c'-based modes are stricter-than-NRB narrowings some banks apply
+    // on top of the rule; they are not readings of the Guideline.
+    escalationTrigger: "esrr-medium-high",
     // Q2.5 (climate risks + opportunities) was added by the 2022 ESRM
     // update. Banks are still phasing it in — leave false so the
     // wizard doesn't hard-block officers on a question their operating
@@ -78,7 +79,7 @@ export const DEFAULT_SETTINGS: TenantSettings = {
     includeUnclassifiedInAggregate: true,
   },
   cap: {
-    // NRB Circular 22 §7.3.7 sets the monitoring cadence by risk
+    // NRB ESRM Guideline 2022 §7.3.7 sets the monitoring cadence by risk
     // class. Values below match the demo's frequencyForRiskClass
     // helper (lib/regulatory/cap/*).
     monitoringCadenceMonthsByRiskClass: {

@@ -153,7 +153,8 @@ function buildRationale({
     return (
       `PF risk: CRITICAL. ${criticalFlaggedItems.length} IFC PS termination-grade item(s) ` +
       `flagged (${criticalList}). Total flags: ${itemsFlagged}. Top-flagged PS: ${drivingList}. ` +
-      `Screening must be reviewed by credit committee before any approval; ` +
+      `Screening must be reviewed by the next-higher credit approval authority ` +
+      `before any approval; ` +
       `escalation is mandatory per the IFC PS red lines NRB ESRM 2022 Annex 5b is built on.`
     );
   }
@@ -162,7 +163,7 @@ function buildRationale({
       `PF risk: HIGH. ${itemsFlagged} flagged item(s) across the questionnaire. ` +
       `Top-flagged PS: ${drivingList}. Recommend approve-with-conditions after ` +
       `each flag has a documented mitigation commitment and CAP; escalation ` +
-      `to credit committee per NRB ESRM Annex 5b.`
+      `to the next-higher credit approval authority.`
     );
   }
   if (riskClass === "medium") {

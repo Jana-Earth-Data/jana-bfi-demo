@@ -78,7 +78,7 @@ type LoanCard = {
     completed: boolean;
   };
   /**
-   * NRB Circular 22 §7.3.5 Corrective Action Plan summary. Only
+   * NRB ESRM Guideline 2022 §7.3.5 Corrective Action Plan summary. Only
    * rendered as a CTA when the loan's ESRR risk class is Medium /
    * High / Extreme — Low-risk loans don't require a CAP per §7.3.5.
    */
@@ -372,7 +372,7 @@ function LoanCardRow({
     : "Start PCAF";
 
   // CAP CTA — only shown when the loan's ESRR class requires one
-  // (Medium / High / Extreme per NRB Circular 22 §7.3.5). Label
+  // (Medium / High / Extreme per NRB ESRM Guideline 2022 §7.3.5). Label
   // reflects total vs completed row count so the officer can tell at
   // a glance whether the CAP needs new items, more work on existing
   // items, or is just being reviewed.
@@ -458,7 +458,7 @@ function LoanCardRow({
             href={`/pf-screening/${encodeURIComponent(card.loanId)}`}
             label={pfLabel}
             primary={false}
-            title="Annex 5b · 148 items across 8 IFC Performance Standards (NRB Circular 22 §5)"
+            title="Annex 5b · 148 items across 8 IFC Performance Standards (NRB ESRM Guideline 2022 §5)"
           />
         )}
         {capApplicable && (
@@ -466,7 +466,7 @@ function LoanCardRow({
             href={`/cap/${encodeURIComponent(card.loanId)}`}
             label={capLabel}
             primary={false}
-            title="Corrective action plan · covenants · monitoring reports (NRB Circular 22 §7.3.5 + §7.3.7)"
+            title="Corrective action plan · covenants · monitoring reports (NRB ESRM Guideline 2022 §7.3.5 + §7.3.7)"
           />
         )}
         <CardCta

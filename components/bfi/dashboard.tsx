@@ -73,7 +73,7 @@ const TABS: Array<{
   {
     id: "esrm",
     label: "Manager",
-    description: "All loans under review · ESRM · PF screening · CAP · PCAF (NRB Circular 22)",
+    description: "All loans under review · ESRM · PF screening · CAP · PCAF (NRB ESRM Guideline 2022)",
   },
   {
     id: "taxonomy",

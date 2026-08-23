@@ -5,7 +5,7 @@
  *
  * Multi-step form that walks a signed-in officer through NRB ESRM Annex 5:
  *   Step 0: Basic Information (client name, sector, loan category, etc.)
- *   Step 1: Section 1 — General Risk           (annex5.1.1 to 1.3)
+ *   Step 1: Section 1 — General Risk           (annex5.1.1 to 1.4)
  *   Step 2: Section 2 — Environmental Health   (annex5.2.1 to 2.5)
  *   Step 3: Section 3 — Social Risks           (annex5.3.1 to 3.4)
  *   Step 4: Review + submit (final ESRM screening save)
@@ -14,9 +14,9 @@
  * the officer navigates away mid-wizard. Existing responses are loaded on
  * mount so the officer can resume where they left off.
  *
- * Sector supplements were removed to conform to Circular 22 — the NRB
- * source defines only the sector-agnostic 12-question checklist. See
- * lib/regulatory/esdd/annex5-questions.ts for the provenance note.
+ * Sector supplements were removed to conform to the NRB ESRM Guideline
+ * 2022 — the source defines only the sector-agnostic 13-question Annex 5
+ * checklist. See lib/regulatory/esdd/annex5-questions.ts for provenance.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -307,8 +307,9 @@ export function EsddWizard({
     }
   }
 
-  // Circular 22 defines a single 12-question sector-agnostic checklist —
-  // no sector supplements. Steps are fixed: Basic → 3 sections → Review.
+  // The NRB ESRM Guideline 2022 defines a single 13-question
+  // sector-agnostic checklist — no sector supplements. Steps are fixed:
+  // Basic → 3 sections → Review.
   const steps = useMemo(
     () => [
       { title: "Basic information", subtitle: "Client, transaction, and loan category" },
@@ -643,7 +644,7 @@ function BasicInfoStep({
   // Loan Category is required per Circular 22 Excel B13 (dropdown
   // `Tempor!A1:A4`). Prefilled from the loan + borrower record so the
   // officer typically just confirms and moves on. The value drives
-  // Circular 22 §5 applicability triage and the Annex 5b PF screening
+  // NRB ESRM Guideline 2022 §5 applicability triage and the Annex 5b PF screening
   // gate on Project Finance loans. State is lifted to the wizard so it
   // survives navigation to another step and back.
   const canContinue = loanCategory !== "";
@@ -652,8 +653,8 @@ function BasicInfoStep({
     <div className="rounded-2xl border border-line bg-panel p-6">
       <h2 className="text-lg font-semibold text-white">Basic information</h2>
       <p className="mt-1 text-sm text-slate-400">
-        Prefilled from the loan and borrower record. NRB Circular 22
-        requires these fields to be captured at the top of every ESDD
+        Prefilled from the loan and borrower record. The NRB ESRM Guideline
+        2022 requires these fields to be captured at the top of every ESDD
         checklist.
       </p>
 
@@ -728,7 +729,7 @@ function BasicInfoStep({
           title={
             canContinue
               ? undefined
-              : "Select a Loan Category to continue (required per Circular 22)"
+              : "Select a Loan Category to continue (required per NRB ESRM Guideline 2022 §5)"
           }
         >
           Continue to Section 1 →
@@ -1221,11 +1222,14 @@ function ScreeningResult({
       />
       {screening.escalationFlag && (
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
-          <div className="font-semibold">Escalated to credit committee</div>
+          <div className="font-semibold">
+            Escalated to the next-higher credit approval authority
+          </div>
           <div className="mt-1 text-xs">
-            One or more questions received a 'c' answer per NRB Circular 22.
-            This screening must be reviewed by the credit committee before
-            approval per NRB guidance.
+            NRB ESRM Guideline 2022 §7.3.6: all transactions rated MEDIUM or
+            HIGH (ESRR) are escalated one level. A &lsquo;b&rsquo; answer
+            produces MEDIUM and a &lsquo;c&rsquo; answer produces HIGH, so
+            either can trigger escalation.
           </div>
         </div>
       )}
@@ -1344,11 +1348,11 @@ function PfScreeningCallout({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="font-semibold">
-            This loan is Project Finance — additional NRB screening required
+            This loan is Project Finance: additional NRB screening required
           </div>
           <div className="mt-1 text-xs text-sky-100/80">
             NRB ESRM 2022 Annex 5b requires an IFC Performance-Standards-based
-            Project Finance screening (~85 Yes/No items across PS1–PS8) in
+            Project Finance screening (148 Yes/No items across PS1 to PS8) in
             addition to this ESDD checklist. This loan will not be
             ready-for-review until the PF screening is complete.
           </div>

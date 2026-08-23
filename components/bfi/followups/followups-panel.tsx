@@ -11,9 +11,9 @@
  *   Due this month  — deadline in the next 8-30 days
  *
  * NRB authority:
- *   - Circular 22 §7.3.5 (CAP + covenants, time-bound)
- *   - Circular 22 §7.3.7 (periodic monitoring)
- *   - Circular 22 §8 (RM/LO owns follow-up)
+ *   - NRB ESRM Guideline 2022 §7.3.5 (CAP + covenants, time-bound)
+ *   - NRB ESRM Guideline 2022 §7.3.7 (periodic monitoring)
+ *   - NRB ESRM Guideline 2022 §8 (RM/LO owns follow-up)
  *
  * Data comes from /api/followups which computes on read — no scheduler.
  * At demo scale (~3-5 open items per officer) this is cheap.
@@ -107,7 +107,7 @@ export function FollowupsPanel() {
             {data.totalCount} item{data.totalCount === 1 ? "" : "s"} to action
           </h2>
           <p className="mt-0.5 text-[11px] text-slate-500">
-            NRB Circular 22 §7.3.5 (CAP deadlines) · §7.3.7 (monitoring
+            NRB ESRM Guideline 2022 §7.3.5 (CAP deadlines) · §7.3.7 (monitoring
             cycles). Sorted most-urgent first.
           </p>
         </div>

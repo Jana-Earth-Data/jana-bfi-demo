@@ -784,7 +784,7 @@ function buildPortfolio(): BfiDemoData {
   // Demo tour hook: ensure at least one SME brick-industry loan is
   // under-review so the "small loan in critical sector" walkthrough
   // path has a concrete loan to demonstrate. Brick is on NRB's
-  // critical-sector list per Circular 22 §5, so a small SME loan to a
+  // critical-sector list per NRB ESRM Guideline 2022 §5, so a small SME loan to a
   // brick borrower should route through the full ESDD checklist (not
   // the fast-path). Picks the largest SME term loan by NPR to the
   // first brick-industry borrower for stable selection.

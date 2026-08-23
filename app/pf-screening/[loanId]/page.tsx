@@ -4,7 +4,7 @@
  * Route: /pf-screening/<loanId>
  *
  * Applies the 2022 NRB ESRM Guideline Annex 5b screening questionnaire —
- * ~85 IFC-PS-aligned Yes/No items — to a loan categorised as Project
+ * 148 IFC-PS-aligned Yes/No items — to a loan categorised as Project
  * Finance. This wizard is a companion to the sector-agnostic Annex 5 ESDD
  * flow at /esdd/<loanId>; both must be completed for a Project-Finance
  * loan to be ready-for-review.
@@ -56,7 +56,7 @@ export default async function PfScreeningWizardPage({
   }
 
   // Gate: this wizard applies ONLY to Project Finance loans per NRB ESRM
-  // 2022 Annex 5b + Circular 22 §5. P45 — honour the officer's
+  // 2022 Annex 5b + NRB ESRM Guideline 2022 §5. P45 — honour the officer's
   // ESDD-wizard override when present, so a loan whose raw
   // loan.category disagrees with the officer's explicit
   // "project-finance" selection is still admitted here (and vice

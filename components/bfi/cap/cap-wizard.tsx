@@ -83,7 +83,7 @@ export function CapWizard({
           <div className="font-semibold text-white">Where this data flows</div>
           <p className="mt-2 text-slate-400">
             Corrective action plans are required on every Medium and
-            High-risk loan under NRB Circular 22 §7.3.5. Each item you
+            High-risk loan under NRB ESRM Guideline 2022 §7.3.5. Each item you
             enter here has a time-bound deadline; the platform tracks
             completion via monitoring reports (§7.3.7). Overdue items
             appear on the

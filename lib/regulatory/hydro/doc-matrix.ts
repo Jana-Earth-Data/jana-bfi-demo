@@ -122,7 +122,7 @@ export type HydroDocument = {
 };
 
 const ANNEX_2_CITATION =
-  "NRB Circular 22 Annex 2 (ESRM Guideline PDF p. 25)";
+  "NRB ESRM Guideline 2022 Annex 2 (printed p. 27)";
 
 /**
  * The document list, verbatim from the two rows of Annex 2's

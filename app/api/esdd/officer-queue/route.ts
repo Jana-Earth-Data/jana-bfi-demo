@@ -103,7 +103,7 @@ export type LoanCard = {
     completed: boolean;
   };
   /**
-   * NRB Circular 22 §7.3.5 CAP + covenants + monitoring status.
+   * NRB ESRM Guideline 2022 §7.3.5 CAP + covenants + monitoring status.
    *
    * Populated for every candidate loan, but the loan card only renders
    * the CAP CTA when the loan's ESRR risk class is Medium / High /
@@ -442,7 +442,8 @@ export async function GET() {
     const borrower = borrowerById.get(loan.borrowerId);
     if (!borrower) continue;
 
-    // Circular 22: 12-question sector-agnostic checklist. No supplement.
+    // NRB ESRM Guideline 2022: 13-question sector-agnostic Annex 5
+    // checklist. No supplement.
     const total = fullChecklist().length;
     const esddAgg = byLoan.get(loanId);
     const answered = esddAgg?.distinctQuestionIds.size ?? 0;
@@ -477,7 +478,7 @@ export async function GET() {
     // completes.
     let reason = "";
     if (escalated) {
-      reason = "Escalated to credit committee";
+      reason = "Escalated to next-higher credit approval authority";
     } else if (!esddDone && answered === 0) {
       reason = "ESDD checklist not started";
     } else if (!esddDone && answered > 0) {

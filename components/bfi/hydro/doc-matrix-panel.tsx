@@ -177,7 +177,7 @@ export function HydroDocMatrixPanel({
   return (
     <div data-tour="hydro-doc-matrix">
       <Panel
-        title="Hydropower documentation matrix (NRB Circular 22 Annex 2)"
+        title="Hydropower documentation matrix (NRB ESRM Guideline 2022 Annex 2)"
         subtitle={
           loading
             ? "Loading documentation status…"
@@ -299,7 +299,7 @@ export function HydroDocMatrixPanel({
           </div>
           <div className="italic text-slate-500">
             {data?.citation ??
-              "NRB Circular 22 Annex 2 (ESRM Guideline PDF p. 25)"}
+              "NRB ESRM Guideline 2022 Annex 2 (printed p. 27)"}
           </div>
         </div>
 

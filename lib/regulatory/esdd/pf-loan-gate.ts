@@ -1,7 +1,7 @@
 /**
  * Project-Finance loan gate — shared helper.
  *
- * Circular 22 §5 defines Project Finance as one of three loan-category
+ * NRB ESRM Guideline 2022 §5 defines Project Finance as one of three loan-category
  * buckets (Small / BWC-Term / Project Finance). The demo's `Loan` type
  * (`lib/types/bfi.ts`) already has a matching `businessUnit` (`"Project
  * Finance"`) and category strings ending in `project-finance`
@@ -28,7 +28,7 @@ export function isProjectFinanceLoan(loan: Pick<Loan, "businessUnit" | "category
  *
  * The override values are EsddLoanCategory strings (see
  * lib/regulatory/esdd/annex5-questions.ts):
- *   - "project-finance" → treat as PF (Circular 22 §5 PF bucket)
+ *   - "project-finance" → treat as PF (NRB ESRM Guideline 2022 §5 PF bucket)
  *   - anything else     → not PF
  *
  * When `override` is null / undefined / empty string, this behaves
