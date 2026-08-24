@@ -44,6 +44,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/bfi/shared/primitives";
 import { EvidenceAttachments } from "@/components/bfi/shared/evidence-attachments";
+import { PcafEvidenceSection } from "@/components/bfi/pcaf/evidence-section";
 import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
 import { LockedByBanner } from "@/components/bfi/shared/locked-by-banner";
 import type { Borrower } from "@/lib/types/bfi";
@@ -120,7 +121,16 @@ const FLAG_ROWS: FlagMeta[] = [
 ];
 
 /** Where a flag's current value came from. Not the value itself. */
-type FlagProvenance = "auto" | "confirmed" | "manual";
+type FlagProvenance =
+  | "auto"
+  | "confirmed"
+  | "manual"
+  // Document-derived. These outrank the three above: once an officer has
+  // read the annual report, the answer rests on that rather than on anyone's
+  // toggle. Supplied by the evidence API's basis map.
+  | "document"
+  | "document-absent"
+  | "document-stale";
 
 type ApiResponse = {
   ok: boolean;
@@ -162,6 +172,16 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
   const [localEvidence, setLocalEvidence] = useState<Record<string, string>>(
     {},
   );
+  // Bumped when the evidence section saves, so the flags below refetch and
+  // the officer sees the answer move as a result of the document review
+  // rather than having to reload the page to find out whether it worked.
+  const [reloadKey, setReloadKey] = useState(0);
+  // Flag -> why it has its value, reported by the evidence section. Document
+  // bases outrank the toggle-derived ones below: once an officer has read the
+  // annual report the answer rests on that, not on who last clicked.
+  const [evidenceBasis, setEvidenceBasis] = useState<
+    Record<string, { source: string }>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
@@ -188,7 +208,7 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [borrower.id]);
+  }, [borrower.id, reloadKey]);
 
   const inferred = state?.inferredFlags ?? null;
 
@@ -211,11 +231,23 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
     const hasSaved = state?.savedFlags != null;
     const out: Partial<Record<FlagKey, FlagProvenance>> = {};
     for (const row of FLAG_ROWS) {
+      // A document beats everything else. "inference" and "unevidenced" mean
+      // no document spoke to this flag, so fall through to the toggle-derived
+      // reading rather than overriding it with a weaker signal.
+      const src = evidenceBasis[row.key]?.source;
+      if (
+        src === "document" ||
+        src === "document-absent" ||
+        src === "document-stale"
+      ) {
+        out[row.key] = src;
+        continue;
+      }
       if (inferred[row.key] !== localFlags[row.key]) out[row.key] = "manual";
       else out[row.key] = hasSaved ? "confirmed" : "auto";
     }
     return out as Record<FlagKey, FlagProvenance>;
-  }, [inferred, localFlags, state?.savedFlags]);
+  }, [inferred, localFlags, state?.savedFlags, evidenceBasis]);
 
   const dirty = useMemo(() => {
     if (!state || !localFlags) return false;
@@ -320,6 +352,20 @@ export function PcafAvailabilityPanel({ borrower, onSaved }: Props) {
           <>
             {state.computed && (
               <ResolvedSummary computed={state.computed} />
+            )}
+
+            {/* Evidence sits above the answers because it is what should
+                produce them. Only rendered on a loan surface: the review is
+                scoped by loan for project finance (PCAF §5.3), so without a
+                loan in context there is nothing to scope against. */}
+            {lockedLoanId && (
+              <PcafEvidenceSection
+                loanId={lockedLoanId}
+                borrowerId={borrower.id}
+                readOnly={readOnly}
+                onChanged={() => setReloadKey((k) => k + 1)}
+                onBasis={setEvidenceBasis}
+              />
             )}
 
             <div className="space-y-2">
@@ -447,18 +493,30 @@ const PROVENANCE_LABEL: Record<FlagProvenance, string> = {
   auto: "Auto-suggested",
   confirmed: "Confirmed by officer",
   manual: "Set by officer",
+  document: "Verified document",
+  "document-absent": "Confirmed unavailable",
+  "document-stale": "Evidence out of date",
 };
 
 const PROVENANCE_HELP: Record<FlagProvenance, string> = {
   auto: "Suggested from the borrower catalogue. No officer has reviewed it yet.",
   confirmed: "An officer reviewed the suggestion and agreed with it.",
   manual: "An officer set this themselves; it differs from the suggestion.",
+  document:
+    "Established by a verified document in the evidence review above, covering the current disclosure year.",
+  "document-absent":
+    "An officer checked and confirmed the borrower does not have this. That finding is what justifies the lower score.",
+  "document-stale":
+    "A document was verified, but it covers an earlier reporting year and no longer supports the claim. Collect the current year.",
 };
 
 const PROVENANCE_CLASS: Record<FlagProvenance, string> = {
   auto: "bg-slate-500/20 text-slate-300",
   confirmed: "bg-emerald-500/15 text-emerald-200",
   manual: "bg-amber-500/20 text-amber-200",
+  document: "bg-emerald-500/25 text-emerald-100",
+  "document-absent": "bg-slate-500/25 text-slate-200",
+  "document-stale": "bg-rose-500/20 text-rose-200",
 };
 
 function FlagRow({
