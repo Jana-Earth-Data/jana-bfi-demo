@@ -20,7 +20,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel } from "@/components/bfi/shared/primitives";
 import { EvidenceAttachments } from "@/components/bfi/shared/evidence-attachments";
 import { useLoanLock } from "@/components/bfi/shared/loan-lock-context";
@@ -133,9 +133,20 @@ type CovenantDraft = Partial<Covenant> & {
 export function CapPanel({
   loanId,
   borrowerId,
+  registerSave,
+  onDirtyChange,
 }: {
   loanId: string;
   borrowerId: string;
+  /**
+   * Hands the panel's save routine up to a host (the CAP wizard) so its
+   * "Save & exit" can actually save. Unlike ESDD, CAP does not auto-save:
+   * rows live in local draft state until saveAll() posts them, so a host
+   * that only navigates away would silently discard the officer's typing.
+   */
+  registerSave?: (fn: () => Promise<boolean>) => void;
+  /** Lets the host warn before discarding unsaved draft rows. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   // Loan-lock context — P36. When the current officer is not the loan's
   // owner every editable input in this panel is disabled (buttons, row
@@ -193,8 +204,33 @@ export function CapPanel({
     void load();
   }, [load]);
 
-  async function saveAll() {
-    if (!data) return;
+  // Publish saveAll upward through a ref so the identity handed to the host
+  // is stable across renders while always invoking the current closure.
+  // Registering saveAll directly would re-fire the effect on every keystroke,
+  // since it closes over the draft state.
+  const saveAllRef = useRef<() => Promise<boolean>>(async () => false);
+  useEffect(() => {
+    registerSave?.(() => saveAllRef.current());
+  }, [registerSave]);
+
+  // Unsaved-work signal for the host's exit confirmation. Compares the
+  // drafts against what was last loaded from the server, so a saved-then-
+  // reloaded panel reads clean.
+  const dirty = useMemo(() => {
+    if (!data) return false;
+    if (capDeleted.size > 0 || covDeleted.size > 0) return true;
+    return (
+      JSON.stringify(capDrafts) !== JSON.stringify(data.items) ||
+      JSON.stringify(covDrafts) !== JSON.stringify(data.covenants)
+    );
+  }, [data, capDrafts, covDrafts, capDeleted, covDeleted]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  async function saveAll(): Promise<boolean> {
+    if (!data) return false;
     setSaving(true);
     setErr(null);
     try {
@@ -212,15 +248,21 @@ export function CapPanel({
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setErr(body.error ?? `Server returned ${res.status}`);
-        return;
+        return false;
       }
       await load();
+      return true;
     } catch (e) {
       setErr((e as Error).message);
+      return false;
     } finally {
       setSaving(false);
     }
   }
+
+  // Function declarations hoist, so this assignment sees the current
+  // closure on every render.
+  saveAllRef.current = saveAll;
 
   async function submitMonitoring(report: {
     reportingPeriodStart: string;
