@@ -648,7 +648,7 @@ export async function POST(request: NextRequest) {
           // every answer is 'a' or 'b', yet it still goes one level up.
           escalation_flag: true,
           computed_rationale:
-            "Small brick SME loan. Critical-sector routing per NRB ESRM Guideline 2022 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. No 'c' answers recorded, but several 'b' answers (eco-sensitive siting, kiln air emissions, energy efficiency, climate risk, seasonal migrant labour) set the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, MEDIUM and HIGH both escalate to the one-level higher related credit approval authority. Recommend approval with the modernisation retrofit commitment recorded as a covenant.",
+            "Small brick SME loan. Critical-sector routing per NRB ESRM Guideline 2022 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. No 'c' answers recorded, but several 'b' answers (eco-sensitive siting, kiln air emissions, climate risk, seasonal migrant labour) set the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, MEDIUM and HIGH both escalate to the one-level higher related credit approval authority. Recommend approval with the modernisation retrofit commitment recorded as a covenant.",
           esdd_snapshot: brickSnapshot,
         });
         if (error) {
@@ -743,7 +743,7 @@ export async function POST(request: NextRequest) {
         HOTEL_BORROWER_ID,
         HOTEL_ESDD_RESPONSES,
         "medium",
-        "Hospitality working capital. No 'c' answers, but the full EHS section scored 'b' — genset emissions with no monitoring, kitchen and greywater effluent to sewer without pre-treatment, partial waste segregation, deferred heat recovery, and tanker-dependent dry-season water supply — alongside incomplete fire detection in the older block. That sets the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, a MEDIUM rating escalates to the one-level higher related credit approval authority even with no 'c' answers recorded. Recommend approval with the effluent pre-treatment and fire-detection upgrades recorded as covenants.",
+        "Hospitality working capital. No 'c' answers, but the full EHS section scored 'b' — genset emissions with no monitoring, kitchen and greywater effluent to sewer without pre-treatment, partial waste segregation, and tanker-dependent dry-season water supply — alongside incomplete fire detection in the older block. That sets the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, a MEDIUM rating escalates to the one-level higher related credit approval authority even with no 'c' answers recorded. Recommend approval with the effluent pre-treatment and fire-detection upgrades recorded as covenants.",
       );
       if (err) {
         return NextResponse.json({ error: `[${tenant.id}] ${err}` }, { status: 500 });

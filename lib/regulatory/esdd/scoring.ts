@@ -56,6 +56,21 @@ export type EsrmDerivation = {
 };
 
 /**
+ * Questions NRB excludes from the ESRR calculation.
+ *
+ * Q2.4 asks whether the client HAS INVESTED in energy efficiency or
+ * renewables. It is the one question on the sheet where a less-positive
+ * answer describes an absent benefit rather than a present risk, so scoring
+ * it would let a borrower be marked riskier for having done less of a good
+ * thing. NRB marks it indicative-only in ESRR_criteria!A8 and leaves it out
+ * of the rating; annex5-questions.ts documents this and defers the rule
+ * here, which had not actually been implemented.
+ */
+export const RATING_EXEMPT_QUESTIONS: ReadonlySet<string> = new Set([
+  "annex5.2.4",
+]);
+
+/**
  * Aggregate a set of responses into a per-section summary.
  * Groups by the `section` field on each question definition; the caller
  * passes a lookup so this file stays free of imports from annex5-questions.ts.
@@ -79,7 +94,10 @@ export function scoreBySection(
       };
     }
     const bucket = buckets[section];
+    // Counted as answered for progress purposes even when exempt from the
+    // rating — the officer did answer it, and 13/13 must still read 13/13.
     bucket.answered += 1;
+    if (RATING_EXEMPT_QUESTIONS.has(r.questionId)) continue;
     const weight = ANSWER_WEIGHTS[r.answer];
     if (weight === null) continue; // 'd' — not applicable, no scoring impact
     bucket.applicable += 1;
@@ -107,12 +125,24 @@ export function scoreBySection(
  * escalates one level, LOW does not. A loan reaching MEDIUM on 'b'
  * answers alone therefore escalates, which is the NRB outcome.
  *
- * Escalation rules as implemented:
- *   - Risk class above 'low' → escalationFlag = true (NRB §7.3.6).
- *   - Two or more 'c' answers OR a section mean ≥ 2.0 → high risk.
- *   - Three or more 'c' answers OR a section mean ≥ 2.5 → extreme risk.
- *   - No 'c' and every section mean ≤ 0.5 → low risk.
- *   - Everything else → medium risk.
+ * Rating rules as implemented — these now reproduce NRB's ESRR criteria
+ * rather than approximating them:
+ *   - Any 'c' answer            → HIGH   (NRB: "any (c) → HIGH")
+ *   - Any 'b', no 'c'           → MEDIUM (NRB: "any (b) with no (c)")
+ *   - All 'a'/'d'               → LOW    (NRB: "all (a)/(d) → LOW")
+ *   - Risk class above LOW      → escalationFlag = true (§7.3.6)
+ *
+ * 'extreme' is OURS, not NRB's. NRB's ESRR has three levels and stops at
+ * HIGH. We keep a fourth tier for triage — three or more 'c' answers, or a
+ * section mean ≥ 2.5 — so a catastrophic screening is visually separable
+ * from a merely HIGH one in a queue. For every NRB-facing purpose extreme
+ * behaves as HIGH: it escalates, and it must never be presented to a
+ * regulator as an NRB rating.
+ *
+ * Previously this required two or more 'c' answers for HIGH and allowed a
+ * loan with 'b' answers to stay LOW on a section mean ≤ 0.5. Both were
+ * stricter than NRB and would have under-rated real loans: a single 'c' is
+ * HIGH under the ESRR_criteria sheet, and a single 'b' is MEDIUM.
  *
  * Recommendation follows risk class:
  *   - extreme → approve-with-conditions (or decline if the committee prefers)
@@ -137,24 +167,32 @@ export function deriveEsrm(
   // answer alone produces MEDIUM, which escalates. So when there are no
   // 'c' answers we surface the 'b' answers instead, otherwise an escalated
   // MEDIUM loan would appear in the manager banner with no reason listed.
+  // Exempt questions are filtered out here too: Q2.4 cannot drive a rating
+  // it is excluded from, and listing it in the escalation banner would point
+  // the credit authority at a reason that did not actually contribute.
   const cQuestionIds = responses
-    .filter((r) => r.answer === "c")
+    .filter((r) => r.answer === "c" && !RATING_EXEMPT_QUESTIONS.has(r.questionId))
     .map((r) => r.questionId);
   const bQuestionIds = responses
-    .filter((r) => r.answer === "b")
+    .filter((r) => r.answer === "b" && !RATING_EXEMPT_QUESTIONS.has(r.questionId))
     .map((r) => r.questionId);
   const drivingQuestionIds =
     cQuestionIds.length > 0 ? cQuestionIds : bQuestionIds;
 
-  let riskClass: EsrmDerivation["riskClass"] = "medium";
+  // NRB ESRR criteria, applied in order. `totalWeight === 0` across every
+  // section means no 'b' and no 'c' was recorded — all answers were 'a' or
+  // 'd' — which is NRB's LOW.
+  const anyB = Object.values(bucketed).some((b) => b.totalWeight > 0);
+
+  let riskClass: EsrmDerivation["riskClass"];
   if (totalC >= 3 || maxMean >= 2.5) {
+    // Our own triage tier above HIGH. Escalates exactly as HIGH does.
     riskClass = "extreme";
-  } else if (totalC >= 2 || maxMean >= 2.0) {
+  } else if (totalC >= 1) {
     riskClass = "high";
-  } else if (
-    totalC === 0 &&
-    Object.values(bucketed).every((b) => b.mean === null || b.mean <= 0.5)
-  ) {
+  } else if (anyB) {
+    riskClass = "medium";
+  } else {
     riskClass = "low";
   }
 

@@ -60,6 +60,7 @@ COLUMNS = "bank_id,loan_id,computed_risk_class,escalation_flag,captured_at,esdd_
 # the two can drift, and did: the cement screening shipped as "extreme" while
 # its own answers (and its own rationale sentence) said HIGH.
 ANSWER_WEIGHTS = {"a": 0, "b": 1, "c": 3, "d": None}
+RATING_EXEMPT = {"annex5.2.4"}
 QUESTIONS_TS = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "..", "lib", "regulatory", "esdd", "annex5-questions.ts",
@@ -92,10 +93,17 @@ def derive_risk(snapshot, sections):
         sec = sections.get(qid)
         if not sec or not isinstance(entry, dict):
             continue
+        # Create the bucket BEFORE skipping 'd', mirroring scoreBySection().
+        # Skipping first would leave an all-'d' screening with no buckets at
+        # all, which reads as "unknown" instead of NRB's LOW.
+        b = buckets.setdefault(sec, {"n": 0, "w": 0, "c": 0})
+        # Q2.4 is indicative-only under ESRR_criteria!A8 and excluded from
+        # the rating (see RATING_EXEMPT_QUESTIONS in scoring.ts).
+        if qid in RATING_EXEMPT:
+            continue
         weight = ANSWER_WEIGHTS.get(entry.get("answer"))
         if weight is None:
             continue
-        b = buckets.setdefault(sec, {"n": 0, "w": 0, "c": 0})
         b["n"] += 1
         b["w"] += weight
         if entry.get("answer") == "c":
@@ -105,13 +113,17 @@ def derive_risk(snapshot, sections):
     means = [v["w"] / v["n"] for v in buckets.values() if v["n"]]
     total_c = sum(v["c"] for v in buckets.values())
     max_mean = max(means) if means else 0
+    any_b = any(v["w"] > 0 for v in buckets.values())
+
+    # NRB ESRR criteria: any 'c' -> HIGH, any 'b' with no 'c' -> MEDIUM,
+    # all 'a'/'d' -> LOW. 'extreme' is our own triage tier above HIGH.
     if total_c >= 3 or max_mean >= 2.5:
         return "extreme"
-    if total_c >= 2 or max_mean >= 2.0:
+    if total_c >= 1:
         return "high"
-    if total_c == 0 and all(m <= 0.5 for m in means):
-        return "low"
-    return "medium"
+    if any_b:
+        return "medium"
+    return "low"
 
 
 def fetch():
