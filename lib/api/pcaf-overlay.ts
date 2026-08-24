@@ -52,6 +52,7 @@ import {
   resolvePcafAvailability,
 } from "@/lib/regulatory/pcaf/scoring";
 import { recomputeSummary } from "@/lib/api/bfi";
+import { demoPcafNameFixtures } from "@/lib/demo/provider";
 
 /** Flag columns as stored on bfi_pcaf_availability. */
 const FLAG_COLUMNS = [
@@ -158,6 +159,11 @@ export async function applyOfficerPcafOverlay(
     data.attributions.map((a) => [a.loanId, a]),
   );
 
+  // Resolved once: in a demo build these are the name fixtures the synthesizer
+  // used, so the score computed here matches the one baked into the portfolio.
+  // In a live build it is undefined and nothing is asserted.
+  const fixtures = await demoPcafNameFixtures();
+
   const rescoredLoanIds: string[] = [];
   const nextAttributions: PcafAttribution[] = data.attributions.map((a) => a);
   const indexByLoan = new Map(
@@ -176,7 +182,11 @@ export async function applyOfficerPcafOverlay(
 
     // Same merge the availability panel shows the officer, so the score here
     // matches the one they were looking at when they saved.
-    const inferred = inferPcafAvailability(borrower, loan.category);
+    const inferred = inferPcafAvailability(
+      borrower,
+      loan.category,
+      fixtures,
+    );
     const resolved = resolvePcafAvailability(inferred, saved);
 
     const assetClass = assetClassForLoanCategory(loan.category);

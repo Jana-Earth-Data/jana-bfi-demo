@@ -46,6 +46,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { demoPcafNameFixtures } from "@/lib/demo/provider";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { resolveCurrentTenant } from "@/lib/tenants";
@@ -216,7 +217,11 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const loan = findLoanForBorrower(data.loans, borrowerId);
-  const inferredFlags = inferPcafAvailability(borrower, loan?.category);
+  const inferredFlags = inferPcafAvailability(
+    borrower,
+    loan?.category,
+    await demoPcafNameFixtures(),
+  );
 
   const tenant = await resolveCurrentTenant();
   const savedRow = await loadSavedRow(tenant.id, borrowerId);
@@ -306,7 +311,11 @@ export async function POST(request: Request, { params }: Params) {
   const loan = findLoanForBorrower(data.loans, borrowerId);
   const loanCategory = body.loanCategory ?? loan?.category;
 
-  const inferredFlags = inferPcafAvailability(borrower, loanCategory);
+  const inferredFlags = inferPcafAvailability(
+    borrower,
+    loanCategory,
+    await demoPcafNameFixtures(),
+  );
   const savedFlags: PcafDataAvailability = {
     borrower_publishes_verified: !!flagsIn.borrower_publishes_verified,
     borrower_publishes_unverified: !!flagsIn.borrower_publishes_unverified,

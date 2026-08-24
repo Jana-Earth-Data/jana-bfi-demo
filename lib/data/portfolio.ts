@@ -50,6 +50,10 @@ import {
   computePcafScore,
   inferPcafAvailability,
 } from "@/lib/regulatory/pcaf/scoring";
+import {
+  PCAF_NAME_FIXTURES_VERIFIED,
+  PCAF_NAME_FIXTURES_UNVERIFIED,
+} from "@/lib/demo/fixtures";
 import { SCORE_FOR_OPTION } from "@/lib/regulatory/pcaf/types";
 
 // ---------------------------------------------------------------------------
@@ -271,7 +275,15 @@ const RETAIL_TCO2E_PER_NPR = 6e-6;
 function pcafFor(loan: Loan, borrower: Borrower): PcafAttribution {
   // 1. Determine PCAF asset class + inferred availability flags.
   const assetClass = assetClassForLoanCategory(loan.category);
-  const availability = inferPcafAvailability(borrower, loan.category);
+  // This module IS the demo layer, so it passes the name fixtures directly.
+  // Without them Scores 1 and 2 are empty: nothing observable establishes that
+  // a borrower publishes emissions, and the synthesized book has no document
+  // evidence. Production callers get the same fixtures via getDemoProvider()
+  // in a demo build, and none at all in a live one -- see lib/demo/provider.ts.
+  const availability = inferPcafAvailability(borrower, loan.category, {
+    verified: PCAF_NAME_FIXTURES_VERIFIED,
+    unverified: PCAF_NAME_FIXTURES_UNVERIFIED,
+  });
 
   // 2. Run the PCAF §5 decision tree.
   const compute = computePcafScore(loan, borrower, null, availability, assetClass);

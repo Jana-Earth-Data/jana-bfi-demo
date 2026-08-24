@@ -24,6 +24,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { demoPcafNameFixtures } from "@/lib/demo/provider";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { resolveCurrentTenant } from "@/lib/tenants";
@@ -130,7 +131,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const records = (rows ?? []).map(rowToRecord);
   const year = disclosureYear();
-  const inferred = inferPcafAvailability(borrower, loan.category);
+  const inferred = inferPcafAvailability(
+    borrower,
+    loan.category,
+    await demoPcafNameFixtures(),
+  );
   const resolved = resolveAvailability(inferred, records, year, {
     loanId,
     isProjectFinance,
