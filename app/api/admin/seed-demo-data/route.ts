@@ -362,21 +362,52 @@ export async function POST(request: NextRequest) {
   // Resolved by sector rather than by hardcoded id, matching the brick
   // lookup above, so a re-synthesised portfolio does not silently break
   // the seed. Non-fatal if absent.
-  const findUnderReview = (sectorFragment: string) => {
-    const borrower = demoData.borrowers.find((b) =>
-      b.nrbSector?.toLowerCase().includes(sectorFragment),
-    );
-    if (!borrower) return { loanId: null, borrowerId: null };
-    const loan = demoData.loans.find(
-      (l) => l.borrowerId === borrower.id && l.status === "under-review",
-    );
-    return { loanId: loan?.id ?? null, borrowerId: loan ? borrower.id : null };
+  // Search LOANS first, not borrowers. Picking the first borrower in a
+  // sector and then asking whether it has an under-review loan fails
+  // whenever it doesn't: there are 24 hydropower borrowers and the first
+  // is Nepal Electricity Authority, which has none, so a borrower-first
+  // lookup silently returns null and the screening is never seeded.
+  // (The brick lookup above is borrower-first and happens to work only
+  // because its first sector match is the right one. This is the pattern
+  // to copy for anything new.)
+  const findUnderReview = (
+    sectorFragment: string,
+    preferredBorrowerName?: string,
+  ) => {
+    const inSector = demoData.loans
+      .filter((l) => l.status === "under-review")
+      .map((l) => ({
+        loan: l,
+        borrower: demoData.borrowers.find((b) => b.id === l.borrowerId),
+      }))
+      .filter(({ borrower }) =>
+        borrower?.nrbSector?.toLowerCase().includes(sectorFragment),
+      )
+      // Deterministic: the same loan is chosen on every seed run.
+      .sort((a, b) => a.loan.id.localeCompare(b.loan.id));
+
+    const match =
+      (preferredBorrowerName
+        ? inSector.find(({ borrower }) =>
+            borrower?.name
+              ?.toLowerCase()
+              .includes(preferredBorrowerName.toLowerCase()),
+          )
+        : undefined) ?? inSector[0];
+
+    return {
+      loanId: match?.loan.id ?? null,
+      borrowerId: match?.borrower?.id ?? null,
+    };
   };
 
   const { loanId: HYDRO_PF_LOAN_ID, borrowerId: HYDRO_PF_BORROWER_ID } =
     findUnderReview("hydropower");
+  // Prefer Kantipur: it is the loan the demo narrative already refers to.
+  // Falls back to any under-review hospitality loan if the synthesizer
+  // stops producing it.
   const { loanId: HOTEL_LOAN_ID, borrowerId: HOTEL_BORROWER_ID } =
-    findUnderReview("hospitality");
+    findUnderReview("hospitality", "Kantipur");
 
   const targetLoanIds: string[] = [CEMENT_LOAN_ID, HYDRO_LOAN_ID];
   if (BRICK_LOAN_ID) targetLoanIds.push(BRICK_LOAN_ID);
