@@ -55,6 +55,64 @@ ESCALATING = {"medium", "high", "extreme"}
 TABLE = "bfi_esrm_screenings"
 COLUMNS = "bank_id,loan_id,computed_risk_class,escalation_flag,captured_at,esdd_snapshot"
 
+# Mirror of lib/regulatory/esdd/scoring.ts. Kept here so the script can say
+# whether a STORED risk class is actually supported by the stored answers --
+# the two can drift, and did: the cement screening shipped as "extreme" while
+# its own answers (and its own rationale sentence) said HIGH.
+ANSWER_WEIGHTS = {"a": 0, "b": 1, "c": 3, "d": None}
+QUESTIONS_TS = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "lib", "regulatory", "esdd", "annex5-questions.ts",
+)
+
+
+def load_sections():
+    """Parse questionId -> section out of the TypeScript question defs.
+
+    Returns {} if the file cannot be read, in which case derivation checks
+    are skipped rather than reported as failures.
+    """
+    try:
+        with open(QUESTIONS_TS, encoding="utf-8") as fh:
+            src = fh.read()
+    except OSError:
+        return {}
+    import re
+    return dict(
+        re.findall(r'id:\s*"(annex5[^"]+)"[^}]*?section:\s*"(\w+)"', src, re.S)
+    )
+
+
+def derive_risk(snapshot, sections):
+    """Recompute the risk class from the stored answers. None if unknowable."""
+    if not sections or not isinstance(snapshot, dict) or not snapshot:
+        return None
+    buckets = {}
+    for qid, entry in snapshot.items():
+        sec = sections.get(qid)
+        if not sec or not isinstance(entry, dict):
+            continue
+        weight = ANSWER_WEIGHTS.get(entry.get("answer"))
+        if weight is None:
+            continue
+        b = buckets.setdefault(sec, {"n": 0, "w": 0, "c": 0})
+        b["n"] += 1
+        b["w"] += weight
+        if entry.get("answer") == "c":
+            b["c"] += 1
+    if not buckets:
+        return None
+    means = [v["w"] / v["n"] for v in buckets.values() if v["n"]]
+    total_c = sum(v["c"] for v in buckets.values())
+    max_mean = max(means) if means else 0
+    if total_c >= 3 or max_mean >= 2.5:
+        return "extreme"
+    if total_c >= 2 or max_mean >= 2.0:
+        return "high"
+    if total_c == 0 and all(m <= 0.5 for m in means):
+        return "low"
+    return "medium"
+
 
 def fetch():
     base = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
@@ -91,6 +149,10 @@ def answered_questions(row):
 
 def main():
     rows = fetch()
+    sections = load_sections()
+    if not sections:
+        print("NOTE: could not read annex5-questions.ts -- "
+              "skipping risk-class derivation checks.\n")
 
     # Reproduce the queue's dedupe: latest screening per (bank, loan).
     # Rows already arrive captured_at desc, so first seen wins.
@@ -127,11 +189,20 @@ def main():
                 len(ids) == EXPECTED_ANSWERS and REQUIRED_QUESTION in ids
             )
 
-            mark = "ok " if (rule_ok and annex_ok) else "BAD"
+            derived = derive_risk(row.get("esdd_snapshot"), sections)
+            derive_ok = derived is None or derived == risk
+
+            mark = "ok " if (rule_ok and annex_ok and derive_ok) else "BAD"
+            shown = risk if derive_ok else f"{risk}!={derived}"
             print(
-                f"  [{mark}] {loan:<16} {risk:<8} esc={str(esc):<5} "
+                f"  [{mark}] {loan:<16} {shown:<16} esc={str(esc):<5} "
                 f"answers={len(ids):<3} has_1.4={REQUIRED_QUESTION in ids}"
             )
+            if not derive_ok:
+                failures.append(
+                    f"{loan}: stored risk '{risk}' but the answers derive "
+                    f"'{derived}' -- the rating is asserted, not computed"
+                )
 
             if not rule_ok:
                 if should_escalate:
