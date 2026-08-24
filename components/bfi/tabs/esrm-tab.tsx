@@ -131,6 +131,10 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
 
   // Manager-view aggregate data. Loaded once on mount; refetched when an
   // assignment change happens (via bumpVersion).
+  // False until /api/manager/queue has answered. Without this the summary
+  // bar cannot tell "no loans are assigned" from "we have not asked yet",
+  // and renders the former while meaning the latter.
+  const [managerLoaded, setManagerLoaded] = useState(false);
   const [managerRows, setManagerRows] = useState<Map<string, ManagerRow>>(
     new Map(),
   );
@@ -186,7 +190,17 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
     (async () => {
       try {
         const res = await fetch("/api/manager/queue");
-        if (!res.ok) return;
+        if (!res.ok) {
+          // Do NOT fail silently. Everything below this line is compliance
+          // state; rendering 0 for "screening complete" when the request
+          // failed is worse than rendering nothing, because 0 is a number a
+          // reviewer will believe.
+          console.error(
+            `/api/manager/queue returned ${res.status}; manager counts unavailable`,
+          );
+          if (!cancelled) setManagerLoaded(true);
+          return;
+        }
         const body = await res.json();
         if (cancelled) return;
         const map = new Map<string, ManagerRow>();
@@ -195,8 +209,10 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         setEscalatedCount(body.escalatedCount ?? 0);
         setOverdueCapsTotal(body.overdueCapsTotal ?? 0);
         setLoansWithOverdueCaps(body.loansWithOverdueCaps ?? 0);
-      } catch {
-        /* silent — the tab still works from data.applications */
+        setManagerLoaded(true);
+      } catch (err) {
+        console.error("/api/manager/queue fetch failed", err);
+        if (!cancelled) setManagerLoaded(true);
       }
     })();
     return () => {
@@ -377,6 +393,7 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
       */}
       <ManagerSummary
         managerRows={managerRows}
+        managerLoaded={managerLoaded}
         escalatedCount={escalatedCount}
         overdueCapsTotal={overdueCapsTotal}
         loansWithOverdueCaps={loansWithOverdueCaps}
@@ -848,6 +865,7 @@ function ApplicationsList({
 
 function ManagerSummary({
   managerRows,
+  managerLoaded,
   escalatedCount,
   overdueCapsTotal,
   loansWithOverdueCaps,
@@ -855,6 +873,7 @@ function ManagerSummary({
   onSelectLoan,
 }: {
   managerRows: Map<string, ManagerRow>;
+  managerLoaded: boolean;
   escalatedCount: number;
   overdueCapsTotal: number;
   loansWithOverdueCaps: number;
@@ -952,19 +971,22 @@ function ManagerSummary({
           </div>
         );
       })()}
-      <div className="rounded-2xl border border-line bg-panel px-4 py-3 text-xs text-slate-400">
+      <div
+        className="rounded-2xl border border-line bg-panel px-4 py-3 text-xs text-slate-400"
+        data-manager-loaded={managerLoaded ? "true" : "false"}
+      >
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
           <div>
-            <span className="text-white">{assignedCount}</span> assigned
+            <span className="text-white">{managerLoaded ? assignedCount : "\u2014"}</span> assigned
           </div>
           <div>
-            <span className="text-white">{unassignedCount}</span> unassigned
+            <span className="text-white">{managerLoaded ? unassignedCount : "\u2014"}</span> unassigned
           </div>
           <div>
-            <span className="text-white">{inProgressCount}</span> ESDD in progress
+            <span className="text-white">{managerLoaded ? inProgressCount : "\u2014"}</span> ESDD in progress
           </div>
           <div>
-            <span className="text-white">{completeCount}</span> screening complete
+            <span className="text-white">{managerLoaded ? completeCount : "\u2014"}</span> screening complete
           </div>
         </div>
       </div>
