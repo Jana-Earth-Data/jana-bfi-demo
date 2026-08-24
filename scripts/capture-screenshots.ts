@@ -83,18 +83,39 @@ type Shot = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-// A fixed delay races any fetch slower than itself. The manager queue hits
-// Supabase in ap-south-1, which regularly outruns 900ms -- when it does, the
-// counters render their empty state ("0 assigned / 21 unassigned / 0
-// screening complete") while the per-loan detail beside them has already
-// resolved, and the screenshot captures a page contradicting itself.
-// Wait for the network to go quiet first, then apply the delay for paint.
+// Waiting on a timer, or even on networkidle, is not enough here.
+//
+// networkidle fires once the HTML and JS chunks are quiet -- which happens
+// BEFORE React hydrates and issues its client-side fetches. Anything whose
+// value arrives via useEffect is therefore still in its initial state at
+// that moment. On the manager tab that meant capturing "0 assigned /
+// 21 unassigned / 0 screening complete" next to a loan reading "13/13
+// Screened": not a slow request, an un-hydrated one.
+//
+// So: networkidle for the document, then wait for any hydration marker on
+// the page to flip to loaded, then a short delay for paint. Views without a
+// marker fall through unaffected.
 const settle = async (page: Page, ms = 900) => {
   try {
     await page.waitForLoadState("networkidle", { timeout: 15_000 });
   } catch {
-    // Some views hold a long-poll open; fall through to the fixed delay
-    // rather than failing the capture.
+    // Some views hold a long-poll open; keep going.
+  }
+  try {
+    await page.waitForFunction(
+      () => {
+        const pending = document.querySelectorAll(
+          "[data-manager-loaded='false']",
+        );
+        return pending.length === 0;
+      },
+      undefined,
+      { timeout: 15_000 },
+    );
+  } catch {
+    // No marker on this view, or it never flipped. The delay below still
+    // applies; a stuck marker is worth seeing in the shot rather than
+    // silently waiting forever.
   }
   await page.waitForTimeout(ms);
 };
