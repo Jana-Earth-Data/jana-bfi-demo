@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { LoanRow } from "@/lib/data/portfolio-query";
 import { NrbTaxonomyColor, Loan } from "@/lib/types/bfi";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
-import { NPR_PER_USD } from "@/lib/data/util";
+import { NPR_PER_USD } from "@/lib/units";
 
 type TaxonomyFilter = NrbTaxonomyColor | "all";
 type BusinessUnitFilter = NonNullable<Loan["businessUnit"]> | "all";

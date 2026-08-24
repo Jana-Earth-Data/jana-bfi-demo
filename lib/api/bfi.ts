@@ -12,6 +12,7 @@
  */
 
 import { apiFetchAll } from "@/lib/api/client";
+import { TREND_YEARS } from "@/lib/reporting/periods";
 import { getPortfolio, invalidatePortfolioCache } from "@/lib/data/portfolio";
 import {
   BfiDemoData,
@@ -362,8 +363,10 @@ export function recomputeSummary(
   });
 
   // Trend: aggregate emissionsByYear weighted by attributionFactor.
-  // Matches the synthesizer's TREND_YEARS and real Climate TRACE coverage (2021-01..2025-10).
-  const trendYears = [2021, 2022, 2023, 2024, 2025];
+  // Shares TREND_YEARS with the synthesizer rather than restating the range:
+  // the two were identical literals kept in step by a comment, which would
+  // have diverged the first time coverage changed on one side only.
+  const trendYears = TREND_YEARS;
   const trend: PortfolioTrendPoint[] = trendYears.map((y) => {
     let total = 0;
     const tx: TaxonomyBreakdown = {
@@ -440,7 +443,7 @@ async function fetchLiveAndOverlay(
   // Pull annual aggregations 2021-2025. The Climate TRACE Nepal data is monthly
   // granularity; fetchYear()'s start/end filter selects all months in the year
   // and the loop in fetchLiveAndOverlay sums them per facility.
-  const years = [2021, 2022, 2023, 2024, 2025];
+  const years = TREND_YEARS;
   const index = buildMatchIndex(base.borrowers);
 
   const yearsData: LiveEmissionsForYear[] = [];
