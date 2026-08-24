@@ -231,7 +231,9 @@ function overlayLive(
 // The ~10% difference between them handles mock synthesis vs. live overlay
 // specifics — do not consolidate without cataloguing each intentional divergence.
 // Track consolidation in a post-demo issue.
-function recomputeSummary(
+// Exported so lib/api/pcaf-overlay.ts can rebuild aggregates through the same
+// path rather than adding a third implementation to the pair described above.
+export function recomputeSummary(
   loans: Loan[],
   borrowers: Borrower[],
   attributions: PcafAttribution[]
