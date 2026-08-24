@@ -4,6 +4,8 @@ import { getBfiDemoData } from "@/lib/api/bfi";
 import { buildDashboardSlice } from "@/lib/data/dashboard-slice";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
+import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,19 @@ export default async function HomePage() {
   const currentOfficer = await resolveCurrentOfficer();
 
   // SSR has no bank-auth token — mock data + synthetic screenings.
-  const data = await getBfiDemoData();
+  const base = await getBfiDemoData();
+
+  // Fold in the officers' saved PCAF availability. getBfiDemoData() returns
+  // the build-time precompute, whose data-quality scores were derived before
+  // anyone reviewed anything — without this the dashboard would report a
+  // weighted score computed as though the review had not happened. Scoped to
+  // this tenant; only reviewed borrowers' loans are re-scored.
+  const supabase = getSupabaseAdmin();
+  const overlay = supabase
+    ? await applyOfficerPcafOverlay(base, tenant.id, supabase as never)
+    : null;
+  const data = overlay?.data ?? base;
+
   data.meta = {
     ...data.meta,
     bankName: tenant.branding.displayName,
