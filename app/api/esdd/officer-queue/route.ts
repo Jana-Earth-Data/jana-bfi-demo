@@ -184,10 +184,51 @@ export async function GET() {
   //    which loans have an owner (any officer) versus which are
   //    unassigned and free to pick up.
   // ------------------------------------------------------------------
-  const { data: allAssigns } = await supabase
-    .from("bfi_loan_assignments")
-    .select("loan_id, officer_id, loan_category_override")
-    .eq("bank_id", tenant.id);
+  // loan_category_override is a P45 addition. It exists in the offline
+  // Postgres init scripts and in scripts/supabase-loan-category-override.sql,
+  // but that second one is applied by hand -- so a Supabase project that
+  // never had it run does not have the column.
+  //
+  // This previously discarded the error. When the column was missing the
+  // whole select failed, allAssigns came back undefined, and every loan
+  // looked unassigned: owned loans dropped out of "My loans" and reappeared
+  // in "Available to claim". Nothing surfaced anywhere. Now a failure is
+  // logged and we retry without the optional column, so a missing migration
+  // costs the category override rather than the entire ownership model.
+  let assignRows:
+    | Array<{
+        loan_id: string;
+        officer_id: string;
+        loan_category_override?: string | null;
+      }>
+    | null = null;
+  {
+    const { data, error } = await supabase
+      .from("bfi_loan_assignments")
+      .select("loan_id, officer_id, loan_category_override")
+      .eq("bank_id", tenant.id);
+    if (error) {
+      console.error(
+        "[officer-queue] assignment query with loan_category_override failed:",
+        error.message,
+        "- retrying without it. Apply scripts/supabase-loan-category-override.sql.",
+      );
+      const retry = await supabase
+        .from("bfi_loan_assignments")
+        .select("loan_id, officer_id")
+        .eq("bank_id", tenant.id);
+      if (retry.error) {
+        return NextResponse.json(
+          { error: `Assignment query failed: ${retry.error.message}` },
+          { status: 500 },
+        );
+      }
+      assignRows = retry.data ?? [];
+    } else {
+      assignRows = data ?? [];
+    }
+  }
+  const allAssigns = assignRows;
   const assignedLoanIds = new Set<string>();
   const myAssignedLoanIds = new Set<string>();
   // P45 — officer-set ESDD loan-category override per loan. Used
