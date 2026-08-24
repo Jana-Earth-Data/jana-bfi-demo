@@ -18,3 +18,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      # Override Docker's auto-assigned HOSTNAME (the container ID). Next's
+      # standalone server binds to it, and a bare hex ID fails to resolve.
+      # The offline stack dodges this only because it sets container_name.
+      - HOSTNAME=0.0.0.0

@@ -83,7 +83,10 @@ const TABS: Array<{
   {
     id: "nfrs",
     label: "NFRS",
-    description: "Disclosure · Financed emissions, PCAF (ICAN exposure draft)",
+    // NFRS S1/S2 are exposure drafts issued by the Accounting Standards
+    // Board (ASB) Nepal, and ASB Nepal is the body that finalises them.
+    // ICAN is a separate institute and does not own this standard.
+    description: "Disclosure · Financed emissions, PCAF (ASB Nepal exposure draft)",
   },
 ];
 

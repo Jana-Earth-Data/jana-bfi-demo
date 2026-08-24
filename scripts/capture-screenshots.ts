@@ -83,7 +83,42 @@ type Shot = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const settle = (page: Page, ms = 900) => page.waitForTimeout(ms);
+// Waiting on a timer, or even on networkidle, is not enough here.
+//
+// networkidle fires once the HTML and JS chunks are quiet -- which happens
+// BEFORE React hydrates and issues its client-side fetches. Anything whose
+// value arrives via useEffect is therefore still in its initial state at
+// that moment. On the manager tab that meant capturing "0 assigned /
+// 21 unassigned / 0 screening complete" next to a loan reading "13/13
+// Screened": not a slow request, an un-hydrated one.
+//
+// So: networkidle for the document, then wait for any hydration marker on
+// the page to flip to loaded, then a short delay for paint. Views without a
+// marker fall through unaffected.
+const settle = async (page: Page, ms = 900) => {
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  } catch {
+    // Some views hold a long-poll open; keep going.
+  }
+  try {
+    await page.waitForFunction(
+      () => {
+        const pending = document.querySelectorAll(
+          "[data-manager-loaded='false']",
+        );
+        return pending.length === 0;
+      },
+      undefined,
+      { timeout: 15_000 },
+    );
+  } catch {
+    // No marker on this view, or it never flipped. The delay below still
+    // applies; a stuck marker is worth seeing in the shot rather than
+    // silently waiting forever.
+  }
+  await page.waitForTimeout(ms);
+};
 
 /** Click a tab in the main dashboard strip by its visible label.
  *

@@ -215,6 +215,69 @@ const HYDRO_DOC_STATUSES: Array<{
   },
 ];
 
+
+// ---------------------------------------------------------------------------
+// Two further escalating screenings, added so the manager escalation banner
+// reflects a realistic caseload rather than a pair of set-piece loans.
+//
+// Both sit on loans the synthesizer marks `under-review`, which matters:
+// app/api/manager/queue/route.ts builds its queue from applicationQueue(),
+// i.e. under-review loans only. A screening on an `active` loan is written
+// to the database and then never shown. (L-0080028, the hydro loan used for
+// the taxonomy walkthrough, is `active` for exactly this reason — do not
+// attach a screening to it expecting the banner to move.)
+//
+// Answers are chosen so that lib/regulatory/esdd/scoring.ts derives the
+// stated risk class from the responses themselves. They are not decorative:
+// re-saving either screening through the wizard reproduces the same rating.
+// Weights are a=0, b=1, c=3, d=excluded.
+
+// Himal Power run-of-river PF. general = (0+1+1+3)/4 = 1.25, ehs = 3/5 = 0.6,
+// social = (0+0+3+1)/4 = 1.0. Two 'c' answers -> HIGH (>=2 c), and not
+// EXTREME because that needs 3 'c' answers or a section mean >= 2.5.
+const HYDRO_PF_ESDD_RESPONSES: Array<{
+  questionId: string;
+  answer: "a" | "b" | "c" | "d";
+  remarks: string | null;
+}> = [
+  { questionId: "annex5.1.1", answer: "a", remarks: "No outstanding DoED or MoFE enforcement action; generation licence in good standing." },
+  { questionId: "annex5.1.2", answer: "b", remarks: "Downstream irrigation users raised dry-season abstraction concerns during construction; environmental flow release agreed with the district committee." },
+  { questionId: "annex5.1.3", answer: "b", remarks: "Headworks sit on a river reach with documented migratory fish presence; fish ladder installed and monitored." },
+  { questionId: "annex5.1.4", answer: "c", remarks: "Penstock corridor and powerhouse required acquisition of 6.2 ha across 23 households, of which 9 were physically displaced. Resettlement Action Plan is in place but two compensation appeals remain unresolved." },
+  { questionId: "annex5.2.1", answer: "a", remarks: null },
+  { questionId: "annex5.2.2", answer: "b", remarks: "Construction-phase sediment load exceeded permit limits twice in 2025; settling ponds since enlarged." },
+  { questionId: "annex5.2.3", answer: "a", remarks: null },
+  { questionId: "annex5.2.4", answer: "b", remarks: "Environmental flow telemetry and a sediment-flushing regime funded; catchment reforestation still unbudgeted." },
+  { questionId: "annex5.2.5", answer: "b", remarks: "GLOF exposure from an upstream glacial lake; early-warning tie-in to the DHM network installed 2025." },
+  { questionId: "annex5.3.1", answer: "a", remarks: null },
+  { questionId: "annex5.3.2", answer: "a", remarks: null },
+  { questionId: "annex5.3.3", answer: "c", remarks: "Unannounced sluice-gate releases and heavy construction traffic through two village sections; no downstream siren system at the time of assessment." },
+  { questionId: "annex5.3.4", answer: "b", remarks: "Public hearings held at EIA stage; no standing grievance mechanism until 2025." },
+];
+
+// Kantipur Hotels working capital. general = 1/4 = 0.25, ehs = 5/5 = 1.0,
+// social = 1/4 = 0.25. No 'c' answers, so not HIGH; ehs mean is above 0.5,
+// so not LOW either. Lands on MEDIUM -- which still escalates under s7.3.6.
+const HOTEL_ESDD_RESPONSES: Array<{
+  questionId: string;
+  answer: "a" | "b" | "c" | "d";
+  remarks: string | null;
+}> = [
+  { questionId: "annex5.1.1", answer: "a", remarks: null },
+  { questionId: "annex5.1.2", answer: "b", remarks: "Neighbourhood noise complaints regarding rooftop events; hours curtailed by agreement with the ward office in 2025." },
+  { questionId: "annex5.1.3", answer: "a", remarks: null },
+  { questionId: "annex5.1.4", answer: "a", remarks: "Existing building on land held since 2011; no acquisition and no displacement." },
+  { questionId: "annex5.2.1", answer: "b", remarks: "Two diesel gensets run during load-shedding; stack height compliant but no emissions monitoring in place." },
+  { questionId: "annex5.2.2", answer: "b", remarks: "Greywater and kitchen effluent discharge to the municipal sewer with no on-site pre-treatment; grease trap only." },
+  { questionId: "annex5.2.3", answer: "b", remarks: "Segregation at source is partial; organic waste goes to the municipal stream rather than composting." },
+  { questionId: "annex5.2.4", answer: "b", remarks: "Solar water heating and LED retrofit completed on the new wing; heat-recovery and STP still deferred." },
+  { questionId: "annex5.2.5", answer: "b", remarks: "Dry-season municipal water shortfall met by tanker purchase; no rainwater harvesting despite roof area." },
+  { questionId: "annex5.3.1", answer: "b", remarks: "Fire detection covers the new wing; the 1990s block still lacks addressable detection and a second protected stairwell." },
+  { questionId: "annex5.3.2", answer: "a", remarks: null },
+  { questionId: "annex5.3.3", answer: "a", remarks: null },
+  { questionId: "annex5.3.4", answer: "a", remarks: null },
+];
+
 export async function POST(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const expected = process.env.SEED_ADMIN_TOKEN;
@@ -293,8 +356,63 @@ export async function POST(request: NextRequest) {
   const BRICK_LOAN_ID = brickLoan?.id ?? null;
   const BRICK_BORROWER_ID = brickBorrower?.id ?? null;
 
+  // Two more escalating cases so the manager banner shows a realistic
+  // caseload. Both MUST be under-review — the manager queue is built from
+  // applicationQueue(), so a screening on any other status is invisible.
+  // Resolved by sector rather than by hardcoded id, matching the brick
+  // lookup above, so a re-synthesised portfolio does not silently break
+  // the seed. Non-fatal if absent.
+  // Search LOANS first, not borrowers. Picking the first borrower in a
+  // sector and then asking whether it has an under-review loan fails
+  // whenever it doesn't: there are 24 hydropower borrowers and the first
+  // is Nepal Electricity Authority, which has none, so a borrower-first
+  // lookup silently returns null and the screening is never seeded.
+  // (The brick lookup above is borrower-first and happens to work only
+  // because its first sector match is the right one. This is the pattern
+  // to copy for anything new.)
+  const findUnderReview = (
+    sectorFragment: string,
+    preferredBorrowerName?: string,
+  ) => {
+    const inSector = demoData.loans
+      .filter((l) => l.status === "under-review")
+      .map((l) => ({
+        loan: l,
+        borrower: demoData.borrowers.find((b) => b.id === l.borrowerId),
+      }))
+      .filter(({ borrower }) =>
+        borrower?.nrbSector?.toLowerCase().includes(sectorFragment),
+      )
+      // Deterministic: the same loan is chosen on every seed run.
+      .sort((a, b) => a.loan.id.localeCompare(b.loan.id));
+
+    const match =
+      (preferredBorrowerName
+        ? inSector.find(({ borrower }) =>
+            borrower?.name
+              ?.toLowerCase()
+              .includes(preferredBorrowerName.toLowerCase()),
+          )
+        : undefined) ?? inSector[0];
+
+    return {
+      loanId: match?.loan.id ?? null,
+      borrowerId: match?.borrower?.id ?? null,
+    };
+  };
+
+  const { loanId: HYDRO_PF_LOAN_ID, borrowerId: HYDRO_PF_BORROWER_ID } =
+    findUnderReview("hydropower");
+  // Prefer Kantipur: it is the loan the demo narrative already refers to.
+  // Falls back to any under-review hospitality loan if the synthesizer
+  // stops producing it.
+  const { loanId: HOTEL_LOAN_ID, borrowerId: HOTEL_BORROWER_ID } =
+    findUnderReview("hospitality", "Kantipur");
+
   const targetLoanIds: string[] = [CEMENT_LOAN_ID, HYDRO_LOAN_ID];
   if (BRICK_LOAN_ID) targetLoanIds.push(BRICK_LOAN_ID);
+  if (HYDRO_PF_LOAN_ID) targetLoanIds.push(HYDRO_PF_LOAN_ID);
+  if (HOTEL_LOAN_ID) targetLoanIds.push(HOTEL_LOAN_ID);
   const now = new Date().toISOString();
 
   const perTenantResults: Array<Record<string, unknown>> = [];
@@ -399,7 +517,12 @@ export async function POST(request: NextRequest) {
         loan_id: CEMENT_LOAN_ID,
         borrower_id: CEMENT_BORROWER_ID,
         officer_id: officer.id,
-        computed_risk_class: "extreme",
+        // Derived, not asserted: 2 'c' answers with a top section mean of
+        // exactly 2.00 gives HIGH. EXTREME needs 3 'c' answers or a mean of
+        // 2.5 (lib/regulatory/esdd/scoring.ts). This previously read
+        // "extreme", which contradicted both the answers and the rationale
+        // sentence directly below it.
+        computed_risk_class: "high",
         computed_recommendation: "approve-with-conditions",
         escalation_flag: true,
         computed_rationale:
@@ -525,7 +648,7 @@ export async function POST(request: NextRequest) {
           // every answer is 'a' or 'b', yet it still goes one level up.
           escalation_flag: true,
           computed_rationale:
-            "Small brick SME loan. Critical-sector routing per NRB ESRM Guideline 2022 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. No 'c' answers recorded, but several 'b' answers (eco-sensitive siting, kiln air emissions, energy efficiency, climate risk, seasonal migrant labour) set the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, MEDIUM and HIGH both escalate to the one-level higher related credit approval authority. Recommend approval with the modernisation retrofit commitment recorded as a covenant.",
+            "Small brick SME loan. Critical-sector routing per NRB ESRM Guideline 2022 §5 (brick is on the 10-sector critical list) so the full Annex 5 checklist applies even at small loan size. No 'c' answers recorded, but several 'b' answers (eco-sensitive siting, kiln air emissions, climate risk, seasonal migrant labour) set the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, MEDIUM and HIGH both escalate to the one-level higher related credit approval authority. Recommend approval with the modernisation retrofit commitment recorded as a covenant.",
           esdd_snapshot: brickSnapshot,
         });
         if (error) {
@@ -539,6 +662,95 @@ export async function POST(request: NextRequest) {
       brickScreeningsLen = 1;
     }
 
+    // 5c) The two additional escalating screenings. Shared helper rather
+    // than a third and fourth copy of the brick block above.
+    const seedScreening = async (
+      loanId: string,
+      borrowerId: string,
+      responses: Array<{ questionId: string; answer: string; remarks: string | null }>,
+      riskClass: "low" | "medium" | "high",
+      rationale: string,
+    ) => {
+      for (const table of ["bfi_esdd_responses", "bfi_esrm_screenings"] as const) {
+        await supabase
+          .from(table)
+          .delete()
+          .eq("bank_id", tenant.id)
+          .eq("loan_id", loanId);
+      }
+      const rows = responses.map((r) => ({
+        bank_id: tenant.id,
+        loan_id: loanId,
+        borrower_id: borrowerId,
+        officer_id: officer.id,
+        question_id: r.questionId,
+        answer: r.answer,
+        remarks: r.remarks,
+      }));
+      const { error: respError } = await supabase
+        .from("bfi_esdd_responses")
+        .insert(rows);
+      if (respError) return `ESDD insert (${loanId}) failed: ${respError.message}`;
+
+      const snapshot: Record<
+        string,
+        { answer: string; remarks: string | null; capturedAt: string; officerId: string }
+      > = {};
+      for (const r of responses) {
+        snapshot[r.questionId] = {
+          answer: r.answer,
+          remarks: r.remarks,
+          capturedAt: now,
+          officerId: officer.id,
+        };
+      }
+      const { error: scrError } = await supabase
+        .from("bfi_esrm_screenings")
+        .insert({
+          bank_id: tenant.id,
+          loan_id: loanId,
+          borrower_id: borrowerId,
+          officer_id: officer.id,
+          computed_risk_class: riskClass,
+          computed_recommendation:
+            riskClass === "low" ? "approve" : "approve-with-conditions",
+          // NRB ESRM Guideline 2022 s7.3.6 — MEDIUM and HIGH both escalate.
+          escalation_flag: riskClass !== "low",
+          computed_rationale: rationale,
+          esdd_snapshot: snapshot,
+        });
+      if (scrError) return `Screening insert (${loanId}) failed: ${scrError.message}`;
+      return null;
+    };
+
+    let extraScreeningsLen = 0;
+    if (HYDRO_PF_LOAN_ID && HYDRO_PF_BORROWER_ID) {
+      const err = await seedScreening(
+        HYDRO_PF_LOAN_ID,
+        HYDRO_PF_BORROWER_ID,
+        HYDRO_PF_ESDD_RESPONSES,
+        "high",
+        "Run-of-river hydropower project finance. Two 'c' answers — land acquisition with physical resettlement (Annex 5 Q1.4, 23 households affected, 9 displaced, two compensation appeals open) and community health and safety (Annex 5 Q3.3, unannounced sluice releases with no downstream warning system) — set the Environmental and Social Risk Rating to HIGH. Per NRB ESRM Guideline 2022 §7.3.6, MEDIUM and HIGH both escalate to the one-level higher related credit approval authority. Recommend approval conditional on a downstream siren system, closure of the outstanding Resettlement Action Plan appeals, and quarterly environmental-flow reporting.",
+      );
+      if (err) {
+        return NextResponse.json({ error: `[${tenant.id}] ${err}` }, { status: 500 });
+      }
+      extraScreeningsLen += 1;
+    }
+    if (HOTEL_LOAN_ID && HOTEL_BORROWER_ID) {
+      const err = await seedScreening(
+        HOTEL_LOAN_ID,
+        HOTEL_BORROWER_ID,
+        HOTEL_ESDD_RESPONSES,
+        "medium",
+        "Hospitality working capital. No 'c' answers, but the full EHS section scored 'b' — genset emissions with no monitoring, kitchen and greywater effluent to sewer without pre-treatment, partial waste segregation, and tanker-dependent dry-season water supply — alongside incomplete fire detection in the older block. That sets the Environmental and Social Risk Rating to MEDIUM. Per NRB ESRM Guideline 2022 §7.3.6, a MEDIUM rating escalates to the one-level higher related credit approval authority even with no 'c' answers recorded. Recommend approval with the effluent pre-treatment and fire-detection upgrades recorded as covenants.",
+      );
+      if (err) {
+        return NextResponse.json({ error: `[${tenant.id}] ${err}` }, { status: 500 });
+      }
+      extraScreeningsLen += 1;
+    }
+
     // 6) Assign both seeded loans to the officer so the manager tour
     // shows owners and so the officer's queue has both under "In review".
     // Cement is the escalated case (drives the escalation banner); hydro
@@ -548,6 +760,8 @@ export async function POST(request: NextRequest) {
     // if the synthesizer produced one this build.
     const assignmentLoanIds = [CEMENT_LOAN_ID, HYDRO_LOAN_ID];
     if (BRICK_LOAN_ID) assignmentLoanIds.push(BRICK_LOAN_ID);
+    if (HYDRO_PF_LOAN_ID) assignmentLoanIds.push(HYDRO_PF_LOAN_ID);
+    if (HOTEL_LOAN_ID) assignmentLoanIds.push(HOTEL_LOAN_ID);
     for (const loanId of assignmentLoanIds) {
       const { error } = await supabase.from("bfi_loan_assignments").upsert(
         {
@@ -1068,7 +1282,7 @@ export async function POST(request: NextRequest) {
       officer: officer.id,
       seeded: {
         esddResponses: responseRows.length + brickResponsesLen,
-        esrmScreenings: 1 + brickScreeningsLen,
+        esrmScreenings: 1 + brickScreeningsLen + extraScreeningsLen,
         taxonomyAssessments: 2 + bulkClassifiedCount,
         bulkClassifiedCount,
         loanAssignments: BRICK_LOAN_ID ? 3 : 2,

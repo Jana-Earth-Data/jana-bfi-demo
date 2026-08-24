@@ -49,11 +49,14 @@ done
 if [[ "$OFFLINE" == "1" ]]; then
   COMPOSE_FILE="docker-compose.offline.yml"
   MODE_LABEL="OFFLINE (bundled Postgres + PostgREST + nginx)"
+  # Offline binds 3002 so it can run alongside the dev stack on 3001.
+  WEB_PORT=3002
   # Fall back to the compose default when SEED_ADMIN_TOKEN isn't in the shell
   TOKEN="${SEED_ADMIN_TOKEN:-offline-demo-seed-token}"
 else
   COMPOSE_FILE="docker-compose.yml"
   MODE_LABEL="DEV (Supabase Cloud)"
+  WEB_PORT=3001
   # Dev mode has no default — you must have SEED_ADMIN_TOKEN in your shell
   if [[ -z "${SEED_ADMIN_TOKEN:-}" ]]; then
     echo "ERROR: SEED_ADMIN_TOKEN is not set in your shell." >&2
@@ -76,6 +79,7 @@ echo ""
 echo "============================================================"
 echo "  Jana BFI Demo — $MODE_LABEL"
 echo "  Compose file: $COMPOSE_FILE"
+echo "  Web port:     $WEB_PORT"
 echo "============================================================"
 echo ""
 
@@ -100,7 +104,7 @@ $COMPOSE up -d
 
 # ----- Wait for the web app to answer ----------------------------------------
 echo "→ Waiting for web app to become reachable (up to 90s)…"
-WEB_URL="http://localhost:3001"
+WEB_URL="http://localhost:${WEB_PORT}"
 for i in {1..45}; do
   if curl -fsS -o /dev/null "$WEB_URL"; then
     echo "  web app up after ${i}x2s"
