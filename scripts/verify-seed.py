@@ -14,6 +14,25 @@ rows already in the database. After any change to the escalation rule or to
 the Annex 5 question set, the demo data has to be re-seeded and then
 verified -- which is what this script does.
 
+What it checks
+--------------
+The table holds history: multiple screenings per loan, across multiple
+tenants. The UI never shows all of them. app/api/manager/queue/route.ts
+filters to one bank_id, orders by captured_at desc, and keeps the first row
+per loan. This script reproduces that exactly, so it judges the same rows a
+demo audience would actually see and ignores superseded history.
+
+Against those live rows it asserts the two things P46 changed:
+
+  1. NRB ESRM Guideline 2022 s7.3.6 -- any ESRR of MEDIUM or above carries
+     escalation_flag, and LOW does not. This is asserted as a rule rather
+     than as an expected count, because the correct count depends on how
+     many loans are seeded and would go stale the moment that changes.
+
+  2. Annex 5 has 13 questions including Q1.4 (land acquisition /
+     resettlement). esdd_snapshot is a dict KEYED BY questionId, so the
+     keys are the answered questions.
+
 Usage
 -----
     set -a; source .env.local; set +a
@@ -28,13 +47,13 @@ import sys
 import urllib.error
 import urllib.request
 
-# What P46 expects to find in the database.
-EXPECTED_ESCALATED = 4          # MEDIUM and HIGH both escalate (NRB ESRM 2022 s7.3.6)
-EXPECTED_ANSWERS = 13           # Annex 5 gained Q1.4 (land acquisition / resettlement)
+EXPECTED_ANSWERS = 13
 REQUIRED_QUESTION = "annex5.1.4"
+# Anything at or above MEDIUM escalates one level; LOW does not.
+ESCALATING = {"medium", "high", "extreme"}
 
 TABLE = "bfi_esrm_screenings"
-COLUMNS = "loan_id,computed_risk_class,escalation_flag,esdd_snapshot"
+COLUMNS = "bank_id,loan_id,computed_risk_class,escalation_flag,captured_at,esdd_snapshot"
 
 
 def fetch():
@@ -45,7 +64,7 @@ def fetch():
             "ERROR: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set.\n"
             "Run:  set -a; source .env.local; set +a"
         )
-    url = f"{base.rstrip('/')}/rest/v1/{TABLE}?select={COLUMNS}"
+    url = f"{base.rstrip('/')}/rest/v1/{TABLE}?select={COLUMNS}&order=captured_at.desc"
     req = urllib.request.Request(
         url, headers={"apikey": key, "Authorization": f"Bearer {key}"}
     )
@@ -58,64 +77,85 @@ def fetch():
         sys.exit(f"ERROR: could not reach Supabase: {exc.reason}")
 
 
-def question_ids(row):
-    """Pull the set of answered questionIds out of esdd_snapshot.
+def answered_questions(row):
+    """esdd_snapshot is Record<questionId, {answer, remarks, ...}>.
 
-    The snapshot has been stored both as a bare list of responses and as an
-    object with a `responses` key, so handle both rather than assuming.
+    See app/api/esrm/screenings/route.ts -- the snapshot is built as a
+    dictionary keyed by question id, so the keys ARE the answered questions.
     """
-    snap = row.get("esdd_snapshot") or {}
-    if isinstance(snap, list):
-        responses = snap
-    elif isinstance(snap, dict):
-        responses = snap.get("responses", [])
-    else:
-        responses = []
-    if not isinstance(responses, list):
+    snap = row.get("esdd_snapshot")
+    if not isinstance(snap, dict):
         return set()
-    return {r.get("questionId") for r in responses if isinstance(r, dict)}
+    return set(snap.keys())
 
 
 def main():
     rows = fetch()
-    escalated = sum(1 for r in rows if r.get("escalation_flag"))
 
-    print(f"screenings: {len(rows)}   escalated: {escalated}")
+    # Reproduce the queue's dedupe: latest screening per (bank, loan).
+    # Rows already arrive captured_at desc, so first seen wins.
+    live = {}
+    for row in rows:
+        key = (row.get("bank_id"), row.get("loan_id"))
+        if key not in live:
+            live[key] = row
+
+    superseded = len(rows) - len(live)
+    print(f"{len(rows)} screening rows -> {len(live)} live "
+          f"({superseded} superseded by a newer screening)")
     print()
 
     failures = []
 
-    for row in sorted(rows, key=lambda r: str(r.get("loan_id"))):
-        ids = question_ids(row)
-        has_required = REQUIRED_QUESTION in ids
-        loan = str(row.get("loan_id"))
-        risk = str(row.get("computed_risk_class"))
-        esc = str(row.get("escalation_flag"))
-        mark = "ok " if (len(ids) == EXPECTED_ANSWERS and has_required) else "BAD"
-        print(
-            f"  [{mark}] {loan:<16} {risk:<8} esc={esc:<5} "
-            f"answers={len(ids):<3} has_1.4={has_required}"
-        )
-        if ids and not has_required:
-            failures.append(f"{loan}: missing {REQUIRED_QUESTION} (pre-P46 snapshot)")
+    for bank in sorted({k[0] for k in live}, key=str):
+        bank_rows = [v for k, v in live.items() if k[0] == bank]
+        bank_rows.sort(key=lambda r: str(r.get("loan_id")))
+        escalated = sum(1 for r in bank_rows if r.get("escalation_flag"))
+        print(f"bank {bank}   {len(bank_rows)} loans   {escalated} escalated")
 
-        # A MEDIUM or HIGH screening that is not flagged contradicts s7.3.6.
-        if risk in ("medium", "high", "extreme") and not row.get("escalation_flag"):
-            failures.append(f"{loan}: risk={risk} but escalation_flag is false")
+        for row in bank_rows:
+            loan = str(row.get("loan_id"))
+            risk = str(row.get("computed_risk_class"))
+            esc = bool(row.get("escalation_flag"))
+            ids = answered_questions(row)
 
-    print()
-    if escalated != EXPECTED_ESCALATED:
-        failures.append(
-            f"escalated count is {escalated}, expected {EXPECTED_ESCALATED}"
-        )
+            should_escalate = risk in ESCALATING
+            rule_ok = esc == should_escalate
+            # Only judge Annex 5 completeness on rows that have a snapshot;
+            # a screening can legitimately predate the checklist entirely.
+            annex_ok = (not ids) or (
+                len(ids) == EXPECTED_ANSWERS and REQUIRED_QUESTION in ids
+            )
+
+            mark = "ok " if (rule_ok and annex_ok) else "BAD"
+            print(
+                f"  [{mark}] {loan:<16} {risk:<8} esc={str(esc):<5} "
+                f"answers={len(ids):<3} has_1.4={REQUIRED_QUESTION in ids}"
+            )
+
+            if not rule_ok:
+                if should_escalate:
+                    failures.append(
+                        f"{loan}: risk={risk} must escalate (s7.3.6) but flag is false"
+                    )
+                else:
+                    failures.append(
+                        f"{loan}: risk={risk} must NOT escalate but flag is true"
+                    )
+            if ids and not annex_ok:
+                failures.append(
+                    f"{loan}: {len(ids)} Annex 5 answers, expected {EXPECTED_ANSWERS} "
+                    f"(has_1.4={REQUIRED_QUESTION in ids}) -- pre-P46 snapshot"
+                )
+        print()
 
     if failures:
         print("FAILED:")
         for f in failures:
             print(f"  - {f}")
         print()
-        print("Fix: rebuild so the image carries the P46 code, then re-seed:")
-        print("     ./run_demo.sh          # no --no-build")
+        print("If snapshots are short, the image that seeded predates P46:")
+        print("     ./run_demo.sh          # full rebuild, then re-seed")
         return 1
 
     print("PASS - Supabase Cloud data matches the P46 rules.")
