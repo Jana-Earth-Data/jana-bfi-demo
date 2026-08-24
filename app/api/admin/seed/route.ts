@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getPortfolio } from "@/lib/data/portfolio";
+import { getDemoProvider } from "@/lib/demo/provider";
 import {
   BFI_LOANS_TABLE,
   getSupabaseAdmin,
@@ -56,7 +56,21 @@ export async function POST(request: NextRequest) {
   }
 
   const t0 = Date.now();
-  const portfolio = getPortfolio();
+  // Through the provider like every other consumer. In a live build this is
+  // null and there is nothing to seed -- which is correct, because seeding
+  // means writing fabricated rows and a live deployment must not have any.
+  const demo = await getDemoProvider();
+  if (!demo) {
+    return NextResponse.json(
+      {
+        error:
+          "Seeding is unavailable: this build has no demo layer. Fabricated " +
+          "loan data cannot be written to a live deployment.",
+      },
+      { status: 400 },
+    );
+  }
+  const portfolio = demo.getPortfolio();
   const borrowerById = new Map(portfolio.borrowers.map((b) => [b.id, b]));
   const attributionByLoanId = new Map(
     portfolio.attributions.map((a) => [a.loanId, a])

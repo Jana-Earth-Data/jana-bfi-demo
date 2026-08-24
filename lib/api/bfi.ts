@@ -13,7 +13,8 @@
 
 import { apiFetchAll } from "@/lib/api/client";
 import { TREND_YEARS } from "@/lib/reporting/periods";
-import { getPortfolio, invalidatePortfolioCache } from "@/lib/data/portfolio";
+import { getDemoProvider } from "@/lib/demo/provider";
+import { emptyPortfolio } from "@/lib/data/empty-portfolio";
 import {
   BfiDemoData,
   Borrower,
@@ -481,10 +482,25 @@ async function fetchLiveAndOverlay(
  * - SSR (no token): synthesized portfolio (mock mode).
  * - With token: fetch live Climate TRACE data, overlay onto borrowers.
  */
+/**
+ * The base portfolio, from whichever source this build has.
+ *
+ * A demo build gets the synthesized 80K-loan book. A live build has no
+ * synthesizer compiled into it at all, so it gets a genuinely empty envelope:
+ * no loans, no borrowers, no fabricated exposures. That is the correct state
+ * for a bank whose core-banking import has not happened yet, and giving the
+ * live path a real answer is what removes the temptation to keep the
+ * synthesizer around "just for the empty case".
+ */
+async function basePortfolio(): Promise<BfiDemoData> {
+  const provider = await getDemoProvider();
+  return provider ? provider.getPortfolio() : emptyPortfolio();
+}
+
 export async function getBfiDemoData(
   token?: string | null
 ): Promise<BfiDemoData> {
-  const base = getPortfolio();
+  const base = await basePortfolio();
   if (FORCE_MOCKS || !token) {
     return {
       ...base,
@@ -531,7 +547,7 @@ export async function fetchClimateTraceSummary(token: string) {
   const sectors = new Set(results.map((r) => r.sector_name).filter(Boolean));
   const assets = new Set(results.map((r) => r.asset_name).filter(Boolean));
 
-  const base = getPortfolio();
+  const base = await basePortfolio();
   const index = buildMatchIndex(base.borrowers);
   let matched = 0;
   for (const r of results) {
@@ -547,4 +563,13 @@ export async function fetchClimateTraceSummary(token: string) {
   };
 }
 
-export { invalidatePortfolioCache };
+/**
+ * Drop the synthesizer's in-process cache. Used by the seed routes after they
+ * rewrite the loan book. A no-op in a live build, where there is no cache and
+ * no synthesizer -- callers do not need to know which kind of build they are
+ * in.
+ */
+export async function invalidatePortfolioCache(): Promise<void> {
+  const provider = await getDemoProvider();
+  provider?.invalidatePortfolioCache();
+}
