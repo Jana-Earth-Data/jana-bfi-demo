@@ -180,15 +180,90 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
-  // 2. Latest ESRM screening per loan (tenant-wide — screenings are
+  // 2. Assignments — pull ALL assignments for this tenant so we know
+  //    which loans have an owner (any officer) versus which are
+  //    unassigned and free to pick up.
+  // ------------------------------------------------------------------
+  // loan_category_override is a P45 addition. It exists in the offline
+  // Postgres init scripts and in scripts/supabase-loan-category-override.sql,
+  // but that second one is applied by hand -- so a Supabase project that
+  // never had it run does not have the column.
+  //
+  // This previously discarded the error. When the column was missing the
+  // whole select failed, allAssigns came back undefined, and every loan
+  // looked unassigned: owned loans dropped out of "My loans" and reappeared
+  // in "Available to claim". Nothing surfaced anywhere. Now a failure is
+  // logged and we retry without the optional column, so a missing migration
+  // costs the category override rather than the entire ownership model.
+  let assignRows:
+    | Array<{
+        loan_id: string;
+        officer_id: string;
+        loan_category_override?: string | null;
+      }>
+    | null = null;
+  {
+    const { data, error } = await supabase
+      .from("bfi_loan_assignments")
+      .select("loan_id, officer_id, loan_category_override")
+      .eq("bank_id", tenant.id);
+    if (error) {
+      console.error(
+        "[officer-queue] assignment query with loan_category_override failed:",
+        error.message,
+        "- retrying without it. Apply scripts/supabase-loan-category-override.sql.",
+      );
+      const retry = await supabase
+        .from("bfi_loan_assignments")
+        .select("loan_id, officer_id")
+        .eq("bank_id", tenant.id);
+      if (retry.error) {
+        return NextResponse.json(
+          { error: `Assignment query failed: ${retry.error.message}` },
+          { status: 500 },
+        );
+      }
+      assignRows = retry.data ?? [];
+    } else {
+      assignRows = data ?? [];
+    }
+  }
+  const allAssigns = assignRows;
+  const assignedLoanIds = new Set<string>();
+  const myAssignedLoanIds = new Set<string>();
+  // P45 — officer-set ESDD loan-category override per loan. Used
+  // below to decide PF-screening applicability so the queue matches
+  // what the officer sees in the wizard.
+  const categoryOverrideByLoan = new Map<string, string | null>();
+  for (const a of allAssigns ?? []) {
+    assignedLoanIds.add(a.loan_id);
+    if (a.officer_id === officer.id) myAssignedLoanIds.add(a.loan_id);
+    categoryOverrideByLoan.set(
+      a.loan_id,
+      (a.loan_category_override as string | null | undefined) ?? null,
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // 3. Latest ESRM screening per loan (tenant-wide — screenings are
   //    attributed to whoever saved them, but the flow is bank-wide).
   // ------------------------------------------------------------------
+  // Screenings must be loaded for loans this officer OWNS as well as ones
+  // they have live answers for. A loan can legitimately have a saved
+  // screening and zero response rows: the wizard's "Exit without saving"
+  // deletes the answer rows but deliberately preserves the screening it
+  // was captured into. Keying this query on responses alone made such a
+  // loan render as untouched -- no risk class, no escalation flag --
+  // despite being screened and owned.
   const touchedLoanIds = Array.from(byLoan.keys());
+  const screeningLookupIds = Array.from(
+    new Set([...touchedLoanIds, ...myAssignedLoanIds]),
+  );
   const { data: screenings, error: scrErr } = await supabase
     .from("bfi_esrm_screenings")
     .select("loan_id, computed_risk_class, escalation_flag, captured_at")
     .eq("bank_id", tenant.id)
-    .in("loan_id", touchedLoanIds.concat(["__never__"]))
+    .in("loan_id", screeningLookupIds.concat(["__never__"]))
     .order("captured_at", { ascending: false });
   if (scrErr) {
     return NextResponse.json(
@@ -207,30 +282,6 @@ export async function GET() {
       escalated: s.escalation_flag,
       capturedAt: s.captured_at,
     });
-  }
-
-  // ------------------------------------------------------------------
-  // 3. Assignments — pull ALL assignments for this tenant so we know
-  //    which loans have an owner (any officer) versus which are
-  //    unassigned and free to pick up.
-  // ------------------------------------------------------------------
-  const { data: allAssigns } = await supabase
-    .from("bfi_loan_assignments")
-    .select("loan_id, officer_id, loan_category_override")
-    .eq("bank_id", tenant.id);
-  const assignedLoanIds = new Set<string>();
-  const myAssignedLoanIds = new Set<string>();
-  // P45 — officer-set ESDD loan-category override per loan. Used
-  // below to decide PF-screening applicability so the queue matches
-  // what the officer sees in the wizard.
-  const categoryOverrideByLoan = new Map<string, string | null>();
-  for (const a of allAssigns ?? []) {
-    assignedLoanIds.add(a.loan_id);
-    if (a.officer_id === officer.id) myAssignedLoanIds.add(a.loan_id);
-    categoryOverrideByLoan.set(
-      a.loan_id,
-      (a.loan_category_override as string | null | undefined) ?? null,
-    );
   }
 
   // ------------------------------------------------------------------

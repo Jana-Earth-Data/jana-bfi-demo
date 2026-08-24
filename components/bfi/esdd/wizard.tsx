@@ -105,6 +105,10 @@ export function EsddWizard({
   const isTourDriven = tourStep !== null;
   const [step, setStep] = useState<WizardStep>(tourStep ?? 0);
   const [responses, setResponses] = useState<Record<string, StoredResponse>>({});
+  // Newest captured_at that already existed when this wizard opened, or null
+  // when the officer is starting fresh. Scopes "Exit without saving" so it
+  // discards this session's edits instead of the whole checklist.
+  const [baselineWatermark, setBaselineWatermark] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
   const [loading, setLoading] = useState(true);
   // Latest saved screening for this loan, if one exists. Loaded on mount
@@ -227,6 +231,16 @@ export function EsddWizard({
           const map: Record<string, StoredResponse> = {};
           for (const r of body.responses) map[r.questionId] = r;
           setResponses(map);
+          // Watermark for "Exit without saving". The responses table is an
+          // append-only log, so discarding only the rows written AFTER this
+          // point restores whatever was saved before the officer reopened
+          // the checklist. Without it the discard wiped the original work
+          // too — see the DELETE handler.
+          const newest = body.responses.reduce<string | null>(
+            (max, r) => (max === null || r.capturedAt > max ? r.capturedAt : max),
+            null,
+          );
+          setBaselineWatermark(newest);
         }
         if (scrRes && scrRes.ok) {
           const body = await scrRes.json();
@@ -333,6 +347,7 @@ export function EsddWizard({
         borrower={borrower}
         onSaveExit={() => router.push("/")}
         onDiscardExit={() => router.push("/")}
+        baselineWatermark={baselineWatermark}
         readOnly={readOnly}
       />
       <div className="mx-auto flex max-w-5xl gap-6 p-6">
@@ -419,6 +434,7 @@ function TopBar({
   borrower,
   onSaveExit,
   onDiscardExit,
+  baselineWatermark,
   readOnly = false,
 }: {
   tenantName: string;
@@ -427,6 +443,12 @@ function TopBar({
   borrower: Borrower;
   onSaveExit: () => void;
   onDiscardExit: () => void;
+  /**
+   * Newest captured_at present when the wizard opened, or null for a fresh
+   * checklist. Rows at or before it are prior saved work and are preserved
+   * when the officer discards.
+   */
+  baselineWatermark: string | null;
   /** Hide destructive actions (Discard, Save & exit) when the current
    *  officer does not own this loan. */
   readOnly?: boolean;
@@ -439,10 +461,11 @@ function TopBar({
     setDiscarding(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/esdd/responses?loanId=${encodeURIComponent(loan.id)}`,
-        { method: "DELETE" },
-      );
+      const qs = new URLSearchParams({ loanId: loan.id });
+      if (baselineWatermark) qs.set("since", baselineWatermark);
+      const res = await fetch(`/api/esdd/responses?${qs.toString()}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body?.error ?? `Server returned ${res.status}`);
@@ -513,19 +536,35 @@ function TopBar({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-xs uppercase tracking-wide text-rose-300">
-              Discard responses
+              {baselineWatermark ? "Discard changes" : "Discard responses"}
             </div>
             <h3 className="mt-1 text-lg font-semibold text-white">
               Exit without saving?
             </h3>
-            <p className="mt-3 text-sm text-slate-300">
-              This will permanently delete every ESDD answer you have
-              recorded for{" "}
-              <span className="font-semibold text-white">{borrower.name}</span>{" "}
-              (loan {loan.id}). Other officers&rsquo; work on this loan is
-              not affected, and any ESRM screening already saved to the
-              audit trail is preserved.
-            </p>
+            {baselineWatermark ? (
+              <p className="mt-3 text-sm text-slate-300">
+                This will discard the answers you have changed in this
+                session for{" "}
+                <span className="font-semibold text-white">
+                  {borrower.name}
+                </span>{" "}
+                (loan {loan.id}). The checklist reverts to what was saved
+                when you opened it. Your earlier answers are kept, other
+                officers&rsquo; work is not affected, and any ESRM screening
+                already in the audit trail is preserved.
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-slate-300">
+                This will permanently delete every ESDD answer you have
+                recorded for{" "}
+                <span className="font-semibold text-white">
+                  {borrower.name}
+                </span>{" "}
+                (loan {loan.id}). Nothing had been saved for this loan before
+                you opened it, so there is no earlier version to fall back
+                to. Other officers&rsquo; work is not affected.
+              </p>
+            )}
             <p className="mt-2 text-xs text-slate-500">
               If you just want to step away, use <em>Save &amp; exit</em>{" "}
               instead — your answers are already saved as you record them

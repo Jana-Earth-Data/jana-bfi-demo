@@ -208,12 +208,23 @@ export async function DELETE(request: NextRequest) {
   const denied = await assertOwnerOrRespond(loanId, officer, tenant);
   if (denied) return denied;
 
-  const { error, count } = await supabase
+  // See app/api/esdd/responses/route.ts for the full reasoning. In short:
+  // this table is an append-only log read as latest-per-key, so discarding
+  // only the rows written after the wizard's mount watermark reverts to the
+  // previously saved state. Deleting unconditionally destroyed the
+  // officer's earlier work whenever they reopened a completed record to
+  // change one answer.
+  const since = request.nextUrl.searchParams.get("since");
+
+  let delQuery = supabase
     .from("bfi_pf_screening_responses")
     .delete({ count: "exact" })
     .eq("bank_id", tenant.id)
     .eq("loan_id", loanId)
     .eq("officer_id", officer.id);
+  if (since) delQuery = delQuery.gt("captured_at", since);
+
+  const { error, count } = await delQuery;
   if (error) {
     return NextResponse.json(
       { error: `Delete failed: ${error.message}` },

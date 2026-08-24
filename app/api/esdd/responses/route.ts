@@ -112,12 +112,21 @@ export async function POST(request: NextRequest) {
   // the primary response insert, which the officer's UI depends on.
   // ------------------------------------------------------------------
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("bfi_loan_assignments")
       .select("id")
       .eq("bank_id", tenant.id)
       .eq("loan_id", loanId)
       .maybeSingle();
+    if (lookupErr) {
+      // A failed lookup reads as "no assignment exists", which would make
+      // the insert below attempt a duplicate claim on an already-owned
+      // loan. Log it rather than let the auto-claim guess.
+      console.error(
+        "[esdd/responses] auto-claim assignment lookup failed:",
+        lookupErr.message,
+      );
+    }
     if (!existing) {
       const { error: assignErr } = await supabase
         .from("bfi_loan_assignments")
@@ -215,13 +224,28 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * DELETE /api/esdd/responses?loanId=X
+ * DELETE /api/esdd/responses?loanId=X[&since=<iso>]
  *
- * Discard every response row this officer has recorded for this loan.
- * Used by the wizard's "Exit without saving" action. Deletion is scoped
- * to (bank_id, loan_id, officer_id) — other officers' work on the same
- * loan (if any) is untouched, and saved ESRM screenings that snapshot
- * the responses remain intact.
+ * Discard response rows this officer recorded for this loan.
+ *
+ * `since` is the fix for a real data-loss bug. This table is an
+ * append-only log: answering a question inserts a new row and readers take
+ * the most recent per question_id. "Exit without saving" therefore only
+ * needs to remove the rows THIS editing session appended — once they are
+ * gone the previously saved answers are the most recent again, so the
+ * prior state restores itself with no restore logic.
+ *
+ * Without `since` the delete removed every row for the loan. On a first
+ * pass that is correct, because every row is from this session. But when
+ * an officer reopened a completed screening, changed one answer, then
+ * chose "Exit without saving", it deleted the entire original checklist —
+ * the destructive option was the one labelled as not writing anything.
+ * Passing `since` scopes the delete to rows captured after the watermark
+ * the wizard read at mount.
+ *
+ * Deletion is always scoped to (bank_id, loan_id, officer_id) — other
+ * officers' work on the same loan is untouched, and saved ESRM screenings
+ * that snapshot the responses remain intact.
  */
 export async function DELETE(request: NextRequest) {
   const supabase = getSupabaseAdmin();
@@ -252,12 +276,21 @@ export async function DELETE(request: NextRequest) {
   const denied = await assertOwnerOrRespond(loanId, officer, tenant);
   if (denied) return denied;
 
-  const { error, count } = await supabase
+  // Watermark supplied by the wizard: the newest captured_at that already
+  // existed when it opened. Rows at or before it are the officer's prior
+  // saved work and must survive. Server-generated timestamps on both
+  // sides, so there is no client clock involved.
+  const since = request.nextUrl.searchParams.get("since");
+
+  let query = supabase
     .from("bfi_esdd_responses")
     .delete({ count: "exact" })
     .eq("bank_id", tenant.id)
     .eq("loan_id", loanId)
     .eq("officer_id", officer.id);
+  if (since) query = query.gt("captured_at", since);
+
+  const { error, count } = await query;
   if (error) {
     return NextResponse.json(
       { error: `Delete failed: ${error.message}` },

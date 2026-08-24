@@ -141,6 +141,10 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
   const [escalatedCount, setEscalatedCount] = useState(0);
   const [overdueCapsTotal, setOverdueCapsTotal] = useState(0);
   const [loansWithOverdueCaps, setLoansWithOverdueCaps] = useState(0);
+  // Overdue corrective actions are a s7.3.5 compliance figure. When the
+  // server could not compute them we must not render zero, which reads as
+  // "nothing overdue" rather than "not checked".
+  const [capCountsAvailable, setCapCountsAvailable] = useState(true);
   const [version, setVersion] = useState(0);
   const bumpVersion = () => setVersion((v) => v + 1);
 
@@ -209,6 +213,7 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         setEscalatedCount(body.escalatedCount ?? 0);
         setOverdueCapsTotal(body.overdueCapsTotal ?? 0);
         setLoansWithOverdueCaps(body.loansWithOverdueCaps ?? 0);
+        setCapCountsAvailable(body.capCountsAvailable !== false);
         setManagerLoaded(true);
       } catch (err) {
         console.error("/api/manager/queue fetch failed", err);
@@ -397,6 +402,7 @@ export function EsrmTab({ data }: { data: DashboardSsrData }) {
         escalatedCount={escalatedCount}
         overdueCapsTotal={overdueCapsTotal}
         loansWithOverdueCaps={loansWithOverdueCaps}
+        capCountsAvailable={capCountsAvailable}
         apps={apps}
         onSelectLoan={(loanId) => {
           setSelectedLoanId(loanId);
@@ -869,6 +875,7 @@ function ManagerSummary({
   escalatedCount,
   overdueCapsTotal,
   loansWithOverdueCaps,
+  capCountsAvailable,
   apps,
   onSelectLoan,
 }: {
@@ -877,6 +884,7 @@ function ManagerSummary({
   escalatedCount: number;
   overdueCapsTotal: number;
   loansWithOverdueCaps: number;
+  capCountsAvailable: boolean;
   apps: LoanRow[];
   onSelectLoan: (loanId: string) => void;
 }) {
@@ -927,7 +935,14 @@ function ManagerSummary({
           </div>
         </div>
       )}
-      {overdueCapsTotal > 0 && (() => {
+      {!capCountsAvailable && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-xs text-amber-200/90">
+          Overdue corrective action counts could not be loaded. This panel is
+          not asserting that none are overdue, only that it could not check.
+          NRB ESRM Guideline 2022 §7.3.5 deadlines still apply.
+        </div>
+      )}
+      {capCountsAvailable && overdueCapsTotal > 0 && (() => {
         const overdueCapApps = apps.filter(
           (r) => (managerRows.get(r.loan.id)?.overdueCapCount ?? 0) > 0,
         );

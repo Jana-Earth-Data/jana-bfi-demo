@@ -111,6 +111,9 @@ export function TaxonomyWizard({
     citation: string;
     capturedAt: string;
   } | null>(null);
+  // Newest captured_at present when this wizard opened, or null for a fresh
+  // assessment. Scopes "Exit without saving" to this session's rows.
+  const [baselineWatermark, setBaselineWatermark] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +141,8 @@ export function TaxonomyWizard({
           citation: latest.citation,
           capturedAt: latest.captured_at,
         });
+        // Watermark for a scoped discard — see the DELETE handler.
+        setBaselineWatermark(latest.captured_at);
         setActivityId(latest.activity_id);
         if (latest.criterion_answers && typeof latest.criterion_answers === "object") {
           setAnswers(latest.criterion_answers as Record<string, unknown>);
@@ -238,6 +243,7 @@ export function TaxonomyWizard({
         hasPriorAssessment={savedFromApi !== null}
         onSaveExit={() => router.push("/")}
         onDiscardExit={() => router.push("/")}
+        baselineWatermark={baselineWatermark}
         readOnly={readOnly}
       />
       <div className="mx-auto flex max-w-5xl gap-6 p-6">
@@ -335,6 +341,7 @@ function TopBar({
   hasPriorAssessment,
   onSaveExit,
   onDiscardExit,
+  baselineWatermark,
   readOnly = false,
 }: {
   tenantName: string;
@@ -344,6 +351,8 @@ function TopBar({
   hasPriorAssessment: boolean;
   onSaveExit: () => void;
   onDiscardExit: () => void;
+  /** Newest captured_at present at mount; rows at or before it survive. */
+  baselineWatermark: string | null;
   /** When true the destructive "Exit without saving" action is hidden. */
   readOnly?: boolean;
 }) {
@@ -355,10 +364,11 @@ function TopBar({
     setDiscarding(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/taxonomy/assessments?loanId=${encodeURIComponent(loan.id)}`,
-        { method: "DELETE" },
-      );
+      const qs = new URLSearchParams({ loanId: loan.id });
+      if (baselineWatermark) qs.set("since", baselineWatermark);
+      const res = await fetch(`/api/taxonomy/assessments?${qs.toString()}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body?.error ?? `Server returned ${res.status}`);

@@ -113,6 +113,10 @@ export function PfScreeningWizard({
   const isTourDriven = tourStep !== null;
   const [step, setStep] = useState<WizardStep>(tourStep ?? 0);
   const [responses, setResponses] = useState<Record<string, StoredResponse>>({});
+  // Newest captured_at present when this wizard opened, or null for a fresh
+  // record. Scopes "Exit without saving" to this session's rows so the
+  // officer's prior saved work survives a discard.
+  const [baselineWatermark, setBaselineWatermark] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({});
   const [loading, setLoading] = useState(true);
   const [priorResult, setPriorResult] = useState<PfScreeningResult | null>(null);
@@ -138,6 +142,13 @@ export function PfScreeningWizard({
             map[r.itemId] = r;
           }
           setResponses(map);
+          setBaselineWatermark(
+            (body.responses as StoredResponse[]).reduce<string | null>(
+              (max, r) =>
+                max === null || r.capturedAt > max ? r.capturedAt : max,
+              null,
+            ),
+          );
           if (body.latestResult) {
             const summary: PfScreeningResult = {
               totalItems: 0,
@@ -233,6 +244,7 @@ export function PfScreeningWizard({
         borrower={borrower}
         onSaveExit={() => router.push("/")}
         onDiscardExit={() => router.push("/")}
+        baselineWatermark={baselineWatermark}
         readOnly={readOnly}
       />
       <div className="mx-auto flex max-w-6xl gap-6 p-6">
@@ -286,6 +298,7 @@ function TopBar({
   borrower,
   onSaveExit,
   onDiscardExit,
+  baselineWatermark,
   readOnly = false,
 }: {
   tenantName: string;
@@ -294,6 +307,8 @@ function TopBar({
   borrower: Borrower;
   onSaveExit: () => void;
   onDiscardExit: () => void;
+  /** Newest captured_at present at mount; rows at or before it survive. */
+  baselineWatermark: string | null;
   readOnly?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -304,10 +319,11 @@ function TopBar({
     setDiscarding(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/pf-screening/responses?loanId=${encodeURIComponent(loan.id)}`,
-        { method: "DELETE" },
-      );
+      const qs = new URLSearchParams({ loanId: loan.id });
+      if (baselineWatermark) qs.set("since", baselineWatermark);
+      const res = await fetch(`/api/pf-screening/responses?${qs.toString()}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body?.error ?? `Server returned ${res.status}`);

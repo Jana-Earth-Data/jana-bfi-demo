@@ -18,7 +18,7 @@
  * The manager workbench CAP sub-tab is untouched by this route.
  */
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Borrower, Loan } from "@/lib/types/bfi";
@@ -54,6 +54,36 @@ export function CapWizard({
   const { isOwner, ownerOfficerName } = useLoanLock();
   const readOnly = !isOwner;
 
+  // CAP rows are drafts in the panel's local state until they are posted,
+  // so "Save & exit" has to actually save. The panel hands its save routine
+  // up through registerSave and reports whether anything is unsaved.
+  const saveRef = useRef<(() => Promise<boolean>) | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const exit = useCallback(() => {
+    router.push(`/?loan=${encodeURIComponent(loan.id)}#mywork`);
+  }, [router, loan.id]);
+
+  const saveThenExit = useCallback(async () => {
+    if (readOnly || !saveRef.current) {
+      exit();
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    const ok = await saveRef.current();
+    setSaving(false);
+    if (ok) exit();
+    else setSaveError("Save failed. Your rows are still here — see the panel for details.");
+  }, [readOnly, exit]);
+
+  const registerSave = useCallback((fn: () => Promise<boolean>) => {
+    saveRef.current = fn;
+  }, []);
+
   return (
     <div
       className="min-h-screen bg-surface text-slate-100"
@@ -64,16 +94,73 @@ export function CapWizard({
         officer={officer}
         loan={loan}
         borrower={borrower}
-        onSaveExit={() =>
-          router.push(`/?loan=${encodeURIComponent(loan.id)}#mywork`)
-        }
+        onSaveExit={() => void saveThenExit()}
+        onDiscardExit={() => (dirty ? setConfirming(true) : exit())}
+        saving={saving}
+        dirty={dirty}
         readOnly={readOnly}
       />
+
+      {saveError && (
+        <div className="mx-auto max-w-5xl px-6 pt-4">
+          <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            {saveError}
+          </div>
+        </div>
+      )}
+
+      {confirming && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(2,6,23,0.85)" }}
+          onClick={() => setConfirming(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-line p-6 shadow-2xl"
+            style={{ backgroundColor: "#111827" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-xs uppercase tracking-wide text-rose-300">
+              Discard unsaved rows
+            </div>
+            <h3 className="mt-1 text-lg font-semibold text-white">
+              Exit without saving?
+            </h3>
+            <p className="mt-3 text-sm text-slate-300">
+              The corrective action and covenant rows you have edited for{" "}
+              <span className="font-semibold text-white">{borrower.name}</span>{" "}
+              (loan {loan.id}) have not been saved and will be discarded.
+              Anything previously saved to the audit trail is untouched.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="rounded-md border border-line bg-panel px-3 py-1.5 text-xs text-slate-300 hover:bg-line/30"
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                onClick={exit}
+                className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20"
+              >
+                Discard and exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-5xl px-6 py-6 space-y-4">
         {readOnly && <LockedByBanner ownerName={ownerOfficerName} />}
 
-        <CapPanel loanId={loan.id} borrowerId={borrower.id} />
+        <CapPanel
+          loanId={loan.id}
+          borrowerId={borrower.id}
+          registerSave={registerSave}
+          onDirtyChange={setDirty}
+        />
 
         {/* Info footer — explains what this capture feeds. Officers
             opening this from a loan card rarely realise that the same
@@ -109,6 +196,9 @@ function TopBar({
   loan,
   borrower,
   onSaveExit,
+  onDiscardExit,
+  saving = false,
+  dirty = false,
   readOnly = false,
 }: {
   tenantName: string;
@@ -116,19 +206,16 @@ function TopBar({
   loan: Loan;
   borrower: Borrower;
   onSaveExit: () => void;
+  onDiscardExit: () => void;
+  saving?: boolean;
+  dirty?: boolean;
   readOnly?: boolean;
 }) {
-  // CAP writes go through the CapPanel's own "Save CAP + covenants"
-  // button (and the monitoring modal's submit) — there's no
-  // wizard-level draft to discard on exit, so we only ship the Save &
-  // Exit control (matches the analyst mental model: "close this and
-  // go back to my work"). Kept as a small component for parity with
-  // the ESDD / PF / PCAF wizard TopBar shapes.
-  const [confirmingClose, _setConfirmingClose] = useState(false);
-  // Retained ref so `confirmingClose` isn't flagged unused; the
-  // confirmation dialog belongs to wizards that mutate multiple rows
-  // outside a save button. CAP saves are explicit inside the panel.
-  void confirmingClose;
+  // Previously this shipped only "Save & exit", which did not save: CAP
+  // rows are drafts until the panel posts them, so an officer who typed a
+  // corrective action and clicked it lost the row. Both controls are real
+  // now — Save & exit posts the drafts, Exit without saving discards them
+  // after a confirmation when there is unsaved work.
 
   return (
     <div className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
@@ -150,17 +237,33 @@ function TopBar({
             <div className="text-slate-300">{officer.name}</div>
             <div className="text-slate-500">{ROLE_LABEL[officer.role]}</div>
           </div>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={onDiscardExit}
+              disabled={saving}
+              className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/15 disabled:opacity-50"
+              title={
+                dirty
+                  ? "Discard the corrective action and covenant rows you have edited but not saved"
+                  : "Close the wizard. Nothing is unsaved."
+              }
+            >
+              Exit without saving
+            </button>
+          )}
           <button
             type="button"
             onClick={onSaveExit}
-            className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
+            disabled={saving}
+            className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30 disabled:opacity-50"
             title={
               readOnly
                 ? "Close the wizard and return to My Work."
-                : "CAP items, covenants, and monitoring reports are saved via the panel's own buttons. This just closes the wizard."
+                : "Save the corrective action and covenant rows, then return to My Work."
             }
           >
-            {readOnly ? "Close" : "Save & exit"}
+            {readOnly ? "Close" : saving ? "Saving…" : "Save & exit"}
           </button>
         </div>
       </div>
