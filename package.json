@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "precompute-portfolio": "tsx scripts/precompute-portfolio.ts",
-    "prebuild": "npm run precompute-portfolio",
+    "prebuild": "node scripts/check-demo-imports.mjs && node scripts/precompute-guard.mjs",
+    "check:demo": "node scripts/check-demo-imports.mjs",
     "build": "next build",
+    "build:demo": "JANA_DEMO=1 next build",
+    "build:live": "next build",
+    "dev:demo": "JANA_DEMO=1 next dev",
     "start": "next start",
     "lint": "next lint"
   },

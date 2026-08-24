@@ -29,6 +29,8 @@
  * nothing to inject.
  */
 
+import { mulberry32, rangeFloat } from "@/lib/data/util";
+
 /**
  * Borrowers treated as publishing third-party-verified emissions
  * (PCAF Option 1a, Score 1).
@@ -56,3 +58,37 @@ export const PCAF_NAME_FIXTURES_UNVERIFIED: string[] = [
   "hetauda cement",
   "butwal power",
 ];
+
+// ---------------------------------------------------------------------------
+// Synthetic air quality
+// ---------------------------------------------------------------------------
+
+/**
+ * A plausible PM2.5 reading derived from a facility's coordinates.
+ *
+ * Moved out of lib/data/screening.ts, where it ran inline inside
+ * buildScreening(). That function is called from a client component, so the
+ * generator was being shipped to every browser -- the means to manufacture a
+ * number that renders identically to a real OpenAQ station reading.
+ *
+ * Deterministic on the coordinates so the demo is stable between runs. The
+ * latitude bands loosely track the real north-south gradient across Nepal:
+ * the Terai is worse than the hills. That makes it plausible, not true.
+ */
+export function synthAirQuality(facility: {
+  lat: number;
+  lng: number;
+  municipality?: string | null;
+}): { pm25: number; readingDate: string; stationName: string } {
+  const seedX = Math.floor(facility.lat * 1000);
+  const seedY = Math.floor(facility.lng * 1000);
+  const r = mulberry32(((seedX ^ seedY) | 1) >>> 0);
+  const baseline = facility.lat < 27.5 ? 120 : facility.lat < 28 ? 80 : 50;
+  return {
+    pm25: Math.round(baseline + rangeFloat(-25, 60, r)),
+    readingDate: "2025-11-01",
+    stationName: facility.municipality
+      ? `${facility.municipality} reference station`
+      : "Nearest OpenAQ station",
+  };
+}

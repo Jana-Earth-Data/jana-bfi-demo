@@ -56,6 +56,17 @@ export type DemoProvider = {
    * module contains no fabricated content.
    */
   pcafNameFixtures(): { verified: string[]; unverified: string[] };
+  /**
+   * A plausible PM2.5 reading for a facility, when no real station reading is
+   * available. Previously generated inline inside buildScreening(), which is
+   * called from a client component -- so the generator shipped to every
+   * browser. Now it is demo-only and server-side.
+   */
+  synthAirQuality(facility: {
+    lat: number;
+    lng: number;
+    municipality?: string | null;
+  }): { pm25: number; readingDate: string; stationName: string };
 };
 
 /**

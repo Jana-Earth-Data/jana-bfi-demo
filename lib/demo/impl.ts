@@ -19,6 +19,7 @@ import {
 import {
   PCAF_NAME_FIXTURES_VERIFIED,
   PCAF_NAME_FIXTURES_UNVERIFIED,
+  synthAirQuality,
 } from "./fixtures";
 import type { DemoProvider } from "./provider";
 
@@ -29,4 +30,5 @@ export const demoProvider: DemoProvider = {
     verified: PCAF_NAME_FIXTURES_VERIFIED,
     unverified: PCAF_NAME_FIXTURES_UNVERIFIED,
   }),
+  synthAirQuality,
 };
