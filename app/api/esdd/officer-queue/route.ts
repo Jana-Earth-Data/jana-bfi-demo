@@ -180,37 +180,7 @@ export async function GET() {
   }
 
   // ------------------------------------------------------------------
-  // 2. Latest ESRM screening per loan (tenant-wide — screenings are
-  //    attributed to whoever saved them, but the flow is bank-wide).
-  // ------------------------------------------------------------------
-  const touchedLoanIds = Array.from(byLoan.keys());
-  const { data: screenings, error: scrErr } = await supabase
-    .from("bfi_esrm_screenings")
-    .select("loan_id, computed_risk_class, escalation_flag, captured_at")
-    .eq("bank_id", tenant.id)
-    .in("loan_id", touchedLoanIds.concat(["__never__"]))
-    .order("captured_at", { ascending: false });
-  if (scrErr) {
-    return NextResponse.json(
-      { error: `Screening query failed: ${scrErr.message}` },
-      { status: 500 },
-    );
-  }
-  const screeningByLoan = new Map<
-    string,
-    { riskClass: RiskClass; escalated: boolean; capturedAt: string }
-  >();
-  for (const s of screenings ?? []) {
-    if (screeningByLoan.has(s.loan_id)) continue;
-    screeningByLoan.set(s.loan_id, {
-      riskClass: s.computed_risk_class as RiskClass,
-      escalated: s.escalation_flag,
-      capturedAt: s.captured_at,
-    });
-  }
-
-  // ------------------------------------------------------------------
-  // 3. Assignments — pull ALL assignments for this tenant so we know
+  // 2. Assignments — pull ALL assignments for this tenant so we know
   //    which loans have an owner (any officer) versus which are
   //    unassigned and free to pick up.
   // ------------------------------------------------------------------
@@ -231,6 +201,46 @@ export async function GET() {
       a.loan_id,
       (a.loan_category_override as string | null | undefined) ?? null,
     );
+  }
+
+  // ------------------------------------------------------------------
+  // 3. Latest ESRM screening per loan (tenant-wide — screenings are
+  //    attributed to whoever saved them, but the flow is bank-wide).
+  // ------------------------------------------------------------------
+  // Screenings must be loaded for loans this officer OWNS as well as ones
+  // they have live answers for. A loan can legitimately have a saved
+  // screening and zero response rows: the wizard's "Exit without saving"
+  // deletes the answer rows but deliberately preserves the screening it
+  // was captured into. Keying this query on responses alone made such a
+  // loan render as untouched -- no risk class, no escalation flag --
+  // despite being screened and owned.
+  const touchedLoanIds = Array.from(byLoan.keys());
+  const screeningLookupIds = Array.from(
+    new Set([...touchedLoanIds, ...myAssignedLoanIds]),
+  );
+  const { data: screenings, error: scrErr } = await supabase
+    .from("bfi_esrm_screenings")
+    .select("loan_id, computed_risk_class, escalation_flag, captured_at")
+    .eq("bank_id", tenant.id)
+    .in("loan_id", screeningLookupIds.concat(["__never__"]))
+    .order("captured_at", { ascending: false });
+  if (scrErr) {
+    return NextResponse.json(
+      { error: `Screening query failed: ${scrErr.message}` },
+      { status: 500 },
+    );
+  }
+  const screeningByLoan = new Map<
+    string,
+    { riskClass: RiskClass; escalated: boolean; capturedAt: string }
+  >();
+  for (const s of screenings ?? []) {
+    if (screeningByLoan.has(s.loan_id)) continue;
+    screeningByLoan.set(s.loan_id, {
+      riskClass: s.computed_risk_class as RiskClass,
+      escalated: s.escalation_flag,
+      capturedAt: s.captured_at,
+    });
   }
 
   // ------------------------------------------------------------------
