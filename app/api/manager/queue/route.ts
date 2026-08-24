@@ -145,11 +145,14 @@ export async function GET() {
   const officerIds = Array.from(new Set(ownerByLoan.values()));
   const officerNameById = new Map<string, string>();
   if (officerIds.length > 0) {
-    const { data: officers } = await supabase
+    const { data: officers, error: offErr } = await supabase
       .from("bfi_officers")
       .select("id, name")
       .eq("bank_id", tenant.id)
       .in("id", officerIds);
+    if (offErr) {
+      console.error("[manager/queue] officer name lookup failed:", offErr.message);
+    }
     for (const o of officers ?? []) officerNameById.set(o.id, o.name);
   }
 
@@ -158,23 +161,35 @@ export async function GET() {
   // returns zero if bfi_cap_items table not present in this environment.
   const todayIso = new Date().toISOString().slice(0, 10);
   const overdueCapCountByLoan = new Map<string, number>();
+  // False when the overdue-CAP query failed, so the client can render
+  // "unavailable" rather than a zero it cannot stand behind.
+  let capCountsAvailable = true;
   try {
-    const { data: capRows } = await supabase
+    const { data: capRows, error: capErr } = await supabase
       .from("bfi_cap_items")
       .select("loan_id")
       .eq("bank_id", tenant.id)
       .in("loan_id", loanIds)
       .neq("status", "completed")
       .lt("deadline_date", todayIso);
+    if (capErr) throw new Error(capErr.message);
     for (const r of capRows ?? []) {
       overdueCapCountByLoan.set(
         r.loan_id,
         (overdueCapCountByLoan.get(r.loan_id) ?? 0) + 1,
       );
     }
-  } catch {
-    // Table missing (older Supabase without the P25 migration) —
-    // silently degrade to zero counts across the board.
+  } catch (err) {
+    // Overdue corrective actions are a compliance figure: NRB ESRM
+    // Guideline 2022 s7.3.5 makes CAP deadlines non-optional. Reporting
+    // zero overdue because a query failed is worse than reporting
+    // nothing, so flag it and let the caller say "unavailable" instead
+    // of rendering a clean bill of health nobody verified.
+    capCountsAvailable = false;
+    console.error(
+      "[manager/queue] overdue CAP query failed; counts suppressed:",
+      (err as Error).message,
+    );
   }
 
   const rows: ManagerQueueRow[] = apps.map((app) => {
@@ -215,6 +230,7 @@ export async function GET() {
     escalatedCount,
     overdueCapsTotal,
     loansWithOverdueCaps,
+    capCountsAvailable,
   });
 }
 

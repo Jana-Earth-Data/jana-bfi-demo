@@ -49,11 +49,17 @@ export async function GET() {
   );
   const nameById = new Map<string, string>();
   if (officerIds.length > 0) {
-    const { data: officers } = await supabase
+    const { data: officers, error: offErr } = await supabase
       .from("bfi_officers")
       .select("id, name")
       .eq("bank_id", tenant.id)
       .in("id", officerIds);
+    if (offErr) {
+      console.error(
+        "[manager/assignments] officer name lookup failed:",
+        offErr.message,
+      );
+    }
     for (const o of officers ?? []) nameById.set(o.id, o.name);
   }
 

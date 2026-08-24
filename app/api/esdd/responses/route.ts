@@ -112,12 +112,21 @@ export async function POST(request: NextRequest) {
   // the primary response insert, which the officer's UI depends on.
   // ------------------------------------------------------------------
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("bfi_loan_assignments")
       .select("id")
       .eq("bank_id", tenant.id)
       .eq("loan_id", loanId)
       .maybeSingle();
+    if (lookupErr) {
+      // A failed lookup reads as "no assignment exists", which would make
+      // the insert below attempt a duplicate claim on an already-owned
+      // loan. Log it rather than let the auto-claim guess.
+      console.error(
+        "[esdd/responses] auto-claim assignment lookup failed:",
+        lookupErr.message,
+      );
+    }
     if (!existing) {
       const { error: assignErr } = await supabase
         .from("bfi_loan_assignments")

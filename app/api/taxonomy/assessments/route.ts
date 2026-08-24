@@ -103,12 +103,21 @@ export async function POST(request: NextRequest) {
   // the primary assessment insert, which the officer's UI depends on.
   // ------------------------------------------------------------------
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("bfi_loan_assignments")
       .select("id")
       .eq("bank_id", tenant.id)
       .eq("loan_id", loanId)
       .maybeSingle();
+    if (lookupErr) {
+      // A failed lookup reads as "no assignment exists", which would make
+      // the insert below attempt a duplicate claim on an already-owned
+      // loan. Log it rather than let the auto-claim guess.
+      console.error(
+        "[taxonomy/assessments] auto-claim assignment lookup failed:",
+        lookupErr.message,
+      );
+    }
     if (!existing) {
       const { error: assignErr } = await supabase
         .from("bfi_loan_assignments")
@@ -189,12 +198,18 @@ export async function GET(request: NextRequest) {
   // "Saved by …" attribution without a second round-trip.
   let officerName: string | null = null;
   if (row?.officer_id) {
-    const { data: officerRow } = await supabase
+    const { data: officerRow, error: officerErr } = await supabase
       .from("bfi_officers")
       .select("name")
       .eq("bank_id", tenant.id)
       .eq("id", row.officer_id)
       .maybeSingle();
+    if (officerErr) {
+      console.error(
+        "[taxonomy/assessments] officer name lookup failed:",
+        officerErr.message,
+      );
+    }
     officerName = officerRow?.name ?? null;
   }
 
