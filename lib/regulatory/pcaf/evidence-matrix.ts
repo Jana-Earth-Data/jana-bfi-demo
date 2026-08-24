@@ -123,6 +123,22 @@ export type PcafEvidenceDocument = {
   /** PCAF option this supports, for the UI and the audit trail. */
   supportsOption: string;
   citation: string;
+  /**
+   * Whose fact is this?
+   *
+   *   "borrower" - a property of the company. Whether it publishes an
+   *                assured GHG inventory does not change per loan, so one
+   *                review serves every facility the bank has to it.
+   *
+   *   "activity" - depends on what was financed. PCAF Part A 3rd Edition
+   *                §5.3 attributes project-finance emissions to the
+   *                PROJECT: the numerator is the project's physical output,
+   *                not the company's total. A hydro developer with five
+   *                plants where the bank financed one needs that plant's
+   *                generation, so these documents are collected per loan
+   *                on project finance and per borrower otherwise.
+   */
+  scope: "borrower" | "activity";
 };
 
 const PCAF_CITATION = "PCAF Global GHG Standard Part A, 3rd Edition §5.2";
@@ -140,6 +156,7 @@ export const PCAF_EVIDENCE_DOCUMENTS: PcafEvidenceDocument[] = [
     establishes: "borrower_publishes_verified",
     supportsOption: "Option 1a",
     citation: `${PCAF_CITATION} · Option 1a (verified emissions)`,
+    scope: "borrower",
   },
   {
     id: "ghg-inventory",
@@ -149,6 +166,7 @@ export const PCAF_EVIDENCE_DOCUMENTS: PcafEvidenceDocument[] = [
     establishes: "borrower_publishes_unverified",
     supportsOption: "Option 1b",
     citation: `${PCAF_CITATION} · Option 1b (unverified reported emissions)`,
+    scope: "borrower",
   },
   {
     id: "energy-records",
@@ -158,6 +176,7 @@ export const PCAF_EVIDENCE_DOCUMENTS: PcafEvidenceDocument[] = [
     establishes: "energy_consumption_data_available",
     supportsOption: "Option 2a",
     citation: `${PCAF_CITATION} · Option 2a (primary energy data)`,
+    scope: "activity",
   },
   {
     id: "production-records",
@@ -167,6 +186,7 @@ export const PCAF_EVIDENCE_DOCUMENTS: PcafEvidenceDocument[] = [
     establishes: "physical_activity_data_available",
     supportsOption: "Option 2b",
     citation: `${PCAF_CITATION} · Option 2b (physical activity data)`,
+    scope: "activity",
   },
   {
     id: "financial-statements",
@@ -176,6 +196,7 @@ export const PCAF_EVIDENCE_DOCUMENTS: PcafEvidenceDocument[] = [
     establishes: "revenue_data_available",
     supportsOption: "Option 3a",
     citation: `${PCAF_CITATION} · Option 3a (revenue-based estimation)`,
+    scope: "borrower",
   },
 ];
 
@@ -188,6 +209,12 @@ export const PCAF_EVIDENCE_BY_ID: Record<string, PcafEvidenceDocument> =
 
 export type PcafEvidenceRecord = {
   documentId: string;
+  /**
+   * Loan this row is scoped to, or null for a company-level document.
+   * Set only for "activity" documents on project-finance loans, where
+   * PCAF §5.3 wants the project's output rather than the company's.
+   */
+  loanId: string | null;
   status: PcafEvidenceStatus;
   /**
    * Reporting year the document covers. A 2024 annual report supports a
@@ -212,6 +239,62 @@ export function isStale(
   if (record.status !== "verified") return false;
   if (record.reportingYear === null) return false;
   return record.reportingYear < disclosureYear;
+}
+
+/**
+ * Attachment key for a document's FILES.
+ *
+ * Deliberately has no loan component, and must never gain one. Files are
+ * borrower-scoped: an officer uploads a borrower's annual report once and
+ * every loan to that borrower can see it. Keying attachments per loan would
+ * make the same PDF get uploaded again for each facility, which is both
+ * wasted work and a reconciliation problem the first time two copies
+ * disagree.
+ *
+ * Review STATE can be loan-scoped even while the file is not -- see
+ * evidenceScopeKey(). Two project-finance loans to one hydro developer draw
+ * on the same document library but reach their own verified/unavailable
+ * conclusions about their own plant, with the officer naming the relevant
+ * file in the row's notes.
+ *
+ * The attachments table indexes (bank_id, entity_type, entity_id, field_key)
+ * non-uniquely, so one key legitimately holds several files.
+ */
+export function evidenceAttachmentKey(doc: PcafEvidenceDocument): string {
+  return `doc_${doc.id}`;
+}
+
+/**
+ * The loan_id an evidence row should carry for this document.
+ *
+ * Company-level documents are always filed against the borrower (null), so
+ * one review serves every loan. Activity documents are filed per loan when
+ * the loan is project finance, because §5.3 scopes the numerator to the
+ * project, and against the borrower otherwise.
+ *
+ * Callers pass the resolved asset class rather than the raw loan category
+ * so the ESDD category override is respected.
+ */
+export function evidenceScopeKey(
+  doc: PcafEvidenceDocument,
+  loanId: string,
+  isProjectFinance: boolean,
+): string | null {
+  if (doc.scope === "borrower") return null;
+  return isProjectFinance ? loanId : null;
+}
+
+/** Pick the row that applies to this loan, preferring a loan-scoped one. */
+export function recordFor(
+  doc: PcafEvidenceDocument,
+  records: PcafEvidenceRecord[],
+  loanId: string,
+  isProjectFinance: boolean,
+): PcafEvidenceRecord | undefined {
+  const wanted = evidenceScopeKey(doc, loanId, isProjectFinance);
+  return records.find(
+    (r) => r.documentId === doc.id && r.loanId === wanted,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -257,8 +340,13 @@ export function resolveAvailability(
   inferred: PcafDataAvailability,
   records: PcafEvidenceRecord[],
   disclosureYear: number,
+  ctx: {
+    /** Loan being scored. Activity documents resolve against it. */
+    loanId: string;
+    /** Whether that loan is project finance (PCAF §5.3). */
+    isProjectFinance: boolean;
+  },
 ): ResolvedAvailability {
-  const byDoc = new Map(records.map((r) => [r.documentId, r]));
   const flags: PcafDataAvailability = { ...inferred };
   const basis = {} as Record<PcafFlagKey, FlagBasis>;
 
@@ -267,7 +355,11 @@ export function resolveAvailability(
   }
 
   for (const doc of PCAF_EVIDENCE_DOCUMENTS) {
-    const rec = byDoc.get(doc.id);
+    // Company-level documents resolve against the borrower row; activity
+    // documents against this loan when it is project finance. Picking the
+    // wrong one would let a hydro developer's group-wide production stand
+    // in for the single financed plant.
+    const rec = recordFor(doc, records, ctx.loanId, ctx.isProjectFinance);
     if (!rec || rec.status === "not-collected" || rec.status === "requested") {
       // Nothing established. Fall back to inference, but say so rather than
       // letting an unreviewed row look the same as a reviewed one.
