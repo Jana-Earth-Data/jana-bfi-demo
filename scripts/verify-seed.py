@@ -50,7 +50,10 @@ import urllib.request
 EXPECTED_ANSWERS = 13
 REQUIRED_QUESTION = "annex5.1.4"
 # Anything at or above MEDIUM escalates one level; LOW does not.
+# "extreme" is still listed because rows written before the ESRR fix may
+# carry it; such a row fails the derivation check, which is the point.
 ESCALATING = {"medium", "high", "extreme"}
+VALID_NRB_CLASSES = {"low", "medium", "high"}
 
 TABLE = "bfi_esrm_screenings"
 COLUMNS = "bank_id,loan_id,computed_risk_class,escalation_flag,captured_at,esdd_snapshot"
@@ -116,9 +119,8 @@ def derive_risk(snapshot, sections):
     any_b = any(v["w"] > 0 for v in buckets.values())
 
     # NRB ESRR criteria: any 'c' -> HIGH, any 'b' with no 'c' -> MEDIUM,
-    # all 'a'/'d' -> LOW. 'extreme' is our own triage tier above HIGH.
-    if total_c >= 3 or max_mean >= 2.5:
-        return "extreme"
+    # all 'a'/'d' -> LOW. Three levels, because NRB has three -- a stored
+    # 'extreme' is now a failure, not a tier.
     if total_c >= 1:
         return "high"
     if any_b:
@@ -210,6 +212,11 @@ def main():
                 f"  [{mark}] {loan:<16} {shown:<16} esc={str(esc):<5} "
                 f"answers={len(ids):<3} has_1.4={REQUIRED_QUESTION in ids}"
             )
+            if risk not in VALID_NRB_CLASSES:
+                failures.append(
+                    f"{loan}: risk class '{risk}' is not one of NRB's three "
+                    f"ESRR levels (low/medium/high)"
+                )
             if not derive_ok:
                 failures.append(
                     f"{loan}: stored risk '{risk}' but the answers derive "

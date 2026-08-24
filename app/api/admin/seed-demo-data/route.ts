@@ -668,7 +668,7 @@ export async function POST(request: NextRequest) {
       loanId: string,
       borrowerId: string,
       responses: Array<{ questionId: string; answer: string; remarks: string | null }>,
-      riskClass: "low" | "medium" | "high" | "extreme",
+      riskClass: "low" | "medium" | "high",
       rationale: string,
     ) => {
       for (const table of ["bfi_esdd_responses", "bfi_esrm_screenings"] as const) {
