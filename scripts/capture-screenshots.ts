@@ -83,7 +83,21 @@ type Shot = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const settle = (page: Page, ms = 900) => page.waitForTimeout(ms);
+// A fixed delay races any fetch slower than itself. The manager queue hits
+// Supabase in ap-south-1, which regularly outruns 900ms -- when it does, the
+// counters render their empty state ("0 assigned / 21 unassigned / 0
+// screening complete") while the per-loan detail beside them has already
+// resolved, and the screenshot captures a page contradicting itself.
+// Wait for the network to go quiet first, then apply the delay for paint.
+const settle = async (page: Page, ms = 900) => {
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 15_000 });
+  } catch {
+    // Some views hold a long-poll open; fall through to the fixed delay
+    // rather than failing the capture.
+  }
+  await page.waitForTimeout(ms);
+};
 
 /** Click a tab in the main dashboard strip by its visible label.
  *
