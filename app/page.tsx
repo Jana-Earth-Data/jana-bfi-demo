@@ -6,6 +6,8 @@ import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
+import { isDemoBuild } from "@/lib/demo/provider";
+import { isDemoMode } from "@/lib/demo/mode";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,13 @@ export default async function HomePage() {
     ...slice,
     officers: tenant.demoOfficers,
     currentOfficer,
+    // Resolved once, server-side, and passed down. The header must not
+    // re-derive these -- isDemoMode() reads a cookie and isDemoBuild() reads
+    // an env var, neither of which a client component can see correctly. One
+    // answer per render is also what stops the banner and the loan count
+    // disagreeing.
+    demoBuild: isDemoBuild(),
+    demoMode: await isDemoMode(),
   };
   return (
     <TenantThemeProvider tenant={tenant}>

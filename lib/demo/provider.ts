@@ -105,18 +105,45 @@ export async function getDemoProvider(): Promise<DemoProvider | null> {
 }
 
 /**
+ * The provider, but only when demo mode is switched ON for this request.
+ *
+ * getDemoProvider() answers "was the demo layer compiled in?". This answers
+ * "should it be used right now?", which is what almost every caller actually
+ * means. Use this one unless you specifically need the build-time answer.
+ *
+ * Server-only: isDemoMode() reads the cookie jar. The import is dynamic to
+ * break the cycle (mode.ts imports isDemoBuild from this file) and to keep
+ * next/headers out of this module's static graph, so provider.ts stays safe
+ * to import from anywhere.
+ */
+export async function getActiveDemoProvider(): Promise<DemoProvider | null> {
+  if (!isDemoBuild()) return null;
+  const { isDemoMode } = await import("./mode");
+  if (!(await isDemoMode())) return null;
+  return getDemoProvider();
+}
+
+/**
  * Convenience for the production call sites of inferPcafAvailability().
  *
- * Returns undefined in a live build, which is exactly what that function
- * wants when nothing should be asserted. Exists so the four call sites read
- * identically -- if they diverged, the availability panel and the portfolio
- * could infer different flags for the same borrower and neither would be
- * obviously wrong.
+ * Returns undefined in a live build OR when demo mode is off, which is
+ * exactly what that function wants when nothing should be asserted. Exists so
+ * the four call sites read identically -- if they diverged, the availability
+ * panel and the portfolio could infer different flags for the same borrower
+ * and neither would be obviously wrong.
+ *
+ * Gating on mode as well as build matters here even though demo-off means an
+ * empty portfolio today. These fixtures grant PCAF Score 1 and 2 on a name
+ * match -- four hardcoded borrower names are the sole source of the top of
+ * the score histogram. Once real borrowers are imported, a name collision
+ * with "Ghorahi" or "Butwal Power" would silently hand a real loan a verified
+ * -disclosure score it has not earned, and PCAF scores drive a disclosed
+ * number. The gate costs nothing and closes that off before the import lands.
  */
 export async function demoPcafNameFixtures(): Promise<
   { verified: string[]; unverified: string[] } | undefined
 > {
-  const provider = await getDemoProvider();
+  const provider = await getActiveDemoProvider();
   return provider?.pcafNameFixtures();
 }
 

@@ -28,7 +28,7 @@ import {
   buildScreeningLive,
 } from "@/lib/data/screening";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
-import { getDemoProvider } from "@/lib/demo/provider";
+import { getActiveDemoProvider, getDemoProvider } from "@/lib/demo/provider";
 import { summarisePortfolioClimate } from "@/lib/regulatory/climate/infer";
 
 const INITIAL_PAGE_SIZE = 50;
@@ -63,9 +63,13 @@ export async function buildDashboardSlice(
   data: BfiDemoData,
   token?: string | null
 ): Promise<DashboardSlicePartial> {
-  // Null in a live build, so borrowers without a real station reading get no
-  // air-quality panel rather than a manufactured one.
-  const demoAirQuality = makeDemoAirQuality(await getDemoProvider());
+  // Null in a live build, and null when demo mode is off, so borrowers
+  // without a real station reading get no air-quality panel rather than a
+  // manufactured one. Mode matters as well as build: buildDashboardSlice runs
+  // over whatever borrowers it is handed, and once CBS import lands those are
+  // real companies. A generated PM2.5 reading attached to a real facility is
+  // a fabricated environmental measurement about a real place.
+  const demoAirQuality = makeDemoAirQuality(await getActiveDemoProvider());
 
   const top = topContributors(data, TOP_N);
   const apps = applicationQueue(data, APP_QUEUE);

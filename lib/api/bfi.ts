@@ -14,6 +14,7 @@
 import { apiFetchAll } from "@/lib/api/client";
 import { TREND_YEARS } from "@/lib/reporting/periods";
 import { getDemoProvider } from "@/lib/demo/provider";
+import { isDemoMode } from "@/lib/demo/mode";
 import { emptyPortfolio } from "@/lib/data/empty-portfolio";
 import {
   BfiDemoData,
@@ -483,7 +484,8 @@ async function fetchLiveAndOverlay(
  * - With token: fetch live Climate TRACE data, overlay onto borrowers.
  */
 /**
- * The base portfolio, from whichever source this build has.
+ * The base portfolio, from whichever source this build has -- and only if the
+ * demo layer is switched on right now.
  *
  * A demo build gets the synthesized 80K-loan book. A live build has no
  * synthesizer compiled into it at all, so it gets a genuinely empty envelope:
@@ -491,8 +493,14 @@ async function fetchLiveAndOverlay(
  * for a bank whose core-banking import has not happened yet, and giving the
  * live path a real answer is what removes the temptation to keep the
  * synthesizer around "just for the empty case".
+ *
+ * The isDemoMode() check is the one that makes the header toggle mean
+ * something. Without it the switch would repaint the chrome while the
+ * dashboard carried on reporting 80,035 fabricated loans -- which is worse
+ * than having no switch at all, because it would look like it worked.
  */
 async function basePortfolio(): Promise<BfiDemoData> {
+  if (!(await isDemoMode())) return emptyPortfolio();
   const provider = await getDemoProvider();
   return provider ? provider.getPortfolio() : emptyPortfolio();
 }

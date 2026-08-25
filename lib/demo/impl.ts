@@ -7,9 +7,9 @@
  * thin is deliberate: it is a wiring layer, and the less logic it holds the
  * less there is to accidentally depend on from outside.
  *
- * The synthesizer itself still lives at lib/data/portfolio.ts. Moving it under
- * lib/demo/ is the next step; routing every consumer through this seam first
- * means that move touches one import instead of five.
+ * The synthesizer now lives at lib/demo/portfolio.ts, alongside this file.
+ * Routing every consumer through this seam first meant the move touched one
+ * import rather than five.
  */
 
 import {

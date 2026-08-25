@@ -11,6 +11,18 @@
  * of a hardcoded list. The last check confirms the switch does not disturb
  * genuine inference, which would be a different bug wearing the same clothes.
  *
+ * Scope: the BUILD-time half of the boundary only.
+ *
+ * This deliberately calls getDemoProvider().pcafNameFixtures() rather than the
+ * demoPcafNameFixtures() helper the app uses. The helper now also consults
+ * isDemoMode(), which reads the cookie jar via next/headers and throws outside
+ * a request scope -- there is no request here, this is a plain node process.
+ *
+ * The runtime half is covered statically by scripts/check-demo-mode-gate.mjs,
+ * which asserts that basePortfolio() gates on isDemoMode() before touching the
+ * provider. Splitting them is not a gap: each half is checked by the tool that
+ * can actually see it, and both run in prebuild.
+ *
  * Usage:  npx tsx scripts/check-demo-boundary.ts
  * Exit 0 = boundary holds, 1 = broken.
  */
@@ -31,20 +43,24 @@ const ghorahi = {
 } as unknown as Borrower;
 
 (async () => {
-  const { demoPcafNameFixtures, __resetDemoProviderCache } = await import(
+  const { getDemoProvider, __resetDemoProviderCache } = await import(
     "@/lib/demo/provider"
   );
+
+  /** Build-level fixtures, skipping the cookie-reading mode check. */
+  const buildFixtures = async () =>
+    (await getDemoProvider())?.pcafNameFixtures();
 
   // --- live build: no fixtures available ---------------------------------
   delete process.env.JANA_DEMO;
   __resetDemoProviderCache();
-  const liveFixtures = await demoPcafNameFixtures();
+  const liveFixtures = await buildFixtures();
   const live = inferPcafAvailability(ghorahi, "commercial-term-loan", liveFixtures);
 
   // --- demo build: fixtures available ------------------------------------
   process.env.JANA_DEMO = "1";
   __resetDemoProviderCache();
-  const demoFixtures = await demoPcafNameFixtures();
+  const demoFixtures = await buildFixtures();
   const demo = inferPcafAvailability(ghorahi, "commercial-term-loan", demoFixtures);
 
   const checks: [string, boolean][] = [
