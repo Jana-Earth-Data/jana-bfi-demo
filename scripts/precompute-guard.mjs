@@ -19,20 +19,61 @@
  * installed in the build environment.
  */
 
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, rmSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, basename } from "node:path";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const artifact = join(repoRoot, "lib/data/precomputed-portfolio.json.gz");
+const ARTIFACT_NAME = "precomputed-portfolio.json.gz";
+const artifact = join(repoRoot, "lib/data", ARTIFACT_NAME);
 const isDemo = process.env.JANA_DEMO === "1";
+
+/**
+ * INVARIANT: a build never destroys customer data.
+ *
+ * The build touches no database. It reads source, writes .next, and manages
+ * exactly one generated file -- the synthesized portfolio below, which is
+ * gitignored, reproducible from source in about twenty seconds, and contains
+ * nothing a bank has entered.
+ *
+ * Everything a customer creates lives in Postgres: ESDD answers, screenings,
+ * taxonomy assessments, corrective actions, evidence attachments, PCAF
+ * document review. None of it is reachable from here, and purging seeded rows
+ * in a live environment must always be an explicit operator action rather than
+ * a side effect of deploying.
+ *
+ * The deletion below is guarded rather than trusted. A path computed from
+ * __dirname is normally right, but "normally right" is how a delete gets
+ * pointed somewhere unintended after a refactor, and the cost of being wrong
+ * here is asymmetric.
+ */
+function assertSafeToDelete(target) {
+  if (basename(target) !== ARTIFACT_NAME) {
+    throw new Error(
+      `[precompute-guard] refusing to delete ${target}: name is not ` +
+        `${ARTIFACT_NAME}. This script deletes exactly one generated file.`,
+    );
+  }
+  if (!target.startsWith(join(repoRoot, "lib/data") + "/")) {
+    throw new Error(
+      `[precompute-guard] refusing to delete ${target}: outside lib/data.`,
+    );
+  }
+  const st = statSync(target);
+  if (!st.isFile()) {
+    throw new Error(
+      `[precompute-guard] refusing to delete ${target}: not a regular file.`,
+    );
+  }
+}
 
 if (!isDemo) {
   console.log(
     "[precompute-guard] JANA_DEMO is not set — building WITHOUT the demo layer.",
   );
   if (existsSync(artifact)) {
+    assertSafeToDelete(artifact);
     rmSync(artifact);
     console.log(
       "[precompute-guard] Removed a stale precomputed portfolio left by an " +
