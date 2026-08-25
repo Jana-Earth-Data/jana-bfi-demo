@@ -29,7 +29,7 @@
  * nothing to inject.
  */
 
-import { mulberry32, rangeFloat } from "@/lib/data/util";
+import { mulberry32, rangeFloat } from "@/lib/demo/synth-util";
 
 /**
  * Borrowers treated as publishing third-party-verified emissions

@@ -18,7 +18,7 @@
  *
  * Usage:  npx tsx scripts/check-pcaf-overlay.ts
  */
-import { getPortfolio } from "@/lib/data/portfolio";
+import { getPortfolio } from "@/lib/demo/portfolio";
 import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
 
 const base = getPortfolio();

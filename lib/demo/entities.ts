@@ -20,7 +20,7 @@ import {
   BorrowerKind,
   MatchedFacility,
 } from "@/lib/types/bfi";
-import { mulberry32, rangeFloat } from "@/lib/data/util";
+import { mulberry32, rangeFloat } from "@/lib/demo/synth-util";
 
 // ---------------------------------------------------------------------------
 // Real Climate TRACE 2024 facility index — keyed by 4-decimal lat/lon

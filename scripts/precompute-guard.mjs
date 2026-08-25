@@ -26,7 +26,7 @@ import { dirname, join, basename } from "node:path";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ARTIFACT_NAME = "precomputed-portfolio.json.gz";
-const artifact = join(repoRoot, "lib/data", ARTIFACT_NAME);
+const artifact = join(repoRoot, "lib/demo", ARTIFACT_NAME);
 const isDemo = process.env.JANA_DEMO === "1";
 
 /**
@@ -55,9 +55,9 @@ function assertSafeToDelete(target) {
         `${ARTIFACT_NAME}. This script deletes exactly one generated file.`,
     );
   }
-  if (!target.startsWith(join(repoRoot, "lib/data") + "/")) {
+  if (!target.startsWith(join(repoRoot, "lib/demo") + "/")) {
     throw new Error(
-      `[precompute-guard] refusing to delete ${target}: outside lib/data.`,
+      `[precompute-guard] refusing to delete ${target}: outside lib/demo.`,
     );
   }
   const st = statSync(target);

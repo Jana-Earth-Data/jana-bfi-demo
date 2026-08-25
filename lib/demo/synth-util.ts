@@ -1,22 +1,19 @@
 /**
- * Synthesizer utilities: deterministic PRNG, simple distributions, constants.
+ * Synthesizer utilities — deterministic PRNG, distributions, invented branches.
  *
- * Used by the portfolio synthesizer so that every run produces the same
- * 80K-loan portfolio (stable across requests, SSR/CSR, and demos).
+ * Demo-only. Nothing outside lib/demo/ may import this; the boundary is
+ * enforced by scripts/check-demo-imports.mjs.
  *
- * Currency conversion moved to lib/units.ts and the reporting year range to
- * lib/reporting/periods.ts, because production code needs both and this file
- * is bound for lib/demo/. Re-exported below so the synthesizer's own call
- * sites are unaffected; the re-exports go away when this file moves.
+ * Everything here exists to make the fabricated 80K-loan portfolio
+ * reproducible: the same seed yields the same book on every run, so the demo
+ * is stable across requests and between machines.
+ *
+ * Currency conversion and the reporting year range deliberately do NOT live
+ * here. They are real product concerns -- three UI components and the live
+ * Climate TRACE fetch depend on them -- so they sit in lib/units.ts and
+ * lib/reporting/periods.ts and are imported from there. Keeping them out
+ * means moving this file could never strand production code.
  */
-
-export { NPR_PER_USD, nprToUsd, usdToNpr, roundNpr } from "@/lib/units";
-export {
-  TREND_YEARS,
-  LATEST_FULL_YEAR,
-  LATEST_YEAR,
-  LATEST_YEAR_PARTIAL_THROUGH,
-} from "@/lib/reporting/periods";
 
 /** Reference "as-of" date for the demo dashboard. */
 export const AS_OF_DATE = "2026-05-01";

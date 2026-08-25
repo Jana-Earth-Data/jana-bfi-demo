@@ -32,19 +32,17 @@ import {
 import {
   AS_OF_DATE,
   BRANCHES,
-  TREND_YEARS,
   isoDateOffsetDays,
   logUniform,
   mulberry32,
-  nprToUsd,
   pick,
   pickWeighted,
   rangeFloat,
   rangeInt,
-  roundNpr,
-  usdToNpr,
-} from "@/lib/data/util";
-import { getBorrowerCatalog, SmeBorrower } from "@/lib/data/entities";
+} from "@/lib/demo/synth-util";
+import { nprToUsd, roundNpr, usdToNpr } from "@/lib/units";
+import { TREND_YEARS } from "@/lib/reporting/periods";
+import { getBorrowerCatalog, SmeBorrower } from "@/lib/demo/entities";
 import {
   assetClassForLoanCategory,
   computePcafScore,
@@ -871,7 +869,7 @@ export function getPortfolio(): BfiDemoData {
     const zlib = require("zlib") as typeof import("zlib");
     const gzPath = path.join(
       process.cwd(),
-      "lib/data/precomputed-portfolio.json.gz"
+      "lib/demo/precomputed-portfolio.json.gz"
     );
     if (fs.existsSync(gzPath)) {
       const compressed = fs.readFileSync(gzPath);
@@ -899,4 +897,7 @@ export function invalidatePortfolioCache() {
 }
 
 /** Re-export for downstream callers */
-export { usdToNpr, nprToUsd } from "@/lib/data/util";
+// Currency helpers live in lib/units.ts, which is real product code. Kept
+// re-exported here only because existing callers import them from the
+// portfolio module; they should move to @/lib/units directly.
+export { usdToNpr, nprToUsd } from "@/lib/units";

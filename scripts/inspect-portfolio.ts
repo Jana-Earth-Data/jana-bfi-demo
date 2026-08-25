@@ -2,7 +2,7 @@
  * Quick inspection of the synthesized portfolio. Run with:
  *   npx tsx scripts/inspect-portfolio.ts
  */
-import { getPortfolio } from "@/lib/data/portfolio";
+import { getPortfolio } from "@/lib/demo/portfolio";
 
 const p = getPortfolio();
 console.log(`Bank: ${p.meta.bankName}`);

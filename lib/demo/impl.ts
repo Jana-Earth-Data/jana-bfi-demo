@@ -15,7 +15,7 @@
 import {
   getPortfolio,
   invalidatePortfolioCache,
-} from "@/lib/data/portfolio";
+} from "@/lib/demo/portfolio";
 import {
   PCAF_NAME_FIXTURES_VERIFIED,
   PCAF_NAME_FIXTURES_UNVERIFIED,

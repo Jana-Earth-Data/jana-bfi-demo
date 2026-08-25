@@ -31,22 +31,20 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCANNED = ["app", "components", "lib"];
 
 /**
- * Files allowed to reach past the provider.
+ * Files allowed to reach past the provider: the demo layer itself, and
+ * nothing else.
  *
- * lib/demo/** is the demo layer itself. The three dev scripts under scripts/
- * are not scanned at all: they are tooling, never bundled, and inspecting the
- * synthesizer is their job.
+ * This list was briefly longer. The synthesizer, its borrower catalogue and
+ * its PRNG toolbox lived under lib/data/ and had to be excepted by path,
+ * which meant three fabricated modules sat in a directory whose name implied
+ * they were real. Moving them into lib/demo/ collapsed the exception list to
+ * one entry -- the rule is now "demo code lives in the demo folder", with no
+ * asterisks to remember.
+ *
+ * Dev scripts under scripts/ are not scanned. They are tooling, never
+ * bundled, and inspecting the synthesizer is their job.
  */
-const ALLOWED_PREFIXES = [
-  "lib/demo/",
-  // Pending relocation into lib/demo/. These two ARE the synthesizer -- the
-  // 80K loan generator and its invented borrower catalogue -- so they import
-  // each other legitimately. They are listed here rather than pattern-matched
-  // away so the exception is visible and disappears when they move.
-  "lib/data/portfolio.ts",
-  "lib/data/entities.ts",
-  "lib/data/util.ts",
-];
+const ALLOWED_PREFIXES = ["lib/demo/"];
 
 /**
  * Import specifiers that constitute a violation outside lib/demo/.
@@ -56,12 +54,9 @@ const ALLOWED_PREFIXES = [
 const FORBIDDEN = [
   { pattern: /@\/lib\/demo\/impl["']/, what: "the demo provider implementation" },
   { pattern: /@\/lib\/demo\/fixtures["']/, what: "fabricated PCAF name fixtures" },
-  // Terminated on the quote so this does not also catch lib/data/portfolio-query,
-  // which is a real query module that operates on whatever data it is handed
-  // and has no business being on this list.
-  { pattern: /@\/lib\/data\/portfolio["']/, what: "the 80K-loan synthesizer" },
-  { pattern: /@\/lib\/data\/entities["']/, what: "the synthesized borrower catalogue" },
-  { pattern: /@\/lib\/data\/util["']/, what: "the synthesizer's seeded-PRNG toolbox" },
+  { pattern: /@\/lib\/demo\/portfolio["']/, what: "the 80K-loan synthesizer" },
+  { pattern: /@\/lib\/demo\/entities["']/, what: "the synthesized borrower catalogue" },
+  { pattern: /@\/lib\/demo\/synth-util["']/, what: "the synthesizer's seeded-PRNG toolbox" },
 ];
 
 function walk(dir, out = []) {
