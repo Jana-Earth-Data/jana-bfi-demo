@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "precompute-portfolio": "tsx scripts/precompute-portfolio.ts",
-    "prebuild": "node scripts/check-demo-imports.mjs && node scripts/precompute-guard.mjs",
+    "prebuild": "node scripts/check-build-wiring.mjs && node scripts/check-demo-imports.mjs && node scripts/precompute-guard.mjs",
     "check:demo": "node scripts/check-demo-imports.mjs",
     "build": "next build",
-    "build:demo": "JANA_DEMO=1 next build",
-    "build:live": "next build",
+    "build:demo": "JANA_DEMO=1 npm run build",
+    "build:live": "npm run build",
     "dev:demo": "JANA_DEMO=1 next dev",
     "start": "next start",
     "lint": "next lint"
