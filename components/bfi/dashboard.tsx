@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
 import { DashboardHeader } from "@/components/bfi/header";
+import { EmptyPortfolioState } from "@/components/bfi/empty-portfolio-state";
 import { TaxonomyTab } from "@/components/bfi/tabs/taxonomy-tab";
 import { NfrsTab } from "@/components/bfi/tabs/nfrs-tab";
 import { EsrmTab } from "@/components/bfi/tabs/esrm-tab";
@@ -51,6 +52,14 @@ export type DashboardSsrData = {
   officers: Officer[];
   /** Currently signed-in officer, or null when none is selected. */
   currentOfficer: Officer | null;
+  /**
+   * Demo flags, resolved server-side in app/page.tsx. Optional because
+   * several call sites build a DashboardSsrData for tests and fixtures;
+   * absent is treated as false, so anything that forgets to pass them shows
+   * no demo controls rather than showing them spuriously.
+   */
+  demoBuild?: boolean;
+  demoMode?: boolean;
 };
 
 type TabId = "mywork" | "loans" | "esrm" | "taxonomy" | "nfrs";
@@ -182,6 +191,8 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
         isLive={isLive}
         officers={data.officers}
         currentOfficer={data.currentOfficer}
+        demoBuild={data.demoBuild ?? false}
+        demoMode={data.demoMode ?? false}
       />
 
       <nav className="border-b border-line bg-panel/40" data-tour="tab-strip">
@@ -234,6 +245,18 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
       )}
 
       <main className="mx-auto max-w-[1500px] px-6 py-6">
+        {/*
+          Rendered above the tabs, not instead of them. The tabs still show
+          their zeros so a prospect can see the shape of the product; this
+          explains why the zeros are there. Keyed off totalLoanCount rather
+          than a demo flag, because the live pre-import case is the same
+          state and deserves the same explanation.
+        */}
+        {data.totalLoanCount === 0 && (
+          <div className="mb-6">
+            <EmptyPortfolioState demoBuild={data.demoBuild ?? false} />
+          </div>
+        )}
         {tab === "mywork" && <MyWorkTab data={active} />}
         {tab === "loans" && <LoansTab data={active} />}
         {tab === "esrm" && <EsrmTab data={active} />}
@@ -242,7 +265,14 @@ function DashboardInner({ data }: { data: DashboardSsrData }) {
       </main>
 
       <footer className="border-t border-line bg-panel/30 py-4 text-center text-xs text-slate-500">
-        {data.meta.bankName} demo dashboard · Synthesized portfolio · Real facility data from Climate TRACE &amp; Global Cement and Concrete Tracker
+        {/*
+          This line used to read "demo dashboard · Synthesized portfolio"
+          unconditionally, which in a live build would have been a false
+          statement printed on every page of a real bank's instance.
+        */}
+        {data.meta.bankName}
+        {data.demoMode ? " demo dashboard · Synthesized portfolio" : " dashboard"}
+        {" · Facility data from Climate TRACE & Global Cement and Concrete Tracker"}
       </footer>
     </div>
   );

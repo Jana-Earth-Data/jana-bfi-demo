@@ -27,10 +27,12 @@
  */
 
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import type { Officer, TenantConfig } from "@/lib/tenants";
+import { getCaptureClient } from "@/lib/data/capture-client";
+import { currentOfficerRoster } from "@/lib/officers/resolve";
 
 export type LoanLockState = {
   loanId: string;
@@ -79,7 +81,7 @@ export async function resolveLoanLockFor(
   tenant: TenantConfig,
   officer: Officer | null,
 ): Promise<LoanLockState> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     // No DB — degrade gracefully. Assume the current officer owns
     // whatever they're touching so the demo still works locally
@@ -182,7 +184,7 @@ export async function resolveLoanLockFor(
   // Case 3 — owned by a different officer. Resolve the owner's display
   // name from the tenant roster (cheap in-memory lookup, avoids a
   // round-trip to bfi_officers on the hot path).
-  const owner = tenant.demoOfficers.find((o) => o.id === ownerId);
+  const owner = (await currentOfficerRoster()).find((o) => o.id === ownerId);
   return {
     loanId,
     isOwner: false,
@@ -201,7 +203,7 @@ export async function lookupLoanOwner(
   loanId: string,
   tenant: TenantConfig,
 ): Promise<string | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
@@ -249,7 +251,7 @@ export async function assertOwnerOrRespond(
   const ownerId = await lookupLoanOwner(loanId, tenant);
   if (ownerId == null) return null; // unassigned OR lookup failed — allow
   if (ownerId === officer.id) return null; // owner — allow
-  const owner = tenant.demoOfficers.find((o) => o.id === ownerId);
+  const owner = (await currentOfficerRoster()).find((o) => o.id === ownerId);
   return NextResponse.json(
     {
       error: "Loan is assigned to a different officer",

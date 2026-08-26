@@ -16,10 +16,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
+import { apiError, requireOfficer, requireCaptureClient } from "@/lib/api/route-helpers";
 import type {
   CapBundle,
   CapItem,
@@ -170,32 +170,21 @@ function toMonitoring(row: MonitoringRow): MonitoringReport {
 export async function GET(_req: NextRequest, { params }: Params) {
   const { loanId } = await params;
   if (!loanId) {
-    return NextResponse.json({ error: "loanId is required" }, { status: 400 });
+    return apiError("loanId is required", 400);
   }
 
   const demo = await getBfiDemoData();
   const loan = demo.loans.find((l) => l.id === loanId);
   if (!loan) {
-    return NextResponse.json(
-      { error: `Loan ${loanId} not found` },
-      { status: 404 },
-    );
+    return apiError(`Loan ${loanId} not found`, 404);
   }
   const borrower = demo.borrowers.find((b) => b.id === loan.borrowerId);
   if (!borrower) {
-    return NextResponse.json(
-      { error: `Borrower ${loan.borrowerId} not found` },
-      { status: 404 },
-    );
+    return apiError(`Borrower ${loan.borrowerId} not found`, 404);
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
 
   // Determine the loan's ESRR risk class from the latest saved screening.
@@ -247,22 +236,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .order("reporting_period_end", { ascending: false }),
   ]);
   if (itemsRes.error) {
-    return NextResponse.json(
-      { error: `CAP item query failed: ${itemsRes.error.message}` },
-      { status: 500 },
-    );
+    return apiError(`CAP item query failed: ${itemsRes.error.message}`, 500);
   }
   if (covRes.error) {
-    return NextResponse.json(
-      { error: `Covenant query failed: ${covRes.error.message}` },
-      { status: 500 },
-    );
+    return apiError(`Covenant query failed: ${covRes.error.message}`, 500);
   }
   if (monRes.error) {
-    return NextResponse.json(
-      { error: `Monitoring query failed: ${monRes.error.message}` },
-      { status: 500 },
-    );
+    return apiError(`Monitoring query failed: ${monRes.error.message}`, 500);
   }
 
   // Overdue derivation — status stored on the row wins for a completed
@@ -333,24 +313,14 @@ const VALID_FREQUENCY = new Set<number>([1, 3, 6, 12]);
 export async function POST(request: NextRequest, { params }: Params) {
   const { loanId } = await params;
   if (!loanId) {
-    return NextResponse.json({ error: "loanId is required" }, { status: 400 });
+    return apiError("loanId is required", 400);
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
-  const officer = await resolveCurrentOfficer();
-  if (!officer) {
-    return NextResponse.json(
-      { error: "Officer must be selected before saving CAP data." },
-      { status: 401 },
-    );
-  }
+  const [officer, offErr] = await requireOfficer("saving CAP data");
+  if (offErr) return offErr;
 
   let body: {
     borrowerId?: string;
@@ -363,14 +333,11 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
+    return apiError("Body must be JSON.", 400);
   }
   const { borrowerId } = body;
   if (!borrowerId) {
-    return NextResponse.json(
-      { error: "borrowerId is required." },
-      { status: 400 },
-    );
+    return apiError("borrowerId is required.", 400);
   }
 
   // Owner-only edit (P36). CAP items, covenants, and monitoring reports
@@ -386,20 +353,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     const area = (raw.areaOfConcern as string | undefined)?.trim();
     const action = (raw.correctiveAction as string | undefined)?.trim();
     if (!area || !action) {
-      return NextResponse.json(
-        {
-          error:
-            "Each CAP item requires non-empty areaOfConcern and correctiveAction.",
-        },
-        { status: 400 },
+      return apiError(
+        "Each CAP item requires non-empty areaOfConcern and correctiveAction.",
+        400,
       );
     }
     const status = (raw.status as CapItem["status"] | undefined) ?? "not_started";
     if (!VALID_CAP_STATUS.has(status)) {
-      return NextResponse.json(
-        { error: `Invalid CAP item status: ${status}` },
-        { status: 400 },
-      );
+      return apiError(`Invalid CAP item status: ${status}`, 400);
     }
     const row: Record<string, unknown> = {
       bank_id: tenant.id,

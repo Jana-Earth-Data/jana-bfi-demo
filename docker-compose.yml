@@ -8,6 +8,9 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api-test.jana.earth}
         NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-https://auth-dev.jana.earth}
         NEXT_PUBLIC_DEMO_USE_MOCKS: ${NEXT_PUBLIC_DEMO_USE_MOCKS:-true}
+        # Bake the demo layer in. Set JANA_DEMO=0 to build a customer image
+        # with no synthesizer and no demo controls in the bundle.
+        JANA_DEMO: ${JANA_DEMO:-1}
     ports:
       - "3001:3000"
     # Pull Supabase keys + seed token from .env.local at runtime. Anything in
@@ -18,6 +21,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      # Runtime half of the same flag — isDemoBuild() reads it per request to
+      # gate the Demo menu and the /api/demo/mode toggle. Must match the build
+      # arg above or the image contains the demo layer but will not serve it.
+      - JANA_DEMO=${JANA_DEMO:-1}
       # Override Docker's auto-assigned HOSTNAME (the container ID). Next's
       # standalone server binds to it, and a bare hex ID fails to resolve.
       # The offline stack dodges this only because it sets container_name.

@@ -30,8 +30,9 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
+import { getCaptureClient } from "@/lib/data/capture-client";
 import {
   brandingFromTenant,
   type TaxonomyAssessmentRow,
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
   // the officer's saved computed_color when available, falling back
   // to the synthesised loan.nrbTaxonomy otherwise.
   let assessments: TaxonomyAssessmentRow[] = [];
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (supabase) {
     const { data, error } = await supabase
       .from("bfi_taxonomy_assessments")

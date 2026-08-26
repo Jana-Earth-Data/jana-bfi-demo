@@ -15,12 +15,9 @@ import {
   NrbTaxonomyColor,
   PcafMethodology,
 } from "@/lib/types/bfi";
-import {
-  BFI_LOANS_TABLE,
-  getSupabaseAdmin,
-  isSupabaseConfigured,
-} from "@/lib/data/supabase";
+import { BFI_LOANS_TABLE, isSupabaseConfigured } from "@/lib/data/supabase";
 import type { LoanRow } from "@/lib/data/portfolio-query";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -130,7 +127,7 @@ async function querySupabase(
   page: number,
   pageSize: number
 ): Promise<{ rows: LoanRow[]; total: number; page: number; pageSize: number }> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) throw new Error("Supabase not configured");
 
   // Build a fresh query builder per attempt — Supabase builders are single-use

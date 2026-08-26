@@ -23,7 +23,7 @@ import {
   taxonomyColors,
 } from "@/components/bfi/ui";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
-import { NPR_PER_USD } from "@/lib/data/util";
+import { NPR_PER_USD } from "@/lib/units";
 import { NrbTaxonomyExportButton } from "@/components/bfi/reports/nrb-taxonomy-export-button";
 import { NrbsisGreenStatementButton } from "@/components/bfi/reports/nrbsis-green-statement-button";
 

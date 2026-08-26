@@ -28,6 +28,7 @@ import {
   buildScreeningLive,
 } from "@/lib/data/screening";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
+import { getActiveDemoProvider, getDemoProvider } from "@/lib/demo/provider";
 import { summarisePortfolioClimate } from "@/lib/regulatory/climate/infer";
 
 const INITIAL_PAGE_SIZE = 50;
@@ -41,10 +42,35 @@ const APP_QUEUE = 30;
  */
 type DashboardSlicePartial = Omit<DashboardSsrData, "officers" | "currentOfficer">;
 
+/**
+ * Synthetic air quality for a borrower's first geocoded facility, in a demo
+ * build only. Returns undefined in a live build, where a borrower with no
+ * real station reading simply has no air-quality panel -- which is the honest
+ * result rather than an invented one.
+ */
+function makeDemoAirQuality(
+  provider: Awaited<ReturnType<typeof getDemoProvider>>,
+) {
+  return (b: Borrower) => {
+    if (!provider) return undefined;
+    const f = b.facilities[0];
+    if (!f || !Number.isFinite(f.lat)) return undefined;
+    return provider.synthAirQuality(f);
+  };
+}
+
 export async function buildDashboardSlice(
   data: BfiDemoData,
   token?: string | null
 ): Promise<DashboardSlicePartial> {
+  // Null in a live build, and null when demo mode is off, so borrowers
+  // without a real station reading get no air-quality panel rather than a
+  // manufactured one. Mode matters as well as build: buildDashboardSlice runs
+  // over whatever borrowers it is handed, and once CBS import lands those are
+  // real companies. A generated PM2.5 reading attached to a real facility is
+  // a fabricated environmental measurement about a real place.
+  const demoAirQuality = makeDemoAirQuality(await getActiveDemoProvider());
+
   const top = topContributors(data, TOP_N);
   const apps = applicationQueue(data, APP_QUEUE);
   const initial = queryLoans(data, {
@@ -91,14 +117,14 @@ export async function buildDashboardSlice(
           console.warn(
             `Screening live for ${b.id} failed, falling back: ${(err as Error).message}`
           );
-          return [b.id, buildScreening(b)] as const;
+          return [b.id, buildScreening(b, demoAirQuality(b))] as const;
         }
       })
     );
     for (const [id, s] of results) screenings[id] = s;
   } else {
     for (const b of screeningBorrowers) {
-      screenings[b.id] = buildScreening(b);
+      screenings[b.id] = buildScreening(b, demoAirQuality(b));
     }
   }
 

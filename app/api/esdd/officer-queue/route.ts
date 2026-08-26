@@ -26,8 +26,7 @@
 
 import { NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
@@ -36,6 +35,7 @@ import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
 import { isProjectFinanceLoanWithOverride } from "@/lib/regulatory/esdd/pf-loan-gate";
 import { ANNEX5B_ALL } from "@/lib/regulatory/esdd/annex5b-pf-questions";
 import { inferEmissionsFlag } from "@/lib/regulatory/climate/infer";
+import { apiError, requireOfficer, requireCaptureClient } from "@/lib/api/route-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -122,21 +122,11 @@ export type LoanCard = {
 };
 
 export async function GET() {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
-  const officer = await resolveCurrentOfficer();
-  if (!officer) {
-    return NextResponse.json(
-      { error: "Officer must be selected before viewing the queue." },
-      { status: 401 },
-    );
-  }
+  const [officer, offErr] = await requireOfficer("viewing the queue");
+  if (offErr) return offErr;
 
   // Pull demo loans + borrowers upfront so we can look up meta by id.
   const data = await getBfiDemoData();

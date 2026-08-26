@@ -39,43 +39,19 @@ import {
 } from "./types";
 
 // ---------------------------------------------------------------------------
-// Manual overrides for the demo — small hand-picked set that gets Score 1 & 2
+// Name-fixture matching
 // ---------------------------------------------------------------------------
 //
-// PCAF Score 1 (Option 1a — verified) requires the borrower to publish
-// GHG-Protocol-conformant emissions AND have them third-party verified.
-// In real Nepal today this is vanishingly rare — NMB Bank Ltd itself
-// publishes a PCAF-aligned disclosure (R4 §7.1), but few of its cement
-// or hydro borrowers do.  For the demo we flag three publicly-listed
-// Ghorahi Cement, plus two publicly-listed hydro operators, to make
-// the full 1..5 spectrum show up in the disclosure histogram.
+// PCAF Score 1 (Option 1a) requires the borrower to publish
+// GHG-Protocol-conformant emissions AND have them third-party verified;
+// Score 2 (Option 1b) drops the verification requirement. Neither can be
+// inferred from anything this module can see -- establishing them means
+// someone opening the annual report and looking, which is what
+// lib/regulatory/pcaf/evidence-matrix.ts records.
 //
-// Score 2 (Option 1b — unverified) is a common step-up we assign to
-// publicly-listed cement + hydro operators that are known to include
-// scope 1+2 in annual reports but do not verify per ISO 14064.  This
-// is realistic for the NEPSE-listed sub-set of the borrower catalog.
-//
-// Matching is by lower-cased borrower-name substring so the flags travel
-// with the entity even if the underlying entity list gets re-ordered.
-
-const NAME_SUBSTRING_VERIFIED = [
-  // R4 §6.1 and §7.1 — Ghorahi Cement is publicly listed, one of the
-  // larger dry-process producers, and used as the demo's "Score 1
-  // exemplar" for the small subset of Nepal borrowers that publish
-  // GHG-Protocol-conformant emissions with third-party verification.
-  "ghorahi",
-];
-
-const NAME_SUBSTRING_UNVERIFIED = [
-  // Publicly-listed cement operators used as the "Score 2 exemplars"
-  // — annual reports typically include scope 1+2, but the emissions
-  // are not third-party verified.
-  "arghakhanchi",
-  "hetauda cement",
-  // Publicly-listed hydro operator — Butwal Power Company is
-  // NEPSE-listed and a signatory of climate-disclosure regimes.
-  "butwal power",
-];
+// This module therefore asserts neither. Callers may pass name fixtures for
+// demonstration purposes; a live build has none to pass. See
+// lib/demo/fixtures.ts for why those lists are not kept here.
 
 function matchAny(name: string, substrings: string[]): boolean {
   const n = name.toLowerCase();
@@ -147,13 +123,21 @@ export function assetClassForLoanCategory(
  *     revenue data available → Score 4.
  *   - Otherwise sector-average only → Score 5.
  *
- * On top of those, a small list of named borrowers is manually set to
- * publish (verified / unverified) GHG-Protocol-conformant emissions so
- * the disclosure histogram shows the full 1..5 distribution.
+ * The two published-emissions flags are NOT inferred. Nothing observable
+ * here establishes whether a borrower publishes an assured GHG inventory, so
+ * they default false and are set by document review. A caller may inject
+ * name fixtures to demonstrate the full 1..5 histogram; a live build does
+ * not.
  */
 export function inferPcafAvailability(
   borrower: Borrower,
   loanCategory: LoanCategory | undefined,
+  /**
+   * Optional borrower-name substrings that assert published emissions
+   * without evidence. Supplied by the demo layer; omitted in a live build,
+   * where these two flags are established by document review instead.
+   */
+  nameFixtures?: { verified: string[]; unverified: string[] },
 ): PcafDataAvailability {
   // Retail personal / education are out-of-scope regardless of borrower state.
   const outOfScope =
@@ -173,11 +157,17 @@ export function inferPcafAvailability(
     };
   }
 
-  // --- Manual publishes-emissions overrides for the demo ---
-  const publishesVerified = matchAny(borrower.name, NAME_SUBSTRING_VERIFIED);
+  // --- Published-emissions claims ---
+  // False unless a caller injects fixtures. In a live build nothing does, so
+  // these two flags start unasserted and are established by verified document
+  // evidence instead -- see resolveAvailability() in evidence-matrix.ts.
+  const publishesVerified = nameFixtures
+    ? matchAny(borrower.name, nameFixtures.verified)
+    : false;
   const publishesUnverified =
-    !publishesVerified &&
-    matchAny(borrower.name, NAME_SUBSTRING_UNVERIFIED);
+    !publishesVerified && nameFixtures
+      ? matchAny(borrower.name, nameFixtures.unverified)
+      : false;
 
   // --- Physical activity data ---
   // A facility match (either Climate TRACE, GCCT, or curated GEM entity)

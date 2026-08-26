@@ -15,7 +15,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { getCaptureClient } from "@/lib/data/capture-client";
+
 import {
   HYDRO_DOCUMENT_STATUSES,
   findHydroDocument,
@@ -30,7 +31,7 @@ const VALID_STATUSES = new Set<HydroDocumentStatus>([
 ]);
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },

@@ -32,24 +32,26 @@ import {
 import {
   AS_OF_DATE,
   BRANCHES,
-  TREND_YEARS,
   isoDateOffsetDays,
   logUniform,
   mulberry32,
-  nprToUsd,
   pick,
   pickWeighted,
   rangeFloat,
   rangeInt,
-  roundNpr,
-  usdToNpr,
-} from "@/lib/data/util";
-import { getBorrowerCatalog, SmeBorrower } from "@/lib/data/entities";
+} from "@/lib/demo/synth-util";
+import { nprToUsd, roundNpr, usdToNpr } from "@/lib/units";
+import { TREND_YEARS } from "@/lib/reporting/periods";
+import { getBorrowerCatalog, SmeBorrower } from "@/lib/demo/entities";
 import {
   assetClassForLoanCategory,
   computePcafScore,
   inferPcafAvailability,
 } from "@/lib/regulatory/pcaf/scoring";
+import {
+  PCAF_NAME_FIXTURES_VERIFIED,
+  PCAF_NAME_FIXTURES_UNVERIFIED,
+} from "@/lib/demo/fixtures";
 import { SCORE_FOR_OPTION } from "@/lib/regulatory/pcaf/types";
 
 // ---------------------------------------------------------------------------
@@ -271,7 +273,15 @@ const RETAIL_TCO2E_PER_NPR = 6e-6;
 function pcafFor(loan: Loan, borrower: Borrower): PcafAttribution {
   // 1. Determine PCAF asset class + inferred availability flags.
   const assetClass = assetClassForLoanCategory(loan.category);
-  const availability = inferPcafAvailability(borrower, loan.category);
+  // This module IS the demo layer, so it passes the name fixtures directly.
+  // Without them Scores 1 and 2 are empty: nothing observable establishes that
+  // a borrower publishes emissions, and the synthesized book has no document
+  // evidence. Production callers get the same fixtures via getDemoProvider()
+  // in a demo build, and none at all in a live one -- see lib/demo/provider.ts.
+  const availability = inferPcafAvailability(borrower, loan.category, {
+    verified: PCAF_NAME_FIXTURES_VERIFIED,
+    unverified: PCAF_NAME_FIXTURES_UNVERIFIED,
+  });
 
   // 2. Run the PCAF §5 decision tree.
   const compute = computePcafScore(loan, borrower, null, availability, assetClass);
@@ -838,18 +848,25 @@ function buildPortfolio(): BfiDemoData {
  * on every cold start pushed user load times past 60s. Fix: build the
  * portfolio once at `next build` time (see scripts/precompute-portfolio.ts)
  * and read it from a JSON file at request time — ~500ms parse vs. ~50s synth.
+ */
+/**
+ * Load or synthesize the 80K-loan portfolio.
+ *
+ * Async to avoid blocking the Node.js event loop during gzip decompression
+ * of the precomputed portfolio (~2.7 MB compressed). The cache is module-
+ * scoped, so the async I/O only runs on the first request; subsequent calls
+ * return the cached result immediately.
  *
  * Falls back to in-memory synthesis if the precomputed JSON is missing so
  * that `npm run dev` (which skips `prebuild`) still works out of the box.
  */
-export function getPortfolio(): BfiDemoData {
+export async function getPortfolio(): Promise<BfiDemoData> {
   if (portfolioCache) return portfolioCache;
 
   // Prefer the precomputed gzipped JSON (written by
   // scripts/precompute-portfolio.ts during `next build`). This code only
   // runs on the server (API routes + server components), so `require` of
-  // Node built-ins is safe. Read + gunzip + parse totals ~300ms for the
-  // 80K-loan portfolio; the alternative is ~50s of in-memory synthesis.
+  // Node built-ins is safe.
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require("fs") as typeof import("fs");
@@ -857,13 +874,16 @@ export function getPortfolio(): BfiDemoData {
     const path = require("path") as typeof import("path");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const zlib = require("zlib") as typeof import("zlib");
+    const { promisify } = require("util") as typeof import("util");
+    const gunzip = promisify(zlib.gunzip);
+
     const gzPath = path.join(
       process.cwd(),
-      "lib/data/precomputed-portfolio.json.gz"
+      "lib/demo/precomputed-portfolio.json.gz"
     );
     if (fs.existsSync(gzPath)) {
-      const compressed = fs.readFileSync(gzPath);
-      const raw = zlib.gunzipSync(compressed).toString("utf8");
+      const compressed = await fs.promises.readFile(gzPath);
+      const raw = (await gunzip(compressed)).toString("utf8");
       portfolioCache = JSON.parse(raw) as BfiDemoData;
       return portfolioCache;
     }
@@ -887,4 +907,7 @@ export function invalidatePortfolioCache() {
 }
 
 /** Re-export for downstream callers */
-export { usdToNpr, nprToUsd } from "@/lib/data/util";
+// Currency helpers live in lib/units.ts, which is real product code. Kept
+// re-exported here only because existing callers import them from the
+// portfolio module; they should move to @/lib/units directly.
+export { usdToNpr, nprToUsd } from "@/lib/units";

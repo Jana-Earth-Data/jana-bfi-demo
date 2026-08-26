@@ -1,5 +1,11 @@
 import { getBfiDemoData, fetchClimateTraceSummary } from "@/lib/api/bfi";
+import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
+
+import { resolveCurrentTenant } from "@/lib/tenants";
 import { NextRequest, NextResponse } from "next/server";
+import { getCaptureClient } from "@/lib/data/capture-client";
+
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/bfi-data
@@ -23,8 +29,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(summary);
     }
 
-    const data = await getBfiDemoData(token);
-    return NextResponse.json(data);
+    const base = await getBfiDemoData(token);
+
+    // Apply the same officer PCAF overlay the SSR dashboard applies. Without
+    // it, clicking "Sign in for live data" would silently revert the
+    // data-quality figures to their build-time values -- the officers' review
+    // would appear to undo itself the moment the user authenticated.
+    const tenant = await resolveCurrentTenant();
+    const supabase = await getCaptureClient();
+    const overlay = supabase
+      ? await applyOfficerPcafOverlay(base, tenant.id, supabase as never)
+      : null;
+
+    return NextResponse.json(overlay?.data ?? base);
   } catch (err) {
     console.error("BFI data fetch failed:", err);
     return NextResponse.json(
