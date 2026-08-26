@@ -48,7 +48,7 @@ async function main() {
 
   console.log(`[precompute-portfolio] synthesizing portfolio...`);
   const synthT0 = Date.now();
-  const data = getPortfolio();
+  const data = await getPortfolio();
   const synthMs = Date.now() - synthT0;
   console.log(`[precompute-portfolio] synthesis complete in ${synthMs} ms — ${data.loans.length.toLocaleString()} loans, ${data.borrowers.length.toLocaleString()} borrowers, ${data.attributions.length.toLocaleString()} attributions`);
 

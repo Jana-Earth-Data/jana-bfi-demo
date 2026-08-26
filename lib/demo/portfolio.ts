@@ -848,18 +848,25 @@ function buildPortfolio(): BfiDemoData {
  * on every cold start pushed user load times past 60s. Fix: build the
  * portfolio once at `next build` time (see scripts/precompute-portfolio.ts)
  * and read it from a JSON file at request time — ~500ms parse vs. ~50s synth.
+ */
+/**
+ * Load or synthesize the 80K-loan portfolio.
+ *
+ * Async to avoid blocking the Node.js event loop during gzip decompression
+ * of the precomputed portfolio (~2.7 MB compressed). The cache is module-
+ * scoped, so the async I/O only runs on the first request; subsequent calls
+ * return the cached result immediately.
  *
  * Falls back to in-memory synthesis if the precomputed JSON is missing so
  * that `npm run dev` (which skips `prebuild`) still works out of the box.
  */
-export function getPortfolio(): BfiDemoData {
+export async function getPortfolio(): Promise<BfiDemoData> {
   if (portfolioCache) return portfolioCache;
 
   // Prefer the precomputed gzipped JSON (written by
   // scripts/precompute-portfolio.ts during `next build`). This code only
   // runs on the server (API routes + server components), so `require` of
-  // Node built-ins is safe. Read + gunzip + parse totals ~300ms for the
-  // 80K-loan portfolio; the alternative is ~50s of in-memory synthesis.
+  // Node built-ins is safe.
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require("fs") as typeof import("fs");
@@ -867,13 +874,16 @@ export function getPortfolio(): BfiDemoData {
     const path = require("path") as typeof import("path");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const zlib = require("zlib") as typeof import("zlib");
+    const { promisify } = require("util") as typeof import("util");
+    const gunzip = promisify(zlib.gunzip);
+
     const gzPath = path.join(
       process.cwd(),
       "lib/demo/precomputed-portfolio.json.gz"
     );
     if (fs.existsSync(gzPath)) {
-      const compressed = fs.readFileSync(gzPath);
-      const raw = zlib.gunzipSync(compressed).toString("utf8");
+      const compressed = await fs.promises.readFile(gzPath);
+      const raw = (await gunzip(compressed)).toString("utf8");
       portfolioCache = JSON.parse(raw) as BfiDemoData;
       return portfolioCache;
     }

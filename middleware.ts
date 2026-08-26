@@ -1,24 +1,53 @@
 /**
- * Route middleware — steers visitors through the bank access-code entry.
+ * Route middleware — two responsibilities:
  *
- * Rules:
- *   - If the URL carries ?bank=CODE (any path), redirect to /enter?bank=CODE
- *     so the server-side handler in app/enter/page.tsx can validate the
- *     code, set the cookie, and forward on to /.
- *   - If the visitor has no tenant cookie and is asking for a real page
- *     (not the landing page itself, not an API route, not a static asset),
- *     redirect them to /enter to enter a code.
- *   - Otherwise pass through unchanged.
+ * 1. **Tenant gating (pages):** Steers visitors through the bank access-code
+ *    entry flow. If the visitor has no tenant cookie and is requesting a real
+ *    page, redirect them to /enter to enter a code.
  *
- * The tenant cookie is the visitor's identity for the rest of the session.
- * It is set only by /enter or by /api/tenant/set-code.
+ * 2. **Rate limiting (API routes):** Applies a per-IP sliding-window rate
+ *    limit to all /api/* requests. Returns 429 when exceeded.
+ *
+ * The matcher now includes both page paths and API routes, with the logic
+ * branching by pathname prefix.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { TENANT_COOKIE_NAME } from "@/lib/tenants/resolve";
+import { isTenantId } from "@/lib/tenants/registry";
+import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // -----------------------------------------------------------------------
+  // API routes — rate limiting only (no tenant redirect)
+  // -----------------------------------------------------------------------
+  if (pathname.startsWith("/api/")) {
+    // Health check is excluded from rate limiting — orchestrators (Docker
+    // HEALTHCHECK, ECS, ALB) poll it every few seconds.
+    if (pathname === "/api/health") {
+      return NextResponse.next();
+    }
+    const ip = getClientIp(request.headers);
+    const result = checkRateLimit(ip);
+    if (!result.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil(result.retryAfterMs / 1000)),
+          },
+        },
+      );
+    }
+    return NextResponse.next();
+  }
+
+  // -----------------------------------------------------------------------
+  // Page routes — tenant gating
+  // -----------------------------------------------------------------------
 
   // ?bank=CODE anywhere → hand off to the landing page for validation.
   const bankCode = searchParams.get("bank");
@@ -43,16 +72,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Cookie present but value is not a known tenant → clear the invalid
+  // cookie and redirect to /enter. This prevents a stale or forged cookie
+  // from bypassing the entry gate and reaching routes that would fall back
+  // to the default tenant silently.
+  if (!isTenantId(cookie.value)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/enter";
+    url.search = "";
+    const response = NextResponse.redirect(url);
+    response.cookies.delete(TENANT_COOKIE_NAME);
+    return response;
+  }
+
   return NextResponse.next();
 }
 
 /**
- * Matcher: skip API routes, Next internals, static assets, and public files.
- * We want middleware to run on real pages (/, /any-page) so we can gate
- * them on the tenant cookie.
+ * Matcher: includes API routes (for rate limiting) and page routes (for
+ * tenant gating). Skips Next internals, static assets, and public files.
  */
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|tenants/|audio/|green_logo\\.png|admin/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|tenants/|audio/|green_logo\\.png|admin/).*)",
   ],
 };

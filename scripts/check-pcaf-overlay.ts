@@ -21,50 +21,50 @@
 import { getPortfolio } from "@/lib/demo/portfolio";
 import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
 
-const base = getPortfolio();
+(async () => {
+  const base = await getPortfolio();
 
-// Pick a real borrower with loans that are currently NOT score 1.
-const byBorrower = new Map<string, string[]>();
-for (const l of base.loans) {
-  byBorrower.set(l.borrowerId, [...(byBorrower.get(l.borrowerId) ?? []), l.id]);
-}
-const attrByLoan = new Map(base.attributions.map((a) => [a.loanId, a]));
-let target: string | null = null;
-let bestTonnes = -1;
-for (const [bid, loanIds] of byBorrower) {
-  const scores = loanIds.map((id) => attrByLoan.get(id)?.dataQualityScore);
-  if (!(loanIds.length >= 1 && scores.every((s) => s !== undefined && s > 1))) continue;
-  const b = base.borrowers.find((x) => x.id === bid);
-  if (!b || b.kind === "retail-pool" || b.facilities.length === 0) continue;
-  const t = loanIds.reduce((sum, id) => sum + (attrByLoan.get(id)?.attributedCo2eTonnes ?? 0), 0);
-  if (t > bestTonnes) { bestTonnes = t; target = bid; }
-}
-if (!target) throw new Error("no suitable borrower found");
-const loanIds = byBorrower.get(target)!;
-const before = base.portfolio.weightedDataQuality;
+  // Pick a real borrower with loans that are currently NOT score 1.
+  const byBorrower = new Map<string, string[]>();
+  for (const l of base.loans) {
+    byBorrower.set(l.borrowerId, [...(byBorrower.get(l.borrowerId) ?? []), l.id]);
+  }
+  const attrByLoan = new Map(base.attributions.map((a) => [a.loanId, a]));
+  let target: string | null = null;
+  let bestTonnes = -1;
+  for (const [bid, loanIds] of byBorrower) {
+    const scores = loanIds.map((id) => attrByLoan.get(id)?.dataQualityScore);
+    if (!(loanIds.length >= 1 && scores.every((s) => s !== undefined && s > 1))) continue;
+    const b = base.borrowers.find((x) => x.id === bid);
+    if (!b || b.kind === "retail-pool" || b.facilities.length === 0) continue;
+    const t = loanIds.reduce((sum, id) => sum + (attrByLoan.get(id)?.attributedCo2eTonnes ?? 0), 0);
+    if (t > bestTonnes) { bestTonnes = t; target = bid; }
+  }
+  if (!target) throw new Error("no suitable borrower found");
+  const loanIds = byBorrower.get(target)!;
+  const before = base.portfolio.weightedDataQuality;
 
-// Officer says: this borrower publishes third-party-verified emissions.
-const stub = {
-  from: () => ({
-    select: () => ({
-      eq: async () => ({
-        data: [{
-          borrower_id: target,
-          borrower_publishes_verified: true,
-          borrower_publishes_unverified: true,
-          energy_consumption_data_available: false,
-          physical_activity_data_available: true,
-          revenue_data_available: true,
-          sector_average_only: false,
-          out_of_scope: false,
-        }],
-        error: null,
+  // Officer says: this borrower publishes third-party-verified emissions.
+  const stub = {
+    from: () => ({
+      select: () => ({
+        eq: async () => ({
+          data: [{
+            borrower_id: target,
+            borrower_publishes_verified: true,
+            borrower_publishes_unverified: true,
+            energy_consumption_data_available: false,
+            physical_activity_data_available: true,
+            revenue_data_available: true,
+            sector_average_only: false,
+            out_of_scope: false,
+          }],
+          error: null,
+        }),
       }),
     }),
-  }),
-} as never;
+  } as never;
 
-(async () => {
   const r = await applyOfficerPcafOverlay(base, "default", stub);
   const after = r.data.portfolio.weightedDataQuality;
   const scoresBefore = loanIds.map((id) => attrByLoan.get(id)!.dataQualityScore);

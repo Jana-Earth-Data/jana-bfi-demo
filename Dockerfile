@@ -66,4 +66,9 @@ USER nextjs
 
 EXPOSE 3000
 
+# Health check: /api/health returns 200 when the Next.js server is ready.
+# curl is included in node:20-alpine via busybox wget; use wget instead.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
+
 CMD ["node", "server.js"]
