@@ -21,7 +21,7 @@ import { getBorrowerDetail } from "@/lib/data/portfolio-query";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveLoanLockFor } from "@/lib/officers/loan-lock";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +64,7 @@ export default async function EsddWizardPage({
   // instead of re-deriving on every mount. Null when no override is
   // recorded — the wizard falls back to deriveEsddLoanCategory(...).
   let initialLoanCategoryOverride: string | null = null;
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (supabase) {
     try {
       const { data: assign } = await supabase

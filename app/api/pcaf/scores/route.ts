@@ -30,7 +30,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import {
   assetClassForLoanCategory,

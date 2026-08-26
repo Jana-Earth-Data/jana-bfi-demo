@@ -19,8 +19,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const VALID_ANSWERS = new Set(["yes", "no", "n/a"]);
 const VALID_PS = new Set(["PS1", "PS2", "PS3", "PS4", "PS5", "PS6", "PS7", "PS8"]);
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -181,7 +182,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },

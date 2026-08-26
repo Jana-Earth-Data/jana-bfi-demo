@@ -22,6 +22,8 @@ import {
   BFI_LOANS_TABLE,
   getSupabaseAdmin,
 } from "@/lib/data/supabase";
+import { withOrigin } from "@/lib/data/capture-client";
+import { apiError, requireAdminToken } from "@/lib/api/route-helpers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel function timeout, in seconds
@@ -29,29 +31,19 @@ export const maxDuration = 60; // Vercel function timeout, in seconds
 const BATCH_SIZE = 1000;
 
 export async function POST(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get("token");
-  const expected = process.env.SEED_ADMIN_TOKEN;
-  if (!expected) {
-    return NextResponse.json(
-      { error: "SEED_ADMIN_TOKEN is not configured on the server." },
-      { status: 500 }
-    );
-  }
-  if (token !== expected) {
-    return NextResponse.json(
-      { error: "Unauthorized: bad or missing token." },
-      { status: 401 }
-    );
-  }
+  const authErr = requireAdminToken(request);
+  if (authErr) return authErr;
 
-  const supabase = getSupabaseAdmin();
+  // Seeded rows are demo rows by definition, regardless of what mode the
+  // operator happens to be in when they run the seeder. Forcing 'demo' here
+  // rather than deriving it from the request is what makes the label mean
+  // "this was manufactured" instead of "this was written on a Tuesday".
+  const admin = getSupabaseAdmin();
+  const supabase = admin ? withOrigin(admin, "demo") : null;
   if (!supabase) {
-    return NextResponse.json(
-      {
-        error:
-          "Supabase env vars are not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-      },
-      { status: 500 }
+    return apiError(
+      "Supabase env vars are not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      500,
     );
   }
 
@@ -61,16 +53,13 @@ export async function POST(request: NextRequest) {
   // means writing fabricated rows and a live deployment must not have any.
   const demo = await getDemoProvider();
   if (!demo) {
-    return NextResponse.json(
-      {
-        error:
-          "Seeding is unavailable: this build has no demo layer. Fabricated " +
-          "loan data cannot be written to a live deployment.",
-      },
-      { status: 400 },
+    return apiError(
+      "Seeding is unavailable: this build has no demo layer. Fabricated " +
+      "loan data cannot be written to a live deployment.",
+      400,
     );
   }
-  const portfolio = demo.getPortfolio();
+  const portfolio = await demo.getPortfolio();
   const borrowerById = new Map(portfolio.borrowers.map((b) => [b.id, b]));
   const attributionByLoanId = new Map(
     portfolio.attributions.map((a) => [a.loanId, a])
@@ -116,10 +105,7 @@ export async function POST(request: NextRequest) {
     .delete()
     .neq("id", "__never__");
   if (truncErr) {
-    return NextResponse.json(
-      { error: `Failed to truncate ${BFI_LOANS_TABLE}: ${truncErr.message}` },
-      { status: 500 }
-    );
+    return apiError(`Failed to truncate ${BFI_LOANS_TABLE}: ${truncErr.message}`, 500);
   }
 
   // 2. Insert in batches
@@ -128,13 +114,9 @@ export async function POST(request: NextRequest) {
     const batch = rows.slice(i, i + BATCH_SIZE);
     const { error } = await supabase.from(BFI_LOANS_TABLE).insert(batch);
     if (error) {
-      return NextResponse.json(
-        {
-          error: `Insert failed at offset ${i}: ${error.message}`,
-          insertedSoFar: inserted,
-        },
-        { status: 500 }
-      );
+      return apiError(`Insert failed at offset ${i}: ${error.message}`, 500, {
+        details: { insertedSoFar: inserted },
+      });
     }
     inserted += batch.length;
   }

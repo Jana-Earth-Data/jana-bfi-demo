@@ -502,7 +502,7 @@ async function fetchLiveAndOverlay(
 async function basePortfolio(): Promise<BfiDemoData> {
   if (!(await isDemoMode())) return emptyPortfolio();
   const provider = await getDemoProvider();
-  return provider ? provider.getPortfolio() : emptyPortfolio();
+  return provider ? await provider.getPortfolio() : emptyPortfolio();
 }
 
 export async function getBfiDemoData(

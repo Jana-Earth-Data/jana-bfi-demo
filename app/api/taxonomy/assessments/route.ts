@@ -15,14 +15,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -230,7 +231,7 @@ export async function GET(request: NextRequest) {
  * Used by the wizard's "Exit without saving" action.
  */
 export async function DELETE(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },

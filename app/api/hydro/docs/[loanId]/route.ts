@@ -17,7 +17,7 @@
 
 import { NextResponse } from "next/server";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
 import {
   HYDRO_DOCUMENTS,
@@ -29,6 +29,7 @@ import {
   requiredDocumentsForCapacity,
 } from "@/lib/regulatory/hydro/doc-matrix";
 import { getBorrowerHydroCapacityMw } from "@/lib/regulatory/hydro/capacity";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ async function loadStatuses(
   bankId: string,
   loanId: string,
 ): Promise<Map<string, StatusRow>> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) return new Map();
   const { data, error } = await supabase
     .from("bfi_hydro_doc_status")

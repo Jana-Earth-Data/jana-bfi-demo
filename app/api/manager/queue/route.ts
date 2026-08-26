@@ -13,10 +13,11 @@
 
 import { NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { applicationQueue } from "@/lib/data/portfolio-query";
 import { fullChecklist } from "@/lib/regulatory/esdd/annex5-questions";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export type ManagerQueueRow = {
 };
 
 export async function GET() {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },

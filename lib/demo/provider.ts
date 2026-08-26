@@ -45,7 +45,7 @@ import type { BfiDemoData } from "@/lib/types/bfi";
  */
 export type DemoProvider = {
   /** The synthesized portfolio: loans, borrowers, attributions, summary. */
-  getPortfolio(): BfiDemoData;
+  getPortfolio(): Promise<BfiDemoData> | BfiDemoData;
   /** Drop the in-process cache. Used by the seed routes after a rewrite. */
   invalidatePortfolioCache(): void;
   /**

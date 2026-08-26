@@ -3,11 +3,12 @@ import { TenantThemeProvider } from "@/components/bfi/tenant-theme";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { buildDashboardSlice } from "@/lib/data/dashboard-slice";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { resolveCurrentOfficer, currentOfficerRoster } from "@/lib/officers/resolve";
+
 import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
 import { isDemoBuild } from "@/lib/demo/provider";
 import { isDemoMode } from "@/lib/demo/mode";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function HomePage() {
   // anyone reviewed anything — without this the dashboard would report a
   // weighted score computed as though the review had not happened. Scoped to
   // this tenant; only reviewed borrowers' loans are re-scored.
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   const overlay = supabase
     ? await applyOfficerPcafOverlay(base, tenant.id, supabase as never)
     : null;
@@ -43,7 +44,7 @@ export default async function HomePage() {
   const slice = await buildDashboardSlice(data, null);
   const enriched = {
     ...slice,
-    officers: tenant.demoOfficers,
+    officers: await currentOfficerRoster(),
     currentOfficer,
     // Resolved once, server-side, and passed down. The header must not
     // re-derive these -- isDemoMode() reads a cookie and isDemoBuild() reads

@@ -41,7 +41,21 @@ function referencedPaths(cmd) {
   );
 }
 
-const required = new Set();
+/**
+ * Non-script files the guards READ during the build.
+ *
+ * The .mjs convention covers scripts that get executed. It does not cover
+ * data a guard opens — check-capture-client.mjs reads the migration SQL to
+ * detect drift, and when that file was excluded the guard failed inside
+ * `docker build` claiming the migration was "missing". Which was true of the
+ * build context and false of the repo, the most confusing possible wording.
+ */
+const REQUIRED_DATA_FILES = [
+  "scripts/supabase-origin-column.sql",
+  "docker/postgres/initdb.d/97-origin-column.sql",
+];
+
+const required = new Set(REQUIRED_DATA_FILES);
 for (const name of BUILD_CHAIN) {
   for (const p of referencedPaths(scripts[name] ?? "")) required.add(p);
 }

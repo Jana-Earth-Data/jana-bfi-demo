@@ -37,7 +37,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useTour } from "@/lib/tour/tour-context";
+import { useTour, PENDING_TOUR_KEY } from "@/lib/tour/tour-context";
 import { availableTours } from "@/lib/tour/registry";
 import type { TourName } from "@/lib/tour/types";
 
@@ -100,6 +100,34 @@ export function DemoMenu({
     };
   }, [open, place]);
 
+  /**
+   * Start a tour, turning demo data back on first if it is off.
+   *
+   * A tour narrates a portfolio: it points at the financed-emissions total,
+   * walks into a borrower's ESDD, reads out PCAF scores. Run with demo mode
+   * off it would talk an audience through empty tiles and a "No portfolio
+   * loaded" panel while the audio confidently describes 9.8M tCO2e.
+   *
+   * So the tour implies the data. Enabling it is not overriding the operator's
+   * choice so much as completing the request they just made — and the change
+   * is not silent: the amber banner comes back, which is the whole point of
+   * the banner.
+   */
+  async function launchTour(name: TourName) {
+    setOpen(false);
+    if (demoMode) {
+      startTour(name);
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(PENDING_TOUR_KEY, name);
+    } catch {
+      // Private browsing. The mode switch below still works; the operator
+      // just has to click the tour again once the page comes back.
+    }
+    await setDemoMode(true);
+  }
+
   async function setDemoMode(on: boolean) {
     setError(null);
     try {
@@ -114,11 +142,31 @@ export function DemoMenu({
         // working one.
         const body = await res.json().catch(() => ({}));
         setError(body?.error ?? `Toggle failed (HTTP ${res.status}).`);
+        // Drop any parked tour — the reload is not coming, and a stale key
+        // would fire a surprise tour on the next unrelated page load.
+        try {
+          window.sessionStorage.removeItem(PENDING_TOUR_KEY);
+        } catch {
+          /* nothing to clean up */
+        }
+        setOpen(true);
         return;
       }
       setOpen(false);
-      // Server components read the cookie, so a refresh is what applies it.
-      startTransition(() => router.refresh());
+      // Full reload, not router.refresh().
+      //
+      // router.refresh() re-renders server components but leaves client
+      // components holding whatever they fetched earlier. Several panels --
+      // the officer work queue, follow-ups, the manager queue -- fetch in a
+      // useEffect keyed on officer id, which does not change when demo mode
+      // does. After a soft refresh the dashboard correctly said "No portfolio
+      // loaded" while the queue below it still listed 17 synthetic loans to
+      // claim, and only a manual browser refresh cleared it.
+      //
+      // That is the worst kind of half-state: the page contradicts itself and
+      // the stale half is the fabricated half. Toggling demo mode changes the
+      // data source for the entire app, so the entire app should reload.
+      window.location.reload();
     } catch (e) {
       setError((e as Error).message || "Toggle request did not complete.");
     }
@@ -213,14 +261,20 @@ export function DemoMenu({
             <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
               Guided tours
             </div>
+            {!demoMode && (
+              // Said before the click, not after. The tour is about to switch
+              // demo data back on and reload the page; that is reasonable, but
+              // only if it was not a surprise.
+              <p className="px-3 pb-1.5 text-[11px] leading-snug text-amber-300/80">
+                Tours narrate the synthetic portfolio — starting one turns demo
+                data back on and reloads.
+              </p>
+            )}
             {tours.map((name: TourName) => (
               <button
                 key={name}
                 role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  startTour(name);
-                }}
+                onClick={() => void launchTour(name)}
                 className="block w-full rounded px-3 py-1.5 text-left text-xs text-slate-300 transition hover:bg-white/5"
               >
                 {TOUR_LABELS[name] ?? name}

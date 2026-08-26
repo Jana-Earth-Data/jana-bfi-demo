@@ -26,10 +26,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { demoPcafNameFixtures } from "@/lib/demo/provider";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
+import { getCaptureClient } from "@/lib/data/capture-client";
 import {
   PCAF_EVIDENCE_DOCUMENTS,
   PCAF_EVIDENCE_BY_ID,
@@ -102,7 +103,7 @@ async function loadContext(loanId: string) {
 
 export async function GET(_req: NextRequest, { params }: Params) {
   const { loanId } = await params;
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
   }
@@ -179,7 +180,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const { loanId } = await params;
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
   }

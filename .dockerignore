@@ -32,6 +32,10 @@ scripts/
 # excluded from the image.
 !scripts/*.mjs
 !scripts/precompute-portfolio.ts
+# check-capture-client.mjs reads this to verify the app's CAPTURE_TABLES has
+# not drifted from the migration. It is data the guard needs, not a script it
+# runs, so the .mjs convention above does not cover it.
+!scripts/supabase-origin-column.sql
 data/_raw_*.csv
 data/_raw_*.geojson
 

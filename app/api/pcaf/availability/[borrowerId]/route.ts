@@ -48,7 +48,7 @@
 import { NextResponse } from "next/server";
 import { demoPcafNameFixtures } from "@/lib/demo/provider";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
@@ -63,6 +63,7 @@ import type {
   PcafComputationResult,
 } from "@/lib/regulatory/pcaf/types";
 import type { Borrower, Loan, LoanCategory } from "@/lib/types/bfi";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -177,7 +178,7 @@ async function loadSavedRow(
   bankId: string,
   borrowerId: string,
 ): Promise<SavedRow | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("bfi_pcaf_availability")
@@ -271,7 +272,7 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },

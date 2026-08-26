@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { buildDashboardSlice } from "@/lib/data/dashboard-slice";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { resolveCurrentOfficer, currentOfficerRoster } from "@/lib/officers/resolve";
+
 import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Same officer PCAF overlay as app/page.tsx. This route backs the
     // dashboard's client-side refresh, so omitting it would make the
     // data-quality figures revert on any re-fetch.
-    const supabase = getSupabaseAdmin();
+    const supabase = await getCaptureClient();
     const overlay = supabase
       ? await applyOfficerPcafOverlay(base, tenant.id, supabase as never)
       : null;
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     const slice = await buildDashboardSlice(data, token);
     return NextResponse.json({
       ...slice,
-      officers: tenant.demoOfficers,
+      officers: await currentOfficerRoster(),
       currentOfficer,
     });
   } catch (err) {

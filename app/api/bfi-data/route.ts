@@ -1,8 +1,9 @@
 import { getBfiDemoData, fetchClimateTraceSummary } from "@/lib/api/bfi";
 import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { NextRequest, NextResponse } from "next/server";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
     // data-quality figures to their build-time values -- the officers' review
     // would appear to undo itself the moment the user authenticated.
     const tenant = await resolveCurrentTenant();
-    const supabase = getSupabaseAdmin();
+    const supabase = await getCaptureClient();
     const overlay = supabase
       ? await applyOfficerPcafOverlay(base, tenant.id, supabase as never)
       : null;

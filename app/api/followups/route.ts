@@ -31,9 +31,9 @@
 
 import { NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
+import { apiError, requireOfficer, requireCaptureClient } from "@/lib/api/route-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -76,21 +76,11 @@ function daysBetween(fromIso: string, toIso: string): number {
 }
 
 export async function GET() {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
-  const officer = await resolveCurrentOfficer();
-  if (!officer) {
-    return NextResponse.json(
-      { error: "Officer must be selected before viewing follow-ups." },
-      { status: 401 },
-    );
-  }
+  const [officer, offErr] = await requireOfficer("viewing follow-ups");
+  if (offErr) return offErr;
 
   // Pull demo data for borrower/loan enrichment.
   const data = await getBfiDemoData();
@@ -104,10 +94,7 @@ export async function GET() {
     .eq("bank_id", tenant.id)
     .eq("officer_id", officer.id);
   if (aErr) {
-    return NextResponse.json(
-      { error: `Assignment lookup failed: ${aErr.message}` },
-      { status: 500 },
-    );
+    return apiError(`Assignment lookup failed: ${aErr.message}`, 500);
   }
   const officerLoanIds = (assigns ?? []).map((a) => a.loan_id);
   if (officerLoanIds.length === 0) {
@@ -140,10 +127,7 @@ export async function GET() {
     .lte("deadline_date", in30Iso)
     .order("deadline_date", { ascending: true });
   if (cErr) {
-    return NextResponse.json(
-      { error: `CAP query failed: ${cErr.message}` },
-      { status: 500 },
-    );
+    return apiError(`CAP query failed: ${cErr.message}`, 500);
   }
 
   // 3) Monitoring reports with next_due_date <= today+30 (includes overdue).
@@ -157,10 +141,7 @@ export async function GET() {
     .lte("next_due_date", in30Iso)
     .order("next_due_date", { ascending: true });
   if (mErr) {
-    return NextResponse.json(
-      { error: `Monitoring query failed: ${mErr.message}` },
-      { status: 500 },
-    );
+    return apiError(`Monitoring query failed: ${mErr.message}`, 500);
   }
 
   // 4) Build FollowupCard[] from both sources.

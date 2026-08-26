@@ -17,11 +17,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
+import { resolveCurrentOfficer, currentOfficerRoster } from "@/lib/officers/resolve";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getCaptureClient } from "@/lib/data/capture-client";
+import { MAX_FILE_SIZE_BYTES } from "@/lib/constants";
+import { validateFileMime } from "@/lib/api/route-helpers";
 
 export const dynamic = "force-dynamic";
 // Uploaded blobs go straight to Postgres via the service-role client.
@@ -46,7 +49,7 @@ export type EvidenceEntityType =
   | "pcaf_availability"
   | "pf_screening";
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_SIZE_BYTES = MAX_FILE_SIZE_BYTES;
 
 /**
  * Resolve the loan id an evidence attachment belongs to, so the owner-
@@ -112,7 +115,7 @@ async function resolveLoanIdForEvidence(
 // ---------------------------------------------------------------------------
 
 export async function GET(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -162,7 +165,7 @@ export async function GET(request: NextRequest) {
   // the panel can render "Sita Sharma · 2 days ago" without a second
   // round trip.
   const nameById = new Map<string, string>();
-  for (const o of tenant.demoOfficers) nameById.set(o.id, o.name);
+  for (const o of await currentOfficerRoster()) nameById.set(o.id, o.name);
 
   const rows = (data ?? []).map((r) => ({
     id: r.id as string,
@@ -183,7 +186,7 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -245,6 +248,15 @@ export async function POST(request: NextRequest) {
       },
       { status: 413 },
     );
+  }
+
+  // MIME type + magic byte validation. Read the first 16 bytes to check
+  // the file signature against the allowlist, preventing upload of
+  // arbitrary file types even if the declared MIME type is spoofed.
+  const headerBytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const mimeErr = validateFileMime(file.type || "application/octet-stream", headerBytes);
+  if (mimeErr) {
+    return NextResponse.json({ error: mimeErr }, { status: 400 });
   }
 
   const tenant = await resolveCurrentTenant();

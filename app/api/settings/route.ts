@@ -12,11 +12,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveSettings } from "@/lib/settings/schema";
 import type { TenantSettings } from "@/lib/settings/types";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ type SettingsRow = {
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -102,7 +103,7 @@ function deepMergePartial(
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
