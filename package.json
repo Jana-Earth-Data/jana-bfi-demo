@@ -5,10 +5,16 @@
   "scripts": {
     "dev": "next dev",
     "precompute-portfolio": "tsx scripts/precompute-portfolio.ts",
-    "prebuild": "npm run precompute-portfolio",
+    "prebuild": "node scripts/check-dockerignore-build-scripts.mjs && node scripts/check-build-wiring.mjs && node scripts/check-demo-imports.mjs && node scripts/check-demo-mode-gate.mjs && node scripts/check-docker-demo-flag.mjs && node scripts/check-capture-client.mjs && node scripts/check-demo-officers.mjs && node scripts/precompute-guard.mjs",
+    "check:demo": "node scripts/check-demo-imports.mjs",
     "build": "next build",
+    "build:demo": "JANA_DEMO=1 npm run build",
+    "build:live": "npm run build",
+    "predev:demo": "node scripts/ensure-precompute.mjs",
+    "dev:demo": "JANA_DEMO=1 next dev",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:provenance": "node scripts/check-seeded-rows.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
@@ -27,6 +33,8 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.2",
     "playwright": "^1.62.1",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.16",

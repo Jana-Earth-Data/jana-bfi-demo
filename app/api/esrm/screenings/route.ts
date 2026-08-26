@@ -15,7 +15,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { getCaptureClient } from "@/lib/data/capture-client";
+
 import {
   deriveEsrm,
   scoreBySection,
@@ -37,7 +38,7 @@ export const dynamic = "force-dynamic";
  * wizard on mount and by the drawer to render live status.
  */
 export async function GET(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -101,7 +102,7 @@ for (const q of ANNEX5_EHS_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;
 for (const q of ANNEX5_SOCIAL_RISK) SECTION_BY_QUESTION_ID[q.id] = q.section;
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },

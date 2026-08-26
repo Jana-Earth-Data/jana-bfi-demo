@@ -24,9 +24,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Loan not found" }, { status: 404 });
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     // No DB — return a null override so the caller falls back to the
     // derived category. Preserves the local-dev path where Supabase
@@ -142,7 +143,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     // No DB — succeed as a no-op so the offline dev path doesn't
     // fail the wizard. The next mount will still derive from

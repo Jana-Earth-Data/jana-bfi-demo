@@ -1,3 +1,4 @@
+import { getCaptureClient } from "@/lib/data/capture-client";
 /**
  * ESRM-before-Taxonomy gate.
  *
@@ -18,8 +19,6 @@
  * either the wizard or a gate screen with a jump-to-ESRM button.
  */
 
-import { getSupabaseAdmin } from "@/lib/data/supabase";
-
 export type TaxonomyGateVerdict =
   | { allowed: true; capturedAt: string; riskClass: string | null }
   | { allowed: false; reason: "no-supabase" | "no-screening" };
@@ -38,7 +37,7 @@ export async function checkEsrmBeforeTaxonomyGate(
   tenantId: string,
   loanId: string,
 ): Promise<TaxonomyGateVerdict> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     // Fallback for local dev without Supabase — don't block the demo.
     return { allowed: false, reason: "no-supabase" };

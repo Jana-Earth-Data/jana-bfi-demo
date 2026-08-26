@@ -26,8 +26,9 @@
 
 import { NextResponse } from "next/server";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
+import { getCaptureClient } from "@/lib/data/capture-client";
 import {
   getBorrowerClimateBundle,
   inferClimateRisk,
@@ -60,7 +61,7 @@ async function loadOverride(
   bankId: string,
   borrowerId: string,
 ): Promise<OverrideRow | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("bfi_climate_risk_assessments")

@@ -15,7 +15,6 @@ import {
   BorrowerScreening,
   MatchedFacility,
 } from "@/lib/types/bfi";
-import { mulberry32, rangeFloat } from "@/lib/data/util";
 import { EDGAR_NEPAL } from "@/lib/data/edgar-snapshot";
 import {
   FacilityAirQuality,
@@ -88,24 +87,6 @@ function intensityForCement(borrower: Borrower) {
   return {
     value: borrower.totalCo2eTonnes / (totalCap * 1_000_000),
     label: "tCO₂ per tonne cement (this borrower)",
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Synthetic air quality fallback (used when not live)
-// ---------------------------------------------------------------------------
-
-function synthAirQuality(facility: MatchedFacility) {
-  const seedX = Math.floor(facility.lat * 1000);
-  const seedY = Math.floor(facility.lng * 1000);
-  const r = mulberry32(((seedX ^ seedY) | 1) >>> 0);
-  const baseline = facility.lat < 27.5 ? 120 : facility.lat < 28 ? 80 : 50;
-  return {
-    pm25: Math.round(baseline + rangeFloat(-25, 60, r)),
-    readingDate: "2025-11-01",
-    stationName: facility.municipality
-      ? `${facility.municipality} reference station`
-      : "Nearest OpenAQ station",
   };
 }
 
@@ -209,14 +190,35 @@ function liveBenchmarkFor(
 // Public entry points
 // ---------------------------------------------------------------------------
 
-export function buildScreening(b: Borrower): BorrowerScreening {
+/** A nearby air-quality reading, from a real station or a demo fixture. */
+export type AirQualityReading = {
+  pm25: number;
+  readingDate: string;
+  stationName: string;
+};
+
+/**
+ * Build a borrower screening from data already in hand.
+ *
+ * The air-quality reading is supplied by the caller rather than generated
+ * here. It used to be invented inline from the facility's coordinates with a
+ * seeded PRNG, which put a fabricated-data generator into the client bundle:
+ * this function is called from components/bfi/tabs/esrm-tab.tsx, so every
+ * browser was shipped the means to manufacture a PM2.5 number that looked
+ * like a station reading.
+ *
+ * Omitting the argument yields a screening with no air-quality panel, which
+ * is the honest result when no station reading is available. The demo layer
+ * passes a synthetic reading; live callers pass a real OpenAQ one or nothing.
+ */
+export function buildScreening(
+  b: Borrower,
+  airQuality?: AirQualityReading,
+): BorrowerScreening {
   // Default to the polygon-clipped EDGAR Nepal snapshot — it's real, sourced,
   // and works without needing the live API. The borrower's emissions are
   // expressed as a share of Nepal's national CO2 from EDGAR 2024.
-  const aq =
-    b.facilities[0] && Number.isFinite(b.facilities[0].lat)
-      ? synthAirQuality(b.facilities[0])
-      : undefined;
+  const aq = airQuality;
   const { recommendation, reasoning } = recommend(b);
   return {
     borrowerId: b.id,

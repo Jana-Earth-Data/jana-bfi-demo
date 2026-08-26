@@ -18,6 +18,7 @@ export function TourControls() {
     restart,
     stop,
     goTo,
+    autoplayBlocked,
   } = useTour();
 
   if (status === "idle") return null;
@@ -27,6 +28,18 @@ export function TourControls() {
 
   return (
     <div className="pointer-events-auto fixed bottom-6 left-1/2 z-[70] -translate-x-1/2">
+      {/*
+        Autoplay hint. The resume-after-reload path starts the tour from a
+        mount effect with no user gesture, so the browser rejects play().
+        Without this the tour just sits on step 1 looking broken; pressing
+        play supplies the activation the browser was waiting for.
+      */}
+      {autoplayBlocked && (
+        <div className="mb-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-center text-[11px] text-amber-200">
+          Your browser blocked audio autoplay — press play to start the
+          narration.
+        </div>
+      )}
       <div className="flex items-center gap-3 rounded-full border border-line bg-panel/95 px-3 py-2 shadow-2xl backdrop-blur">
         <button
           onClick={prev}

@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/data/supabase";
 import { REGISTRY } from "@/lib/tenants/registry";
 import { isTenantId } from "@/lib/tenants/registry";
+import { apiError, requireAdminToken, parseJsonBody } from "@/lib/api/route-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -47,67 +48,43 @@ const TABLES = [
 
 type DeletedCounts = Record<(typeof TABLES)[number]["key"], number>;
 
-function unauthorized(msg: string) {
-  return NextResponse.json({ error: msg }, { status: 401 });
-}
-
-function badRequest(msg: string) {
-  return NextResponse.json({ error: msg }, { status: 400 });
-}
-
 export async function POST(request: NextRequest) {
   // --- Auth ---------------------------------------------------------------
-  const expected = process.env.SEED_ADMIN_TOKEN;
-  if (!expected) {
-    return NextResponse.json(
-      { error: "SEED_ADMIN_TOKEN not configured on the server." },
-      { status: 500 },
-    );
-  }
-  const authHeader = request.headers.get("authorization") ?? "";
-  const match = authHeader.match(/^Bearer\s+(.+)$/i);
-  const provided = match?.[1]?.trim() ?? "";
-  if (!provided || provided !== expected) {
-    return unauthorized("Unauthorized: bad or missing bearer token.");
-  }
+  const authErr = requireAdminToken(request);
+  if (authErr) return authErr;
 
   // --- Parse body ---------------------------------------------------------
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return badRequest("Body must be valid JSON.");
-  }
-  const { tenantId, confirmName } = (body ?? {}) as {
-    tenantId?: unknown;
-    confirmName?: unknown;
-  };
+  const [body, parseErr] = await parseJsonBody<{ tenantId?: unknown; confirmName?: unknown }>(request);
+  if (parseErr) return parseErr;
+  const { tenantId, confirmName } = body ?? {};
   if (typeof tenantId !== "string" || !tenantId) {
-    return badRequest("Missing tenantId (string).");
+    return apiError("Missing tenantId (string).", 400);
   }
   if (typeof confirmName !== "string" || !confirmName) {
-    return badRequest("Missing confirmName (string).");
+    return apiError("Missing confirmName (string).", 400);
   }
   if (!isTenantId(tenantId)) {
-    return badRequest(`Unknown tenantId: ${tenantId}`);
+    return apiError(`Unknown tenantId: ${tenantId}`, 400);
   }
 
   const tenant = REGISTRY[tenantId];
   // Case-sensitive, exact match. The point of typing the name is to force
   // the operator to look at it and copy it correctly.
   if (confirmName !== tenant.branding.displayName) {
-    return badRequest(
+    return apiError(
       `confirmName does not match tenant displayName. Expected exactly "${tenant.branding.displayName}".`,
+      400,
     );
   }
 
   // --- Supabase -----------------------------------------------------------
+  // Deliberately UNSCOPED. Reset must be able to clear both origins --
+  // scoping it to the current mode would leave the other half behind and
+  // report success, which is how you end up with a "reset" demo that still
+  // has yesterday's rows in it.
   const supabase = getSupabaseAdmin();
   if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase env vars not configured." },
-      { status: 500 },
-    );
+    return apiError("Supabase env vars not configured.", 500);
   }
 
   // --- Delete per table ---------------------------------------------------
@@ -118,14 +95,9 @@ export async function POST(request: NextRequest) {
       .delete({ count: "exact" })
       .eq("bank_id", tenantId);
     if (error) {
-      return NextResponse.json(
-        {
-          error: `Delete failed on ${table}: ${error.message}`,
-          tenantId,
-          deletedSoFar: deleted,
-        },
-        { status: 500 },
-      );
+      return apiError(`Delete failed on ${table}: ${error.message}`, 500, {
+        details: { tenantId, deletedSoFar: deleted },
+      });
     }
     deleted[key] = count ?? 0;
   }

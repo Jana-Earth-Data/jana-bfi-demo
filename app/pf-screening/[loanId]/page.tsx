@@ -24,7 +24,7 @@ import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveLoanLockFor } from "@/lib/officers/loan-lock";
 import { isProjectFinanceLoanWithOverride } from "@/lib/regulatory/esdd/pf-loan-gate";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +62,7 @@ export default async function PfScreeningWizardPage({
   // "project-finance" selection is still admitted here (and vice
   // versa — an override to a non-PF bucket bounces back to ESDD).
   let loanCategoryOverride: string | null = null;
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (supabase) {
     try {
       const { data: assign } = await supabase

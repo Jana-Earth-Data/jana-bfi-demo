@@ -31,9 +31,18 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getTourScript } from "./registry";
+import { getTourScript, availableTours } from "./registry";
 import type { TourName, TourScript, TourStep } from "./types";
 import type { TenantId } from "@/lib/tenants";
+
+/**
+ * sessionStorage key for a tour that must wait for a page reload.
+ *
+ * Written by the Demo menu when a tour is requested with demo mode off;
+ * read once, on mount, by TourProvider. Exported so the two sides cannot
+ * drift on a string literal.
+ */
+export const PENDING_TOUR_KEY = "jana_pending_tour";
 
 type TourStatus = "idle" | "playing" | "paused" | "ended";
 
@@ -45,6 +54,12 @@ type TourContextValue = {
   step: TourStep | null;
   /** Hint for the dashboard so it can switch tabs without listening here. */
   desiredTab: TourStep["tab"] | null;
+  /**
+   * True when the browser refused to autoplay narration and the tour is
+   * waiting for a click. Lets the controls explain a pause the operator did
+   * not ask for, instead of looking frozen.
+   */
+  autoplayBlocked: boolean;
   startTour: (name: TourName) => void;
   stop: () => void;
   play: () => void;
@@ -81,6 +96,7 @@ export function TourProvider({
   const [currentTour, setCurrentTour] = useState<TourName | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const script: TourScript | null = useMemo(() => {
     if (!tenantId || !currentTour) return null;
@@ -112,6 +128,7 @@ export function TourProvider({
       const s = script.steps[index];
       if (!s) return;
       const audio = new Audio(s.audioFile);
+      audio.addEventListener("playing", () => setAutoplayBlocked(false));
       audio.preload = "auto";
       audioRef.current = audio;
       audio.addEventListener("ended", () => {
@@ -129,8 +146,22 @@ export function TourProvider({
           setStatus("ended");
         }
       });
-      void audio.play().catch((err) => {
+      void audio.play().catch((err: DOMException) => {
         console.warn(`Audio play() blocked or failed: ${err.message}`);
+        // Fall back to paused rather than pretending to play.
+        //
+        // Browsers reject play() with NotAllowedError when there is no user
+        // activation. That happens on the resume-after-reload path: the Demo
+        // menu turns demo data on, the page reloads, and the tour restarts
+        // from a mount effect — no click, so no activation.
+        //
+        // Leaving status at "playing" was the bug. No audio means no `ended`
+        // event, and `ended` is what advances the tour, so it sat on step 1
+        // looking started and doing nothing. Dropping to "paused" surfaces
+        // the play control, and pressing it IS the gesture the browser
+        // wanted, so the next play() succeeds.
+        setStatus("paused");
+        setAutoplayBlocked(true);
       });
     },
     [script, cleanupAudio],
@@ -253,6 +284,43 @@ export function TourProvider({
     setStatus("playing");
   }, []);
 
+  /**
+   * Resume a tour that asked for demo data before it could start.
+   *
+   * A tour narrates a portfolio. Started with demo mode off it would talk an
+   * audience through empty tiles and a "No portfolio loaded" panel, which is
+   * a worse outcome than not offering the tour at all.
+   *
+   * So the Demo menu turns demo mode back on first — and that requires a full
+   * page reload, because every client component is holding data fetched under
+   * the old mode. React state does not survive a reload, so the intent is
+   * parked in sessionStorage and collected here on mount.
+   *
+   * sessionStorage rather than localStorage: the intent is worth exactly one
+   * page load. A stale key in localStorage would ambush someone with an
+   * unexpected tour days later.
+   */
+  useEffect(() => {
+    let pending: string | null = null;
+    try {
+      pending = window.sessionStorage.getItem(PENDING_TOUR_KEY);
+      if (pending) window.sessionStorage.removeItem(PENDING_TOUR_KEY);
+    } catch {
+      // Private browsing can throw on sessionStorage access. Losing the
+      // resume is a minor annoyance; breaking the provider is not acceptable.
+      return;
+    }
+    if (!pending) return;
+    if (!availableTours(tenantId ?? "default").includes(pending as TourName)) {
+      // Tenant changed between the click and the reload, or the tour was
+      // retired. Drop it rather than starting something that does not exist.
+      return;
+    }
+    startTour(pending as TourName);
+    // Mount only — this is a one-shot handoff, not a subscription.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const stop = useCallback(() => {
     cleanupAudio();
     setStatus("idle");
@@ -325,6 +393,7 @@ export function TourProvider({
       totalSteps,
       step,
       desiredTab,
+      autoplayBlocked,
       startTour,
       stop,
       play,
@@ -342,6 +411,7 @@ export function TourProvider({
       totalSteps,
       step,
       desiredTab,
+      autoplayBlocked,
       startTour,
       stop,
       play,
@@ -378,6 +448,7 @@ const NOOP_TOUR: TourContextValue = {
   totalSteps: 0,
   step: null,
   desiredTab: null,
+  autoplayBlocked: false,
   startTour: () => {},
   stop: () => {},
   play: () => {},

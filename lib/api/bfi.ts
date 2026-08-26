@@ -12,7 +12,10 @@
  */
 
 import { apiFetchAll } from "@/lib/api/client";
-import { getPortfolio, invalidatePortfolioCache } from "@/lib/data/portfolio";
+import { TREND_YEARS } from "@/lib/reporting/periods";
+import { getDemoProvider } from "@/lib/demo/provider";
+import { isDemoMode } from "@/lib/demo/mode";
+import { emptyPortfolio } from "@/lib/data/empty-portfolio";
 import {
   BfiDemoData,
   Borrower,
@@ -231,7 +234,9 @@ function overlayLive(
 // The ~10% difference between them handles mock synthesis vs. live overlay
 // specifics — do not consolidate without cataloguing each intentional divergence.
 // Track consolidation in a post-demo issue.
-function recomputeSummary(
+// Exported so lib/api/pcaf-overlay.ts can rebuild aggregates through the same
+// path rather than adding a third implementation to the pair described above.
+export function recomputeSummary(
   loans: Loan[],
   borrowers: Borrower[],
   attributions: PcafAttribution[]
@@ -360,8 +365,10 @@ function recomputeSummary(
   });
 
   // Trend: aggregate emissionsByYear weighted by attributionFactor.
-  // Matches the synthesizer's TREND_YEARS and real Climate TRACE coverage (2021-01..2025-10).
-  const trendYears = [2021, 2022, 2023, 2024, 2025];
+  // Shares TREND_YEARS with the synthesizer rather than restating the range:
+  // the two were identical literals kept in step by a comment, which would
+  // have diverged the first time coverage changed on one side only.
+  const trendYears = TREND_YEARS;
   const trend: PortfolioTrendPoint[] = trendYears.map((y) => {
     let total = 0;
     const tx: TaxonomyBreakdown = {
@@ -438,7 +445,7 @@ async function fetchLiveAndOverlay(
   // Pull annual aggregations 2021-2025. The Climate TRACE Nepal data is monthly
   // granularity; fetchYear()'s start/end filter selects all months in the year
   // and the loop in fetchLiveAndOverlay sums them per facility.
-  const years = [2021, 2022, 2023, 2024, 2025];
+  const years = TREND_YEARS;
   const index = buildMatchIndex(base.borrowers);
 
   const yearsData: LiveEmissionsForYear[] = [];
@@ -476,10 +483,32 @@ async function fetchLiveAndOverlay(
  * - SSR (no token): synthesized portfolio (mock mode).
  * - With token: fetch live Climate TRACE data, overlay onto borrowers.
  */
+/**
+ * The base portfolio, from whichever source this build has -- and only if the
+ * demo layer is switched on right now.
+ *
+ * A demo build gets the synthesized 80K-loan book. A live build has no
+ * synthesizer compiled into it at all, so it gets a genuinely empty envelope:
+ * no loans, no borrowers, no fabricated exposures. That is the correct state
+ * for a bank whose core-banking import has not happened yet, and giving the
+ * live path a real answer is what removes the temptation to keep the
+ * synthesizer around "just for the empty case".
+ *
+ * The isDemoMode() check is the one that makes the header toggle mean
+ * something. Without it the switch would repaint the chrome while the
+ * dashboard carried on reporting 80,035 fabricated loans -- which is worse
+ * than having no switch at all, because it would look like it worked.
+ */
+async function basePortfolio(): Promise<BfiDemoData> {
+  if (!(await isDemoMode())) return emptyPortfolio();
+  const provider = await getDemoProvider();
+  return provider ? await provider.getPortfolio() : emptyPortfolio();
+}
+
 export async function getBfiDemoData(
   token?: string | null
 ): Promise<BfiDemoData> {
-  const base = getPortfolio();
+  const base = await basePortfolio();
   if (FORCE_MOCKS || !token) {
     return {
       ...base,
@@ -526,7 +555,7 @@ export async function fetchClimateTraceSummary(token: string) {
   const sectors = new Set(results.map((r) => r.sector_name).filter(Boolean));
   const assets = new Set(results.map((r) => r.asset_name).filter(Boolean));
 
-  const base = getPortfolio();
+  const base = await basePortfolio();
   const index = buildMatchIndex(base.borrowers);
   let matched = 0;
   for (const r of results) {
@@ -542,4 +571,13 @@ export async function fetchClimateTraceSummary(token: string) {
   };
 }
 
-export { invalidatePortfolioCache };
+/**
+ * Drop the synthesizer's in-process cache. Used by the seed routes after they
+ * rewrite the loan book. A no-op in a live build, where there is no cache and
+ * no synthesizer -- callers do not need to know which kind of build they are
+ * in.
+ */
+export async function invalidatePortfolioCache(): Promise<void> {
+  const provider = await getDemoProvider();
+  provider?.invalidatePortfolioCache();
+}

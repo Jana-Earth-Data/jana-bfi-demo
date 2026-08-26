@@ -2,7 +2,7 @@
  * Precompute the ~80K-loan portfolio at build time.
  *
  * Runs `buildPortfolio()` once, serializes the result, and writes it
- * GZIPPED to `lib/data/precomputed-portfolio.json.gz`. Exits non-zero on failure.
+ * GZIPPED to `lib/demo/precomputed-portfolio.json.gz`. Exits non-zero on failure.
  *
  * Wired into `prebuild` in package.json so `next build` picks up the file,
  * turning what was a ~50s per-cold-start synthesis into a ~300ms
@@ -27,12 +27,12 @@ import * as path from "node:path";
 import * as zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
-import { getPortfolio, PORTFOLIO_SCALE, PORTFOLIO_TOTAL_COUNT } from "@/lib/data/portfolio";
+import { getPortfolio, PORTFOLIO_SCALE, PORTFOLIO_TOTAL_COUNT } from "@/lib/demo/portfolio";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
-const OUT_PATH = path.join(REPO_ROOT, "lib", "data", "precomputed-portfolio.json.gz");
+const OUT_PATH = path.join(REPO_ROOT, "lib", "demo", "precomputed-portfolio.json.gz");
 
 function humanBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -48,7 +48,7 @@ async function main() {
 
   console.log(`[precompute-portfolio] synthesizing portfolio...`);
   const synthT0 = Date.now();
-  const data = getPortfolio();
+  const data = await getPortfolio();
   const synthMs = Date.now() - synthT0;
   console.log(`[precompute-portfolio] synthesis complete in ${synthMs} ms — ${data.loans.length.toLocaleString()} loans, ${data.borrowers.length.toLocaleString()} borrowers, ${data.attributions.length.toLocaleString()} attributions`);
 

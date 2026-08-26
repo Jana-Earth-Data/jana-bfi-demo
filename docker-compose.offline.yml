@@ -113,6 +113,9 @@ services:
         NEXT_PUBLIC_API_URL: http://localhost:0
         NEXT_PUBLIC_AUTH_URL: http://localhost:0
         NEXT_PUBLIC_DEMO_USE_MOCKS: "true"
+        # The offline stack exists to demo without internet, so the demo layer
+        # is always baked in here.
+        JANA_DEMO: "1"
     container_name: bfi-demo-web
     depends_on:
       supabase-gateway:
@@ -120,6 +123,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+
+      # Runtime half of the build ARG above. isDemoBuild() reads this per
+      # request; without it the Demo menu and toggle route go missing from an
+      # image that does contain the demo layer.
+      JANA_DEMO: "1"
 
       # Force mock mode at runtime too — belt-and-suspenders vs the build ARG.
       NEXT_PUBLIC_API_URL: http://localhost:0

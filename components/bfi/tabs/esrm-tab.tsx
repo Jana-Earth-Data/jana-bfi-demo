@@ -23,7 +23,7 @@ import {
 import { Borrower } from "@/lib/types/bfi";
 import { buildScreening } from "@/lib/data/screening";
 import { LoanRow } from "@/lib/data/portfolio-query";
-import { NPR_PER_USD } from "@/lib/data/util";
+import { NPR_PER_USD } from "@/lib/units";
 import { InfoTip, PcafScoreInfoTip } from "@/components/bfi/shared/info-tip";
 import { useTour } from "@/lib/tour/tour-context";
 import type { Officer } from "@/lib/tenants";

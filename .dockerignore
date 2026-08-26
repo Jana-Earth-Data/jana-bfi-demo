@@ -19,10 +19,23 @@ keys-do-not-commit/
 
 # Dev-only scripts and source inputs that are not needed at runtime
 scripts/
-# EXCEPTION: precompute-portfolio.ts runs during `next build` via the
-# `prebuild` hook (see package.json) and MUST be in the build context.
-# Without this, the build fails with ERR_MODULE_NOT_FOUND on the tsx run.
+#
+# EXCEPTIONS — anything the `prebuild` hook runs must be in the build context,
+# or `docker build` dies with MODULE_NOT_FOUND before Next.js even starts.
+#
+# The convention, so this stops being whack-a-mole: build-time scripts are
+# .mjs, dev-only tooling is .ts / .py / .sh. precompute-portfolio.ts predates
+# the convention and keeps its own exception.
+#
+# scripts/check-dockerignore-build-scripts.mjs enforces this — it reads the
+# prebuild chain from package.json and fails if any script in it would be
+# excluded from the image.
+!scripts/*.mjs
 !scripts/precompute-portfolio.ts
+# check-capture-client.mjs reads this to verify the app's CAPTURE_TABLES has
+# not drifted from the migration. It is data the guard needs, not a script it
+# runs, so the .mjs convention above does not cover it.
+!scripts/supabase-origin-column.sql
 data/_raw_*.csv
 data/_raw_*.geojson
 

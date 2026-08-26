@@ -3,35 +3,30 @@
 import { useAuth } from "@/lib/auth/auth-context";
 import { LoginButton } from "@/components/bfi/login-button";
 import { OfficerPicker } from "@/components/bfi/officer-picker";
+import { DemoMenu } from "@/components/bfi/demo/demo-menu";
 import { Badge } from "@/components/bfi/shared/primitives";
-import { useTour } from "@/lib/tour/tour-context";
-import { availableTours } from "@/lib/tour/registry";
-import type { TourName } from "@/lib/tour/types";
 import { BfiDemoMeta } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const TOUR_LABELS: Record<TourName, string> = {
-  dashboard: "Dashboard",
-  "loan-officer": "Loan officer",
-  manager: "Manager",
-  "pf-screening": "PF screening",
-  pcaf: "PCAF scoring",
-  nfrs: "NFRS",
-};
-
 export function DashboardHeader({
   meta,
   isLive,
   officers,
   currentOfficer,
+  demoBuild,
+  demoMode,
 }: {
   meta: BfiDemoMeta;
   isLive: boolean;
   officers: Officer[];
   currentOfficer: Officer | null;
+  /** Was this artifact compiled with the demo layer? Build-time, immutable. */
+  demoBuild: boolean;
+  /** Is the demo layer active right now? Runtime, togglable. */
+  demoMode: boolean;
 }) {
   const { logout, accessToken } = useAuth();
   const router = useRouter();
@@ -80,7 +75,14 @@ export function DashboardHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {isLive ? (
+          {/*
+            The "Demo data" badge that used to sit here is gone. The amber
+            banner in the root layout says the same thing far louder, and two
+            notices at different volumes invite the reader to believe the
+            quieter one. The Live badge stays: it marks a genuine distinction
+            between served-from-DB and live-enriched data.
+          */}
+          {isLive && (
             <Badge
               className="text-white"
               style={{
@@ -91,15 +93,19 @@ export function DashboardHeader({
             >
               Live data · Climate TRACE
             </Badge>
-          ) : (
-            <Badge className="border-slate-500/30 bg-slate-500/10 text-slate-300">
-              Demo data
-            </Badge>
           )}
           <Badge className="border-line bg-panel text-slate-300">
             Powered by Jana
           </Badge>
-          <TourSelector />
+          {/*
+            OfficerPicker deliberately stays in the header rather than moving
+            into the Demo menu. It is not demo scaffolding -- it attributes
+            captured review data to a named person, and it is a redirect
+            target: the ESDD and Taxonomy wizards bounce unsigned visitors
+            back with ?openOfficerPicker=1, which the component honours in a
+            mount effect. Inside a closed popover it would never mount, and
+            that redirect would silently do nothing.
+          */}
           <OfficerPicker
             officers={officers}
             currentOfficer={currentOfficer}
@@ -136,74 +142,21 @@ export function DashboardHeader({
               Sign out
             </button>
           )}
-          <button
-            onClick={switchBank}
-            disabled={switching}
-            className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30 disabled:opacity-50"
-            title="Enter a different bank access code"
-          >
-            {switching ? "Switching…" : "Switch bank"}
-          </button>
+          {/*
+            One entry point for every piece of demo apparatus. Absent
+            entirely from a live build -- see lib/demo/mode.ts.
+          */}
+          {demoBuild && (
+            <DemoMenu
+              demoMode={demoMode}
+              onSwitchBank={switchBank}
+              switching={switching}
+            />
+          )}
         </div>
       </div>
     </header>
   );
 }
 
-/**
- * TourSelector — small three-button group for picking which tour to play.
- * Only shows tours that have a script registered for the current tenant
- * (see lib/tour/registry.ts). When only one tour exists it collapses to
- * a single "Play tour" button.
- *
- * We resolve the tenant from the tour context (which received it from the
- * server-side layout) rather than plumbing it through header props.
- */
-function TourSelector() {
-  const { startTour, status, stop } = useTour();
-  // Read tenantId from a data attribute on <html> set by the layout —
-  // avoids a second server round-trip. The layout sets it via <html
-  // data-tenant-id={t?.id ?? ""}> so this component can pick it up.
-  const tenantId =
-    typeof document !== "undefined"
-      ? document.documentElement.dataset.tenantId ?? "default"
-      : "default";
-  const tours = availableTours(tenantId);
-  if (tours.length === 0) return null;
-
-  // When a tour is playing / paused / ended, show a "Stop tour" button
-  // instead of the selector to give the operator a clean exit path.
-  if (status !== "idle") {
-    return (
-      <button
-        onClick={stop}
-        className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 hover:bg-line/30"
-        title="End the current tour"
-      >
-        End tour
-      </button>
-    );
-  }
-
-  return (
-    <div className="inline-flex items-center gap-1 rounded-md border p-0.5" style={{ borderColor: "var(--brand-primary)" }}>
-      <span
-        className="px-2 text-[10px] font-semibold uppercase tracking-wide"
-        style={{ color: "var(--brand-primary)" }}
-      >
-        Tour
-      </span>
-      {tours.map((name) => (
-        <button
-          key={name}
-          onClick={() => startTour(name)}
-          className="rounded px-2 py-0.5 text-xs font-medium transition hover:bg-white/5"
-          style={{ color: "var(--brand-primary)" }}
-          title={`Play the ${TOUR_LABELS[name]} tour`}
-        >
-          {TOUR_LABELS[name]}
-        </button>
-      ))}
-    </div>
-  );
-}
+// TourSelector moved to components/bfi/demo/demo-menu.tsx.

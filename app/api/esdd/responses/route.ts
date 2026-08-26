@@ -19,30 +19,20 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { resolveCurrentOfficer } from "@/lib/officers/resolve";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
+import { apiError, requireOfficer, requireCaptureClient } from "@/lib/api/route-helpers";
 
 export const dynamic = "force-dynamic";
 
 const VALID_ANSWERS = new Set(["a", "b", "c", "d"]);
 
 export async function POST(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
-  const officer = await resolveCurrentOfficer();
-  if (!officer) {
-    return NextResponse.json(
-      { error: "Officer must be selected before recording answers." },
-      { status: 401 },
-    );
-  }
+  const [officer, offErr] = await requireOfficer("recording answers");
+  if (offErr) return offErr;
 
   let body: {
     loanId?: string;
@@ -54,26 +44,20 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
+    return apiError("Body must be JSON.", 400);
   }
 
   const { loanId, borrowerId, questionId, answer } = body;
   const remarks = body.remarks?.trim() || null;
 
   if (!loanId || !borrowerId || !questionId || !answer) {
-    return NextResponse.json(
-      {
-        error:
-          "loanId, borrowerId, questionId and answer are all required fields.",
-      },
-      { status: 400 },
+    return apiError(
+      "loanId, borrowerId, questionId and answer are all required fields.",
+      400,
     );
   }
   if (!VALID_ANSWERS.has(answer)) {
-    return NextResponse.json(
-      { error: "answer must be one of 'a', 'b', 'c', 'd'." },
-      { status: 400 },
-    );
+    return apiError("answer must be one of 'a', 'b', 'c', 'd'.", 400);
   }
 
   // Owner-only edit (P36). Reject writes from a non-owner even if their
@@ -160,20 +144,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
   const loanId = request.nextUrl.searchParams.get("loanId");
   if (!loanId) {
-    return NextResponse.json(
-      { error: "loanId query parameter is required." },
-      { status: 400 },
-    );
+    return apiError("loanId query parameter is required.", 400);
   }
 
   // Pull all rows for (bank, loan), newest first. Client picks up the
@@ -248,27 +224,14 @@ export async function GET(request: NextRequest) {
  * that snapshot the responses remain intact.
  */
 export async function DELETE(request: NextRequest) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase not configured." },
-      { status: 500 },
-    );
-  }
+  const [supabase, sbErr] = await requireCaptureClient();
+  if (sbErr) return sbErr;
   const tenant = await resolveCurrentTenant();
-  const officer = await resolveCurrentOfficer();
-  if (!officer) {
-    return NextResponse.json(
-      { error: "Officer must be selected before discarding answers." },
-      { status: 401 },
-    );
-  }
+  const [officer, offErr] = await requireOfficer("discarding answers");
+  if (offErr) return offErr;
   const loanId = request.nextUrl.searchParams.get("loanId");
   if (!loanId) {
-    return NextResponse.json(
-      { error: "loanId query parameter is required." },
-      { status: 400 },
-    );
+    return apiError("loanId query parameter is required.", 400);
   }
 
   // Owner-only edit (P36). A non-owner shouldn't be able to nuke the

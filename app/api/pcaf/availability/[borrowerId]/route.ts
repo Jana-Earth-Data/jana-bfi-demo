@@ -46,8 +46,9 @@
  */
 
 import { NextResponse } from "next/server";
+import { demoPcafNameFixtures } from "@/lib/demo/provider";
 import { getBfiDemoData } from "@/lib/api/bfi";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { resolveCurrentTenant } from "@/lib/tenants";
 import { resolveCurrentOfficer } from "@/lib/officers/resolve";
 import { assertOwnerOrRespond } from "@/lib/officers/loan-lock";
@@ -62,6 +63,7 @@ import type {
   PcafComputationResult,
 } from "@/lib/regulatory/pcaf/types";
 import type { Borrower, Loan, LoanCategory } from "@/lib/types/bfi";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -176,7 +178,7 @@ async function loadSavedRow(
   bankId: string,
   borrowerId: string,
 ): Promise<SavedRow | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("bfi_pcaf_availability")
@@ -216,7 +218,11 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const loan = findLoanForBorrower(data.loans, borrowerId);
-  const inferredFlags = inferPcafAvailability(borrower, loan?.category);
+  const inferredFlags = inferPcafAvailability(
+    borrower,
+    loan?.category,
+    await demoPcafNameFixtures(),
+  );
 
   const tenant = await resolveCurrentTenant();
   const savedRow = await loadSavedRow(tenant.id, borrowerId);
@@ -266,7 +272,7 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Supabase not configured." },
@@ -306,7 +312,11 @@ export async function POST(request: Request, { params }: Params) {
   const loan = findLoanForBorrower(data.loans, borrowerId);
   const loanCategory = body.loanCategory ?? loan?.category;
 
-  const inferredFlags = inferPcafAvailability(borrower, loanCategory);
+  const inferredFlags = inferPcafAvailability(
+    borrower,
+    loanCategory,
+    await demoPcafNameFixtures(),
+  );
   const savedFlags: PcafDataAvailability = {
     borrower_publishes_verified: !!flagsIn.borrower_publishes_verified,
     borrower_publishes_unverified: !!flagsIn.borrower_publishes_unverified,

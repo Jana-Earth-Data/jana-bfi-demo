@@ -1,28 +1,22 @@
 /**
- * Synthesizer utilities: deterministic PRNG, simple distributions, constants.
+ * Synthesizer utilities — deterministic PRNG, distributions, invented branches.
  *
- * Used by the portfolio synthesizer so that every run produces the same
- * 80K-loan portfolio (stable across requests, SSR/CSR, and demos).
+ * Demo-only. Nothing outside lib/demo/ may import this; the boundary is
+ * enforced by scripts/check-demo-imports.mjs.
+ *
+ * Everything here exists to make the fabricated 80K-loan portfolio
+ * reproducible: the same seed yields the same book on every run, so the demo
+ * is stable across requests and between machines.
+ *
+ * Currency conversion and the reporting year range deliberately do NOT live
+ * here. They are real product concerns -- three UI components and the live
+ * Climate TRACE fetch depend on them -- so they sit in lib/units.ts and
+ * lib/reporting/periods.ts and are imported from there. Keeping them out
+ * means moving this file could never strand production code.
  */
-
-export const NPR_PER_USD = 133.5;
 
 /** Reference "as-of" date for the demo dashboard. */
 export const AS_OF_DATE = "2026-05-01";
-
-/**
- * Years we synthesize emissions / financed-emissions trends for.
- * Matches actual Climate TRACE Nepal coverage (earliest 2021-01, latest 2025-10).
- * 2025 is partial through October; the UI labels it as such.
- */
-export const TREND_YEARS = [2021, 2022, 2023, 2024, 2025] as const;
-
-/** Most recent fully-reported year — the one a bank would cite in its annual NFRS disclosure. */
-export const LATEST_FULL_YEAR = 2024;
-
-/** Latest year with any data (may be partial). */
-export const LATEST_YEAR = 2025;
-export const LATEST_YEAR_PARTIAL_THROUGH = "October";
 
 /**
  * Mulberry32 — small, fast, deterministic PRNG.
@@ -84,22 +78,7 @@ export function isoDateOffsetDays(asOf: string, offsetDays: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function nprToUsd(npr: number): number {
-  return npr / NPR_PER_USD;
-}
-
-export function usdToNpr(usd: number): number {
-  return usd * NPR_PER_USD;
-}
-
 /** Round NPR to a clean step (nearest 10K NPR for small loans, 1M for big). */
-export function roundNpr(npr: number): number {
-  if (npr < 1_000_000) return Math.round(npr / 10_000) * 10_000;
-  if (npr < 100_000_000) return Math.round(npr / 100_000) * 100_000;
-  if (npr < 1_000_000_000) return Math.round(npr / 1_000_000) * 1_000_000;
-  return Math.round(npr / 10_000_000) * 10_000_000;
-}
-
 /**
  * Branches of First Bank of Nepal. ~36 branches covering major cities.
  * Codes follow "FBN-NNN" pattern.

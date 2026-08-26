@@ -23,11 +23,12 @@
 
 import { NextResponse } from "next/server";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
 import { findActivityById } from "@/lib/regulatory/taxonomy/activities";
 import { isTaxonomyExpected } from "@/lib/regulatory/taxonomy/applicability";
 import type { NrbTaxonomyColor } from "@/lib/types/bfi";
+import { getCaptureClient } from "@/lib/data/capture-client";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ function normaliseColor(v: string | null | undefined): BucketKey {
 
 export async function GET() {
   const tenant = await resolveCurrentTenant();
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
 
   // Loan book — needed for NPR outstanding and taxonomy-eligibility lookup.
   const data = await getBfiDemoData();

@@ -22,8 +22,9 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { resolveCurrentTenant } from "@/lib/tenants";
-import { getSupabaseAdmin } from "@/lib/data/supabase";
+
 import { getBfiDemoData } from "@/lib/api/bfi";
+import { getCaptureClient } from "@/lib/data/capture-client";
 import {
   brandingFromTenant,
   buildTaxonomyPdf,
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
   // Pull latest assessments (sorted so the builder can dedupe by keeping the
   // first sighting per loan_id).
   let assessments: TaxonomyAssessmentRow[] = [];
-  const supabase = getSupabaseAdmin();
+  const supabase = await getCaptureClient();
   if (supabase) {
     const { data, error } = await supabase
       .from("bfi_taxonomy_assessments")
