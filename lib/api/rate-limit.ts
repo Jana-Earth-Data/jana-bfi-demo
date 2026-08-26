@@ -9,9 +9,17 @@
  *
  * Limitations:
  *   - In-memory: each serverless instance / Edge location gets its own
- *     counter. A determined attacker can rotate IPs or hit different
- *     instances. For a demo deployment this is fine.
+ *     counter. A determined attacker can hit different instances. For a
+ *     demo deployment this is fine.
  *   - No persistence: counters reset on redeploy.
+ *   - x-forwarded-for is taken from the request unconditionally. An
+ *     attacker can rotate the header value to avoid the limit entirely,
+ *     while legitimate users behind a shared NAT or proxy are penalised.
+ *     This is the opposite of the desired outcome. Behind a trusted
+ *     reverse proxy (ALB, Cloudfront) that overwrites the header, the
+ *     value is reliable; on a direct-to-origin path it is not. A WAF or
+ *     CDN rate limit should be the primary defence; this layer is a
+ *     backstop for casual abuse only.
  *   - IPv6 clients behind the same prefix share a counter only if their
  *     forwarded IP matches exactly.
  */

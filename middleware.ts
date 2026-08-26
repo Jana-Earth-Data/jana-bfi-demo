@@ -29,6 +29,16 @@ export function middleware(request: NextRequest) {
     if (pathname === "/api/health") {
       return NextResponse.next();
     }
+
+    // Demo builds skip rate limiting entirely. A bank demo room is behind
+    // one NAT — every attendee shares a single IP. A single page load can
+    // fire 6+ parallel API calls (taxonomy-summary, followups, officer-queue,
+    // dashboard-data, …), so even a modest group trips the limit and the
+    // failure looks like the app breaking.
+    if (process.env.JANA_DEMO === "1") {
+      return NextResponse.next();
+    }
+
     const ip = getClientIp(request.headers);
     const result = checkRateLimit(ip);
     if (!result.allowed) {
