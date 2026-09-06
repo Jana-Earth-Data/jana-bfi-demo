@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["bom1"],
-  "buildCommand": "JANA_DEMO=1 next build",
+  "buildCommand": "npm run build:demo",
   "installCommand": "npm ci",
   "env": {
     "JANA_DEMO": "1"
