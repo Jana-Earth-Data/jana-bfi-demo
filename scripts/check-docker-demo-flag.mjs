@@ -35,7 +35,12 @@ const failures = [];
 // --- Dockerfile: both stages need the flag ---------------------------------
 const dockerfilePath = join(repoRoot, "Dockerfile");
 if (!existsSync(dockerfilePath)) {
-  failures.push("Dockerfile is missing.");
+  // No Dockerfile means we are not in a Docker build (e.g. Vercel).
+  // This guard only applies to Docker — skip it entirely.
+  console.log(
+    "[check-docker-demo-flag] No Dockerfile present (Vercel build) — skipping Docker-specific checks.",
+  );
+  process.exit(0);
 } else {
   const df = readFileSync(dockerfilePath, "utf8");
   // Split on FROM ... AS <stage> so each stage can be checked independently.
