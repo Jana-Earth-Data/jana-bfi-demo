@@ -12,12 +12,9 @@ Dockerfile
 .dockerignore
 docker-compose*.yml
 
-# Dev-only scripts — SQL schemas, Python helpers, screenshot tools.
-# The .mjs/.ts build scripts (prebuild guards, precompute) MUST be present
-# because `npm run build:demo` invokes them via the prebuild hook.
-scripts/*.sql
-scripts/*.py
-scripts/capture-screenshots.ts
+# scripts/ — DO NOT exclude. The prebuild hook runs guards and the
+# precompute step from this directory. Some guards also read .sql data
+# files at build time. Excluding anything here breaks the Vercel build.
 
 # Internal docs, sales briefs, regulatory PDFs — not part of the runtime app
 docs/
