@@ -877,16 +877,58 @@ export async function getPortfolio(): Promise<BfiDemoData> {
     const { promisify } = require("util") as typeof import("util");
     const gunzip = promisify(zlib.gunzip);
 
-    const gzPath = path.join(
-      process.cwd(),
-      "lib/demo/precomputed-portfolio.json.gz"
-    );
-    if (fs.existsSync(gzPath)) {
+    // Where the gz actually lands at runtime differs by host:
+    //
+    //  - Local `next start` / Docker: cwd IS the repo root, so
+    //    `<cwd>/lib/demo/...` resolves.
+    //  - Vercel serverless: the RSC/route function runs with a cwd that is
+    //    NOT the repo root, and `outputFileTracingIncludes` copies the traced
+    //    asset next to the compiled module inside the function bundle. There
+    //    `process.cwd()` misses entirely and we fell through to synthesizing
+    //    80,035 loans on every cold start (~83s observed in Vercel logs).
+    //
+    // Resolve against the module's own directory FIRST (where the tracer keeps
+    // the adjacent asset), then fall back to cwd-based paths for local/Docker.
+    // The first candidate that exists wins. Adding paths here is always safe;
+    // the guard is `existsSync`.
+    const ARTIFACT = "precomputed-portfolio.json.gz";
+    const candidates = [
+      // This module lives in lib/demo/ (source) — after compilation the traced
+      // asset is placed alongside it in the function bundle. __dirname is the
+      // most reliable anchor on Vercel.
+      path.join(__dirname, ARTIFACT),
+      path.join(__dirname, "lib", "demo", ARTIFACT),
+      // Local dev / Docker / `next start`: cwd is the repo root.
+      path.join(process.cwd(), "lib", "demo", ARTIFACT),
+      // Standalone output nests the app under .next/standalone.
+      path.join(process.cwd(), ".next", "standalone", "lib", "demo", ARTIFACT),
+    ];
+
+    let gzPath: string | undefined;
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        gzPath = candidate;
+        break;
+      }
+    }
+
+    if (gzPath) {
       const compressed = await fs.promises.readFile(gzPath);
       const raw = (await gunzip(compressed)).toString("utf8");
       portfolioCache = JSON.parse(raw) as BfiDemoData;
+      console.log(`[portfolio] loaded precomputed portfolio from ${gzPath}`);
       return portfolioCache;
     }
+
+    // Loud, not silent: a demo build that reaches synthesis has a packaging
+    // bug (the tracer did not include the artifact where any candidate path
+    // resolves). Log the paths we tried so the mismatch is diagnosable from
+    // the deploy logs instead of surfacing only as an 83s request.
+    console.error(
+      "[portfolio] precomputed JSON NOT FOUND — will synthesize in-memory " +
+        `(~50-80s cold start). __dirname=${__dirname} cwd=${process.cwd()} ` +
+        `tried=${JSON.stringify(candidates)}`
+    );
   } catch (e) {
     console.warn(
       "[portfolio] precomputed JSON load failed, falling back to synth:",

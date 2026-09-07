@@ -36,6 +36,33 @@ const TOP_N = 20;
 const APP_QUEUE = 30;
 
 /**
+ * Per-portfolio memo of the token-less (demo) slice.
+ *
+ * WHY: the homepage is force-dynamic and re-renders server-side on every
+ * request. buildDashboardSlice does ~4 full scans + 3 sorts of the 80,035-loan
+ * book (topContributors, applicationQueue, queryLoans, distinctValues) plus
+ * per-borrower screening synthesis — ~8s of pure CPU measured in a warm
+ * container, repeated on EVERY page load. On Vercel that recurring recompute
+ * was the bulk of the CPU overage (jana-bfi-demo alone burned 99.7% of the
+ * account's Active-CPU budget). The inputs are build-time constant, so the
+ * work is identical every time.
+ *
+ * KEY: data.attributions array identity. getBfiDemoData() returns a fresh
+ * top-level spread each call, so we can NOT key on `data` itself. But the inner
+ * arrays are shared by reference from the cached portfolio, and the officer
+ * PCAF overlay — the one thing that legitimately changes the slice — swaps in a
+ * NEW attributions array (and portfolio) when it rescores. So keying on
+ * data.attributions gives an exact hit for "same portfolio, no overlay change"
+ * and an exact miss for "overlay rescored", which is precisely the
+ * invalidation we want. A WeakMap lets a superseded portfolio (e.g. after a
+ * seed/reset invalidates the cache) be garbage-collected.
+ *
+ * SCOPE: token-less path ONLY. The live (token) path enriches screenings with
+ * per-request EDGAR/OpenAQ reads and must never be served from this memo.
+ */
+const demoSliceMemo = new WeakMap<object, DashboardSlicePartial>();
+
+/**
  * Data-shape return type. Callers layer identity fields (officers,
  * currentOfficer) on top before handing to <Dashboard>. See app/page.tsx
  * and app/api/dashboard-data/route.ts.
@@ -63,6 +90,20 @@ export async function buildDashboardSlice(
   data: BfiDemoData,
   token?: string | null
 ): Promise<DashboardSlicePartial> {
+  // Fast path: the token-less (demo) slice is a pure function of the portfolio
+  // arrays, which are build-time constant. Serve a memoized result keyed on the
+  // attributions identity so the ~8s of scans/sorts/screening synthesis runs
+  // once per portfolio instead of on every force-dynamic render. meta is NOT
+  // taken from the memo — it carries the per-tenant bank name and is overlaid
+  // fresh below so two tenants sharing the same base portfolio never see each
+  // other's branding.
+  if (!token) {
+    const cached = demoSliceMemo.get(data.attributions as unknown as object);
+    if (cached) {
+      return { ...cached, meta: data.meta, portfolio: data.portfolio };
+    }
+  }
+
   // Null in a live build, and null when demo mode is off, so borrowers
   // without a real station reading get no air-quality panel rather than a
   // manufactured one. Mode matters as well as build: buildDashboardSlice runs
@@ -133,7 +174,7 @@ export async function buildDashboardSlice(
   // build time so the NFRS tab doesn't need a per-page fetch.
   const climateSummary = summarisePortfolioClimate(data.borrowers);
 
-  return {
+  const slice: DashboardSlicePartial = {
     meta: data.meta,
     portfolio: data.portfolio,
     initialLoans: initial.rows,
@@ -150,4 +191,15 @@ export async function buildDashboardSlice(
       branches: dv.branches,
     },
   };
+
+  // Memoize the token-less result so subsequent force-dynamic renders of the
+  // same portfolio skip the scans/sorts above. Not cached for the live path:
+  // its screenings depend on per-request EDGAR/OpenAQ reads. meta/portfolio are
+  // re-applied from `data` on every cache hit (see the fast path above), so
+  // caching them here is harmless — they are overwritten, never served stale.
+  if (!token) {
+    demoSliceMemo.set(data.attributions as unknown as object, slice);
+  }
+
+  return slice;
 }

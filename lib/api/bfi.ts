@@ -244,6 +244,12 @@ export function recomputeSummary(
   // Mirror the synthesizer's aggregation logic, but on whatever borrowers we have now.
   const borrowerMap = new Map(borrowers.map((b) => [b.id, b]));
   const attrByLoan = new Map(attributions.map((a) => [a.loanId, a]));
+  // Loan lookup by id. Built once so the data-quality-bucket loop below is a
+  // Map get() per attribution instead of a full loans.find() scan — at 80K
+  // loans that inner scan was O(n^2) (~6.4B comparisons) and dominated the
+  // officer-PCAF overlay's recompute, adding ~10s of blocking CPU to every
+  // force-dynamic homepage render. See the dqBuckets loop.
+  const loanById = new Map(loans.map((l) => [l.id, l]));
 
   const totalLoans = loans.length;
   const totalOutstandingNpr = loans.reduce((s, l) => s + l.outstandingNpr, 0);
@@ -339,7 +345,7 @@ export function recomputeSummary(
         outstandingNpr: 0,
         co2: 0,
       };
-    const loan = loans.find((l) => l.id === a.loanId);
+    const loan = loanById.get(a.loanId);
     dqBuckets.set(a.dataQualityScore, {
       count: prev.count + 1,
       outstandingUsd: prev.outstandingUsd + (loan?.outstandingUsd ?? 0),
