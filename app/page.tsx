@@ -9,6 +9,7 @@ import { applyOfficerPcafOverlay } from "@/lib/api/pcaf-overlay";
 import { isDemoBuild } from "@/lib/demo/provider";
 import { isDemoMode } from "@/lib/demo/mode";
 import { getCaptureClient } from "@/lib/data/capture-client";
+import { withDeadline } from "@/lib/async/deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,23 @@ export default async function HomePage() {
   // anyone reviewed anything — without this the dashboard would report a
   // weighted score computed as though the review had not happened. Scoped to
   // this tenant; only reviewed borrowers' loans are re-scored.
+  //
+  // The overlay is an enhancement, never a render blocker. This page is
+  // force-dynamic, so it re-renders server-side on every load; a Supabase
+  // read that stalls (observed wedging for ~73s from Vercel even in-region)
+  // would otherwise hang the entire first paint on every request. If the
+  // read does not answer within OVERLAY_DEADLINE_MS we render the precomputed
+  // base instead — the officer re-scores reconcile on the next client fetch.
+  // The underlying REST call is also bounded by the client-level fetch
+  // timeout in lib/data/supabase.ts; this deadline is a second, page-level
+  // guard so a slow overlay never delays the dashboard shell.
+  const OVERLAY_DEADLINE_MS = 2_000;
   const supabase = await getCaptureClient();
   const overlay = supabase
-    ? await applyOfficerPcafOverlay(base, tenant.id, supabase as never)
+    ? await withDeadline(
+        applyOfficerPcafOverlay(base, tenant.id, supabase as never),
+        OVERLAY_DEADLINE_MS,
+      )
     : null;
   const data = overlay?.data ?? base;
 
