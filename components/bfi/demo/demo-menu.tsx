@@ -5,7 +5,7 @@
  *
  * What it consolidates
  * --------------------
- * The header carried a TOUR strip with one button per tour, a Switch bank
+ * The header carried a TOUR strip with one button per tour, a bank-exit
  * button, and an officer picker. Nine controls in the chrome of a compliance
  * product, all of them scaffolding, none of which a bank's own staff would
  * ever use. They also read as product features rather than demo apparatus,
@@ -54,13 +54,13 @@ const PANEL_WIDTH = 288; // w-72
 
 export function DemoMenu({
   demoMode,
-  onSwitchBank,
-  switching = false,
+  onExitDemo,
+  exiting = false,
 }: {
   /** Resolved server-side so the menu and the data cannot disagree. */
   demoMode: boolean;
-  onSwitchBank: () => void;
-  switching?: boolean;
+  onExitDemo: () => void;
+  exiting?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -284,17 +284,23 @@ export function DemoMenu({
           </>
         )}
 
-        {/* --- bank switching -------------------------------------------- */}
+        {/* --- exit demo ------------------------------------------------- */}
+        {/*
+          Leaves the demo entirely: clears the tenant and pins demo data off,
+          then returns to the bank-select (first) screen. Same action as the
+          dedicated "Exit demo" button in the header; kept here too so the one
+          menu that gathers all demo apparatus can also end it.
+        */}
         <button
           role="menuitem"
-          disabled={switching}
+          disabled={exiting}
           onClick={() => {
             setOpen(false);
-            onSwitchBank();
+            onExitDemo();
           }}
           className="block w-full rounded px-3 py-1.5 text-left text-xs text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
         >
-          {switching ? "Switching…" : "Switch bank"}
+          {exiting ? "Exiting…" : "Exit demo"}
         </button>
       </div>
     </>
@@ -312,7 +318,7 @@ export function DemoMenu({
           borderColor: demoMode ? "rgb(245 158 11 / 0.6)" : "var(--line)",
           color: demoMode ? "rgb(252 211 77)" : "rgb(148 163 184)",
         }}
-        title="Demo controls — tours, bank switching, demo data"
+        title="Demo controls — tours, demo data, exit demo"
       >
         Demo
         <span aria-hidden className="text-[9px]">

@@ -68,7 +68,17 @@ EXPOSE 3000
 
 # Health check: /api/health returns 200 when the Next.js server is ready.
 # curl is included in node:20-alpine via busybox wget; use wget instead.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/health || exit 1
+#
+# Use 127.0.0.1, NOT localhost. The Next.js standalone server binds IPv4
+# 0.0.0.0 only; busybox wget resolves "localhost" to IPv6 ::1 first, which
+# has no listener, so the probe fails with "Connection refused" even though
+# the app serves fine on every external interface. Pinning IPv4 makes the
+# probe hit the socket the server is actually on.
+#
+# start-period is 30s (was 10s): a cold standalone boot plus the first
+# force-dynamic render can exceed 10s, and probes during start-period that
+# fail were still counting toward the unhealthy threshold on this image.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
