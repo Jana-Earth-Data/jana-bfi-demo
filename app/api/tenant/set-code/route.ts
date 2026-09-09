@@ -17,6 +17,7 @@ import {
   TENANT_COOKIE_MAX_AGE_SECONDS,
   TENANT_COOKIE_NAME,
 } from "@/lib/tenants";
+import { DEMO_MODE_COOKIE } from "@/lib/demo/mode";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,20 @@ export async function POST(request: NextRequest) {
     sameSite: "strict",
     path: "/",
     maxAge: TENANT_COOKIE_MAX_AGE_SECONDS,
+  });
+  // Entering a bank is a fresh start: clear any lingering demo-mode override
+  // so the demo comes back ON (the default for a demo build — see
+  // lib/demo/mode.ts, where an absent cookie means on). Exiting the demo pins
+  // jana_demo_mode=off so nothing fabricated survives the exit; without this
+  // reset, clicking "Continue as … (demo)" from the landing screen would drop
+  // the visitor into an empty dashboard with the toggle stuck off. Deleting
+  // the cookie (rather than writing "on") restores the build's natural default
+  // and keeps the session-scoped semantics the toggle route relies on.
+  response.cookies.set(DEMO_MODE_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
   });
   return response;
 }

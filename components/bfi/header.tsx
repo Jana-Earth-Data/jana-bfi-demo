@@ -8,7 +8,6 @@ import { Badge } from "@/components/bfi/shared/primitives";
 import { BfiDemoMeta } from "@/lib/types/bfi";
 import type { Officer } from "@/lib/tenants";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function DashboardHeader({
@@ -29,18 +28,25 @@ export function DashboardHeader({
   demoMode: boolean;
 }) {
   const { logout, accessToken } = useAuth();
-  const router = useRouter();
-  const [switching, setSwitching] = useState(false);
+  const [exiting, setExiting] = useState(false);
 
-  async function switchBank() {
-    setSwitching(true);
+  /**
+   * Exit the demo entirely and return to the bank-select (first) screen.
+   *
+   * POST /api/tenant/clear drops both the tenant cookie AND pins demo data
+   * off, so nothing fabricated survives the exit. Middleware then keeps the
+   * visitor on /enter because the tenant cookie is gone. A full-document
+   * navigation (window.location) rather than router.push, so every client
+   * component that cached synthetic data is torn down — a soft refresh would
+   * leave stale demo rows in panels that fetch in their own effects.
+   */
+  async function exitDemo() {
+    setExiting(true);
     try {
       await fetch("/api/tenant/clear", { method: "POST" });
-      // Navigate to the bank access-code entry.
-      router.push("/enter");
-      router.refresh();
-    } finally {
-      setSwitching(false);
+      window.location.href = "/enter";
+    } catch {
+      setExiting(false);
     }
   }
 
@@ -149,9 +155,24 @@ export function DashboardHeader({
           {demoBuild && (
             <DemoMenu
               demoMode={demoMode}
-              onSwitchBank={switchBank}
-              switching={switching}
+              onExitDemo={exitDemo}
+              exiting={exiting}
             />
+          )}
+          {/*
+            Dedicated, always-visible exit. The Demo menu also carries this
+            action, but a prospect who wants OUT should not have to open a
+            dropdown labelled "Demo" to find it. Demo builds only.
+          */}
+          {demoBuild && (
+            <button
+              onClick={exitDemo}
+              disabled={exiting}
+              title="Leave the demo and return to the bank-select screen"
+              className="rounded-md border border-line bg-panel px-3 py-1 text-xs text-slate-300 transition hover:bg-line/30 disabled:opacity-50"
+            >
+              {exiting ? "Exiting…" : "Exit demo"}
+            </button>
           )}
         </div>
       </div>
