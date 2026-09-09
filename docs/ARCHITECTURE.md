@@ -203,7 +203,9 @@ graph TD
   shown (demo on -> off), never widen (off -> on in a live build). Misuse
   produces silence, not a data leak.
 - `POST /api/demo/mode` sets the cookie. The Demo menu in the header exposes
-  this toggle.
+  this toggle, the guided tours, and the "Exit demo" action (which leaves the
+  demo entirely and returns to `/enter`; a dedicated "Exit demo" header button
+  offers the same action outside the menu).
 
 ### Level 3: Data provenance (`origin` column)
 
@@ -419,7 +421,7 @@ stateDiagram-v2
 | **Hydro** (2) | `/api/hydro/docs`, `docs/[loanId]` | Officer cookie | Hydropower doc matrix |
 | **Settings** (1) | `/api/settings` | Tenant cookie | Tenant settings |
 | **Demo** (1) | `/api/demo/mode` | Tenant cookie | Toggle demo/live mode |
-| **Tenant** (2) | `/api/tenant/set-code`, `clear` | None | Set/clear tenant cookie |
+| **Tenant** (2) | `/api/tenant/set-code`, `clear` | None | Entry sets tenant + resets demo mode; `clear` ("Exit demo") drops tenant + pins demo off |
 | **Officer** (1) | `/api/officer/set` | Tenant cookie | Set officer cookie |
 | **Health** (1) | `/api/health` | None | Container health check |
 
@@ -517,6 +519,15 @@ stateDiagram-v2
 1. **Tenant gating (pages):** Visitors without a valid `jana_demo_tenant`
    cookie are redirected to `/enter`. Invalid cookie values are cleared.
 
+   The demo entry/exit flow coordinates two cookies:
+   - **Exit** (`POST /api/tenant/clear`, fired by the "Exit demo" control)
+     clears `jana_demo_tenant` (→ middleware redirects to `/enter`) **and**
+     pins `jana_demo_mode=off`, so no fabricated data survives the exit.
+   - **Entry** (`POST /api/tenant/set-code` and the `/enter?bank=CODE` server
+     path) sets `jana_demo_tenant` **and deletes** `jana_demo_mode`, restoring
+     the demo-build default (ON). Without this reset, re-entering a bank after
+     an exit would land on an empty dashboard with the demo toggle stuck off.
+
 2. **Rate limiting (API routes):** In-memory sliding-window limiter (100
    req/min per IP) for all `/api/*` routes except `/api/health`. **Demo builds
    are exempt** -- a bank demo room behind one NAT shares a single IP, and a
@@ -590,7 +601,11 @@ runner stage (node:20-alpine)
 ```
 
 - Non-root user (`nextjs:nodejs`, UID 1001)
-- `HEALTHCHECK` via `wget -qO- http://localhost:3000/api/health`
+- `HEALTHCHECK` via `wget -qO- http://127.0.0.1:3000/api/health` (30s interval,
+  30s start-period). IPv4 `127.0.0.1`, not `localhost`: busybox wget resolves
+  `localhost` to IPv6 `::1`, but the standalone server binds IPv4 `0.0.0.0`
+  only, so a `localhost` probe fails with "Connection refused" on an app that
+  is actually serving fine.
 - `HOSTNAME=0.0.0.0` pinned to avoid Docker container name resolution issues
 
 ### Compose files
