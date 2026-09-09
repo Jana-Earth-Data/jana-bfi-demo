@@ -154,9 +154,11 @@ Model:
   branding without ever seeing the form.
 - Visitors with no code can click "Continue as First Bank of Nepal (demo)"
   and land on the default tenant.
-- A "Switch bank" affordance in the header clears the cookie via
-  `POST /api/tenant/clear` and returns them to `/enter`. Useful for
-  back-to-back meetings on the same laptop.
+- An "Exit demo" affordance in the header (and in the Demo menu) clears the
+  tenant cookie via `POST /api/tenant/clear` and returns them to `/enter`.
+  Useful for back-to-back meetings on the same laptop. The same call also
+  pins `jana_demo_mode=off` so the exit leaves no fabricated data behind;
+  entering any bank afterward clears that cookie again, restoring demo data.
 - **Same URL for every bank.** One production Vercel deployment; no per-bank
   redeploys; no risk of accidentally shipping Laxmi branding to a Nabil
   meeting.

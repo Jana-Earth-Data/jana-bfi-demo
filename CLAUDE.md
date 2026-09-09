@@ -10,7 +10,7 @@ A full code review and production readiness assessment were completed. Four hard
 
 ### Key documents (read these before resuming)
 
-- `CODE_REVIEW_REPORT.md` — full codebase audit (40 routes, ~30 components, ~50 lib modules). 0 critical, 3 high, 9 medium, 9 low findings.
+- `CODE_REVIEW_REPORT.md` — full codebase audit (41 routes, ~30 components, ~50 lib modules). 0 critical, 3 high, 9 medium, 9 low findings.
 - `PRODUCTION_READINESS_ASSESSMENT.md` — scored assessment with remediation roadmap. Updated 2026-08-27.
 - `ARCHITECTURE.md` — technical architecture with mermaid diagrams.
 
@@ -18,7 +18,7 @@ A full code review and production readiness assessment were completed. Four hard
 
 - Rate limiting middleware (demo-exempt)
 - Health check endpoint + Dockerfile HEALTHCHECK
-- Shared route helpers (eliminated boilerplate across 40 routes)
+- Shared route helpers (eliminated boilerplate across 41 routes)
 - Request body size guard (256 KB)
 - MIME type + magic byte validation on upload
 - Async gzip I/O on cold start
