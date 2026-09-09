@@ -19,6 +19,7 @@ import {
   TENANT_COOKIE_MAX_AGE_SECONDS,
   TENANT_COOKIE_NAME,
 } from "@/lib/tenants";
+import { DEMO_MODE_COOKIE } from "@/lib/demo/mode";
 import { EnterForm } from "./enter-form";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,10 @@ export default async function EnterPage({
       path: "/",
       maxAge: TENANT_COOKIE_MAX_AGE_SECONDS,
     });
+    // Fresh entry clears any lingering demo-mode override so the demo starts
+    // ON again (see the matching reset in app/api/tenant/set-code/route.ts).
+    // Exit pins jana_demo_mode=off; a ?bank= deep-link should not inherit that.
+    jar.delete(DEMO_MODE_COOKIE);
     redirect("/");
   }
 
