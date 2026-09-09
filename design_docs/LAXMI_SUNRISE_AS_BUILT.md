@@ -100,7 +100,7 @@ jana-bfi-demo/
 │   │   └── wizard.tsx                        [NEW] multi-step wizard client
 │   ├── header.tsx                            [MODIFIED] tenant logo, brand
 │   │                                         colors, officer picker,
-│   │                                         Switch bank button
+│   │                                         Exit demo button
 │   ├── dashboard.tsx                         [MODIFIED] DashboardSsrData
 │   │                                         extended with officers +
 │   │                                         currentOfficer; brand-color sweep
@@ -128,18 +128,28 @@ pre-existing state.
 
 ## 3. Runtime architecture
 
-### 3.1 Two cookies drive everything
+### 3.1 Three cookies drive everything
 
 | Cookie | Set by | Read by | Contains |
 |---|---|---|---|
 | `jana_demo_tenant` | `/enter` page (`?bank=CODE` server handler) or `POST /api/tenant/set-code` | Every SSR page + every capture API | Tenant id (e.g. `laxmi_sunrise`) |
 | `jana_demo_officer` | `POST /api/officer/set` | Same | Officer id (e.g. `off-laxmi-01`) |
+| `jana_demo_mode` | `POST /api/demo/mode` (toggle); `POST /api/tenant/clear` (Exit demo pins it `off`); cleared on entry | `isDemoMode()` gate on every SSR page | `off` = synthetic data hidden; absent = demo ON (the build default) |
 
-Both are HTTP-only, `SameSite=Strict`, 7-day TTL.
+`jana_demo_tenant` and `jana_demo_officer` are HTTP-only, `SameSite=Strict`,
+7-day TTL. `jana_demo_mode` is non-HTTP-only (`SameSite=Lax`, session-scoped)
+because the client-side Demo menu toggle reads and writes it.
 
 The officer cookie is validated against the CURRENT tenant's roster on
 every resolution, so a Laxmi officer id survives only as long as the
 tenant is Laxmi. Switching banks silently drops the officer.
+
+**Exit / re-entry flow.** "Exit demo" (`POST /api/tenant/clear`) drops the
+tenant cookie AND pins `jana_demo_mode=off`, so leaving the demo leaves no
+fabricated data behind. Entering any bank afterward (`/enter?bank=CODE` or
+`POST /api/tenant/set-code`) clears `jana_demo_mode`, restoring the demo
+default (ON) — so a bank chosen after an exit comes back with its synthetic
+portfolio, not an empty dashboard.
 
 ### 3.2 SSR resolution chain
 
@@ -501,9 +511,10 @@ Then:
 6. Continue through 1.2, 1.3, then Section 2, then Section 3.
 7. Reach the review step placeholder.
 8. Refresh the page mid-wizard — answers reload.
-9. Header → Switch bank → land back on `/enter` — enter no code and
+9. Header → Exit demo → land back on `/enter` — enter no code and
    click "Continue as First Bank of Nepal (demo)" — Jana green
-   everywhere, First Bank of Nepal in the header.
+   everywhere, First Bank of Nepal in the header, synthetic portfolio
+   restored (demo mode reset on entry).
 
 ---
 
